@@ -74,8 +74,12 @@ WSGI_APPLICATION = 'mnm_ck.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql', # Đã đổi sang chuẩn của Postgres
+        'NAME': 'conveniencestoredb',              # Tên DB (viết thường giống trong pgAdmin)
+        'USER': 'postgres',
+        'PASSWORD': '123456',
+        'HOST': 'localhost',
+        'PORT': '5432',
     }
 }
 
