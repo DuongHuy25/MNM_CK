@@ -1,0 +1,187 @@
+{% extends 'eshop/base.html' %}
+{% block title %}Thanh Toán - ZenMart - Cửa Hàng Tiện Lợi{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="section">
+        <h1 style="font-size:1.8rem;font-weight:800;color:#2d3436;margin-bottom:1.5rem;">
+            <i class="fas fa-lock" style="color:#667eea;"></i> Thanh Toán
+        </h1>
+
+        <form method="post" id="checkoutForm">
+            {% csrf_token %}
+            <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:2rem;" class="checkout-grid">
+                <!-- Checkout Form -->
+                <div>
+                    <!-- Shipping Info -->
+                    <div class="summary-card" style="margin-bottom:1.5rem;">
+                        <h3><i class="fas fa-truck" style="color:#667eea;margin-right:6px;"></i>Thông Tin Giao Hàng</h3>
+                        <div class="form-group">
+                            <label>{{ form.full_name.label }}</label>
+                            {{ form.full_name }}
+                            {% if form.full_name.errors %}
+                            <div style="color:#f5365c;font-size:.8rem;margin-top:4px;">{{ form.full_name.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="form-group">
+                            <label>{{ form.phone_number.label }}</label>
+                            {{ form.phone_number }}
+                            {% if form.phone_number.errors %}
+                            <div style="color:#f5365c;font-size:.8rem;margin-top:4px;">{{ form.phone_number.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="form-group">
+                            <label>{{ form.shipping_address.label }}</label>
+                            {{ form.shipping_address }}
+                            {% if form.shipping_address.errors %}
+                            <div style="color:#f5365c;font-size:.8rem;margin-top:4px;">{{ form.shipping_address.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="form-group">
+                            <label>{{ form.note.label }}</label>
+                            {{ form.note }}
+                        </div>
+                    </div>
+
+                    <!-- Payment Method -->
+                    <div class="summary-card">
+                        <h3><i class="fas fa-credit-card" style="color:#667eea;margin-right:6px;"></i>Phương Thức Thanh Toán</h3>
+                        <div class="radio-group">
+                            {% for choice in form.payment_method %}
+                            <label class="radio-option" onclick="showPaymentDetail('{{ choice.data.value }}')">
+                                {{ choice.tag }}
+                                <div>
+                                    <div class="radio-label">{{ choice.choice_label }}</div>
+                                </div>
+                            </label>
+                            {% endfor %}
+                        </div>
+                        {% if form.payment_method.errors %}
+                        <div style="color:#f5365c;font-size:.8rem;margin-top:8px;">{{ form.payment_method.errors.0 }}</div>
+                        {% endif %}
+
+                        <!-- COD Detail -->
+                        <div id="pay-cod" class="payment-detail" style="display:none;">
+                            <div style="background:#e6f9ee;border-radius:12px;padding:1rem;display:flex;align-items:center;gap:10px;">
+                                <i class="fas fa-hand-holding-usd" style="font-size:1.3rem;color:#2dce89;"></i>
+                                <div>
+                                    <div style="font-weight:700;color:#2d3436;">Thanh toán khi nhận hàng</div>
+                                    <div style="font-size:.82rem;color:#636e72;">Bạn sẽ thanh toán bằng tiền mặt khi shipper giao hàng đến nơi.</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bank Detail -->
+                        <div id="pay-bank" class="payment-detail" style="display:none;">
+                            <div style="background:#e8edff;border-radius:12px;padding:1.2rem;">
+                                <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem;">
+                                    <i class="fas fa-university" style="font-size:1.3rem;color:#667eea;"></i>
+                                    <div style="font-weight:700;color:#2d3436;">Chuyển khoản ngân hàng</div>
+                                </div>
+                                <div style="background:white;border-radius:10px;padding:1rem;font-size:.88rem;">
+                                    <div style="display:grid;grid-template-columns:auto 1fr;gap:6px 16px;">
+                                        <span style="color:#636e72;font-weight:600;">Ngân hàng:</span>
+                                        <span style="color:#2d3436;font-weight:700;">Vietcombank</span>
+                                        <span style="color:#636e72;font-weight:600;">Số tài khoản:</span>
+                                        <span style="color:#2d3436;font-weight:700;font-family:monospace;">1234 5678 9012 345</span>
+                                        <span style="color:#636e72;font-weight:600;">Chủ tài khoản:</span>
+                                        <span style="color:#2d3436;font-weight:700;">CÔNG TY ZENMART VN</span>
+                                        <span style="color:#636e72;font-weight:600;">Nội dung CK:</span>
+                                        <span style="color:#667eea;font-weight:700;font-family:monospace;">ZENMART [Mã đơn hàng]</span>
+                                    </div>
+                                </div>
+                                <div style="margin-top:.75rem;font-size:.8rem;color:#636e72;">
+                                    <i class="fas fa-info-circle" style="color:#667eea;"></i> Sau khi đặt hàng, bạn sẽ được chuyển đến trang xác nhận chuyển khoản. Đơn hàng sẽ được xử lý sau khi chúng tôi nhận được tiền.
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- MoMo Detail -->
+                        <div id="pay-momo" class="payment-detail" style="display:none;">
+                            <div style="background:#fff0f0;border-radius:12px;padding:1.2rem;">
+                                <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem;">
+                                    <div style="width:32px;height:32px;background:#a50064;border-radius:8px;display:flex;align-items:center;justify-content:center;">
+                                        <i class="fas fa-wallet" style="color:white;font-size:.9rem;"></i>
+                                    </div>
+                                    <div style="font-weight:700;color:#2d3436;">Ví MoMo</div>
+                                </div>
+                                <div style="background:white;border-radius:10px;padding:1rem;text-align:center;">
+                                    <div style="font-size:.82rem;color:#636e72;margin-bottom:.5rem;">Quét mã QR để thanh toán bằng ví MoMo</div>
+                                    <div style="width:140px;height:140px;margin:0 auto;background:repeating-conic-gradient(#2d3436 0% 25%, white 0% 50%) 50%/12px 12px;border-radius:10px;display:flex;align-items:center;justify-content:center;position:relative;">
+                                        <div style="background:white;border-radius:6px;padding:6px 10px;font-weight:800;font-size:.75rem;color:#a50064;">MoMo</div>
+                                    </div>
+                                    <div style="margin-top:.5rem;font-size:.82rem;color:#636e72;">
+                                        Số điện thoại MoMo: <strong style="color:#2d3436;">0909 123 456</strong>
+                                    </div>
+                                </div>
+                                <div style="margin-top:.75rem;font-size:.8rem;color:#636e72;">
+                                    <i class="fas fa-info-circle" style="color:#a50064;"></i> Sau khi đặt hàng, bạn sẽ được chuyển đến trang thanh toán MoMo giả lập để hoàn tất giao dịch.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Order Summary -->
+                <div>
+                    <div class="summary-card">
+                        <h3><i class="fas fa-receipt" style="color:#667eea;margin-right:6px;"></i>Đơn Hàng Của Bạn</h3>
+                        {% for item in cart %}
+                        <div style="display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid #f0f2f5;">
+                            {% if item.product.image and item.product.image.name %}
+                            <img src="{{ item.product.image.url }}" style="width:48px;height:48px;border-radius:8px;object-fit:cover;" alt="">
+                            {% else %}
+                            <div style="width:48px;height:48px;border-radius:8px;background:linear-gradient(135deg,#f6d365,#fda085);display:flex;align-items:center;justify-content:center;color:white;font-size:1rem;flex-shrink:0;">
+                                <i class="fas fa-bowl-food"></i>
+                            </div>
+                            {% endif %}
+                            <div style="flex:1;">
+                                <div style="font-weight:600;font-size:.85rem;color:#2d3436;">{{ item.product.name }}</div>
+                                <div style="font-size:.75rem;color:#636e72;">{{ item.quantity }} x {{ item.price|floatformat:0 }}đ</div>
+                            </div>
+                            <div style="font-weight:700;font-size:.9rem;color:#2d3436;">{{ item.total_price|floatformat:0 }}đ</div>
+                        </div>
+                        {% endfor %}
+
+                        <div class="summary-row" style="margin-top:8px;">
+                            <span>Tạm tính</span>
+                            <span>{{ cart.get_total_price|floatformat:0 }}đ</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Phí giao hàng</span>
+                            <span style="color:#2dce89;font-weight:600;">Miễn phí</span>
+                        </div>
+                        <div class="summary-row total">
+                            <span>Tổng cộng</span>
+                            <span style="color:#667eea;">{{ cart.get_total_price|floatformat:0 }}đ</span>
+                        </div>
+
+                        <button type="submit" class="btn-primary" style="width:100%;margin-top:1.5rem;padding:14px;font-size:1rem;">
+                            <i class="fas fa-check-circle"></i> Xác Nhận Đặt Hàng
+                        </button>
+                        <a href="{% url 'eshop:cart' %}" style="display:block;text-align:center;margin-top:.75rem;font-size:.85rem;color:#667eea;font-weight:600;">
+                            ← Quay lại giỏ hàng
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.payment-detail { margin-top: 1rem; }
+</style>
+
+<script>
+function showPaymentDetail(method) {
+    document.querySelectorAll('.payment-detail').forEach(el => el.style.display = 'none');
+    const detail = document.getElementById('pay-' + method);
+    if (detail) detail.style.display = 'block';
+}
+// Show initial selection
+document.addEventListener('DOMContentLoaded', function() {
+    const checked = document.querySelector('input[name="payment_method"]:checked');
+    if (checked) showPaymentDetail(checked.value);
+});
+</script>
+{% endblock %}

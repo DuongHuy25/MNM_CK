@@ -1,0 +1,50 @@
+{% extends 'eshop/base.html' %}
+{% block title %}Đăng Nhập{% endblock %}
+{% block content %}
+<div style="max-width:440px;margin:3rem auto;">
+    <div class="summary-card" style="padding:2.5rem;">
+        <div style="text-align:center;margin-bottom:2rem;">
+            <div style="width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;">
+                <i class="fas fa-user" style="font-size:1.5rem;color:white;"></i>
+            </div>
+            <h2 style="font-size:1.5rem;font-weight:800;color:#2d3436;">Đăng Nhập</h2>
+            <p style="color:#636e72;font-size:.9rem;">Đăng nhập để theo dõi đơn hàng và mua sắm</p>
+        </div>
+
+        {% if form.non_field_errors %}
+        <div class="msg msg-error" style="margin-bottom:1rem;">
+            {% for err in form.non_field_errors %}{{ err }}{% endfor %}
+        </div>
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ next }}">
+            <div class="form-group">
+                <label>{{ form.email.label }}</label>
+                {{ form.email }}
+                {% if form.email.errors %}
+                <div style="color:#f5365c;font-size:.8rem;margin-top:4px;">{{ form.email.errors.0 }}</div>
+                {% endif %}
+            </div>
+            <div class="form-group">
+                <label>{{ form.password.label }}</label>
+                {{ form.password }}
+                {% if form.password.errors %}
+                <div style="color:#f5365c;font-size:.8rem;margin-top:4px;">{{ form.password.errors.0 }}</div>
+                {% endif %}
+            </div>
+            <button type="submit" class="btn-primary" style="width:100%;padding:14px;font-size:1rem;margin-top:.5rem;">
+                <i class="fas fa-sign-in-alt"></i> Đăng Nhập
+            </button>
+        </form>
+
+        <div style="text-align:center;margin-top:1.25rem;font-size:.85rem;color:#636e72;">
+            Chưa có tài khoản? <a href="{% url 'eshop:register' %}" style="color:#667eea;font-weight:700;">Đăng ký ngay</a>
+        </div>
+        <div style="text-align:center;margin-top:.5rem;">
+            <a href="{% url 'eshop:password_reset' %}" style="font-size:.82rem;color:#636e72;"><i class="fas fa-key"></i> Quên mật khẩu?</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

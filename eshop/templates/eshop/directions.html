@@ -1,0 +1,304 @@
+{% extends 'eshop/base.html' %}
+{% block title %}Tìm Đường Đến ZenMart{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
+<style>
+.dir-page{max-width:1200px;margin:0 auto;padding:2rem 1rem}
+.dir-header{text-align:center;margin-bottom:1.5rem}
+.dir-header h1{font-size:2rem;font-weight:800;color:#2d3436;margin-bottom:.5rem}
+.dir-header p{color:#636e72;font-size:1rem}
+.dir-controls{background:white;border-radius:16px;padding:1.5rem;box-shadow:0 4px 20px rgba(0,0,0,.06);margin-bottom:1.5rem}
+.dir-search{display:flex;gap:.5rem;margin-bottom:1rem}
+.dir-search input{flex:1;padding:.75rem 1rem;border:2px solid #eee;border-radius:10px;font-size:.95rem;outline:none;transition:.3s}
+.dir-search input:focus{border-color:#667eea;box-shadow:0 0 0 3px rgba(102,126,234,.2)}
+.dir-btn{padding:.75rem 1.2rem;border:none;border-radius:10px;font-weight:700;cursor:pointer;transition:.2s;font-size:.85rem;display:inline-flex;align-items:center;gap:6px}
+.dir-btn:hover{transform:translateY(-2px)}
+.dir-btn-primary{background:#667eea;color:white}
+.dir-btn-green{background:#2dce89;color:white}
+.dir-btn-red{background:#f5365c;color:white}
+.dir-btn-gray{background:#6c757d;color:white;display:none}
+.dir-btn-orange{background:#fb6340;color:white}
+.dir-actions{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem}
+.dir-route-info{display:none;background:#f3f4ff;border-radius:10px;padding:1rem;border:1px solid #e0e3ff;font-weight:600;font-size:1rem;color:#32325d;text-align:center}
+.dir-route-info span{color:#667eea;font-weight:800}
+.dir-stores{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1rem;margin-bottom:1.5rem}
+.dir-store-card{background:white;border-radius:12px;padding:1rem;box-shadow:0 2px 12px rgba(0,0,0,.05);cursor:pointer;transition:.2s;border:2px solid transparent}
+.dir-store-card:hover{border-color:#667eea;transform:translateY(-2px)}
+.dir-store-card.active{border-color:#667eea;background:#f3f4ff}
+.dir-store-card h4{font-size:.95rem;color:#2d3436;margin-bottom:4px}
+.dir-store-card p{font-size:.8rem;color:#636e72;margin:2px 0}
+.dir-store-card .dir-store-dist{font-size:.75rem;color:#667eea;font-weight:700;margin-top:4px}
+.dir-map-wrap{position:relative;overflow:hidden;border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,.08);border:3px solid white}
+#map{height:500px;width:100%;z-index:1}
+.leaflet-routing-container{display:none!important}
+.dir-store-list{position:absolute;top:10px;right:10px;width:280px;max-height:380px;overflow-y:auto;background:white;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.15);z-index:1000;display:none}
+.dir-store-list.show{display:block}
+.dir-store-list-header{padding:12px 15px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border-radius:12px 12px 0 0;font-weight:700;font-size:.9rem}
+.dir-store-list-item{padding:10px 15px;border-bottom:1px solid #eee;cursor:pointer;transition:.2s}
+.dir-store-list-item:hover{background:#f8f9fa}
+.dir-store-list-item:last-child{border-bottom:none}
+.dir-toast{position:fixed;top:90px;right:-400px;padding:12px 20px;border-radius:10px;font-weight:600;color:white;box-shadow:0 8px 25px rgba(0,0,0,.2);transition:right .4s cubic-bezier(.68,-.55,.265,1.55);z-index:1100;display:flex;align-items:center;gap:8px;font-size:.9rem}
+.dir-toast.show{right:20px}
+.dir-toast-success{background:#2dce89}
+.dir-toast-error{background:#f5365c}
+.dir-toast-info{background:#11cdef}
+.pinned-popup{background:white;padding:8px 12px;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,.1);max-width:220px}
+.pinned-popup h4{margin:0 0 6px;font-size:.85rem;color:#667eea}
+.pinned-popup p{margin:0;font-size:.75rem;color:#636e72}
+@media(max-width:768px){#map{height:380px}.dir-stores{grid-template-columns:1fr 1fr}.dir-search{flex-direction:column}.dir-actions{justify-content:center}}
+</style>
+
+<div class="dir-page">
+    <div class="dir-header">
+        <h1><i class="fas fa-map-location-dot" style="color:#667eea;"></i> Tìm Đường Đến ZenMart</h1>
+        <p>4 cách tìm đường: nhập địa chỉ, ghim bản đồ, chọn chi nhánh, hoặc định vị GPS</p>
+    </div>
+
+    <div class="dir-controls">
+        <div class="dir-search">
+            <input type="text" id="address-input" placeholder="Nhập địa chỉ của bạn...">
+            <button class="dir-btn dir-btn-primary" onclick="searchAddress()"><i class="fas fa-search"></i> Tìm</button>
+        </div>
+        <div class="dir-actions">
+            <button class="dir-btn dir-btn-green" onclick="getLocation()"><i class="fas fa-location-crosshairs"></i> Vị trí của tôi</button>
+            <button class="dir-btn dir-btn-orange" onclick="findNearbyStores()"><i class="fas fa-store"></i> Quán gần nhất (5km)</button>
+            <button class="dir-btn dir-btn-gray" id="btn-clear" onclick="clearRoute()"><i class="fas fa-eraser"></i> Xóa đường</button>
+        </div>
+        <div class="dir-route-info" id="route-info">
+            🚗 Quãng đường: <span id="route-distance">0</span> km | ⏱️ Dự kiến: <span id="route-time">0</span> phút
+        </div>
+    </div>
+
+    <div class="dir-stores" id="store-cards">
+        {% for store in stores %}
+        <div class="dir-store-card" data-lat="{{ store.latitude }}" data-lng="{{ store.longitude }}" data-name="{{ store.name|escapejs }}" data-id="{{ store.pk }}" onclick="selectStoreCard(this)">
+            <h4><i class="fas fa-store" style="color:#667eea;margin-right:4px;"></i>{{ store.name }}</h4>
+            <p><i class="fas fa-map-marker-alt" style="color:#adb5bd;margin-right:4px;"></i>{{ store.address }}</p>
+            <p><i class="fas fa-clock" style="color:#adb5bd;margin-right:4px;"></i>{{ store.opening_hours }}</p>
+            <div class="dir-store-dist" id="dist-{{ store.pk }}"></div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="dir-map-wrap">
+        <div id="map">
+            <div id="nearby-list" class="dir-store-list">
+                <div class="dir-store-list-header"><i class="fas fa-store"></i> Cửa hàng gần bạn <span id="nearby-count" style="float:right;font-size:.75rem;"></span></div>
+                <div id="nearby-content"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="toast" class="dir-toast"><i id="toast-icon" class="fas"></i> <span id="toast-msg"></span></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+<script>
+const STORES = [
+    {% for store in stores %}{"id":{{ store.pk }},"name":"{{ store.name|escapejs }}","address":"{{ store.address|escapejs }}","lat":{{ store.latitude }},"lng":{{ store.longitude }},"hours":"{{ store.opening_hours|default:'9:00 - 22:00'|escapejs }}"}{% if not forloop.last %},{% endif %}{% endfor %}
+];
+
+{% if target_store %}
+const TARGET_STORE = {"id":{{ target_store.pk }},"name":"{{ target_store.name|escapejs }}","lat":{{ target_store.latitude }},"lng":{{ target_store.longitude }}};
+{% else %}
+const TARGET_STORE = null;
+{% endif %}
+
+let map = L.map('map',{center:[10.7769,106.7009],zoom:13,zoomControl:true});
+let userMarker = null, pinnedMarker = null, routingControl = null;
+let storeMarkers = [];
+
+// Fix: invalidateSize after container is fully rendered
+setTimeout(function(){ map.invalidateSize(); }, 200);
+
+L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{
+    attribution:'&copy; OpenStreetMap &copy; CARTO',subdomains:'abcd',maxZoom:20
+}).addTo(map);
+
+const storeIcon = L.divIcon({className:'',html:'<div style="background:linear-gradient(135deg,#667eea,#764ba2);width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:14px;border:3px solid white;box-shadow:0 3px 10px rgba(0,0,0,.3)"><i class="fas fa-store"></i></div>',iconSize:[34,34],iconAnchor:[17,17]});
+const userIcon = L.divIcon({className:'',html:'<div style="background:linear-gradient(135deg,#2196F3,#03A9F4);width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:16px;border:3px solid white;box-shadow:0 3px 10px rgba(0,0,0,.3)"><i class="fas fa-user"></i></div>',iconSize:[38,38],iconAnchor:[19,19]});
+const pinIcon = L.divIcon({className:'',html:'<div style="background:linear-gradient(135deg,#FF9800,#FFC107);width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:14px;border:3px solid white;box-shadow:0 3px 10px rgba(0,0,0,.3)"><i class="fas fa-map-pin"></i></div>',iconSize:[34,34],iconAnchor:[17,17]});
+
+// Display stores on map
+STORES.forEach(s => {
+    const m = L.marker([s.lat, s.lng], {icon: storeIcon}).addTo(map)
+        .bindPopup(`<div style="min-width:180px"><h4 style="margin:0 0 6px;color:#667eea;font-size:.95rem"><i class="fas fa-store"></i> ${s.name}</h4><p style="margin:0 0 4px;font-size:.8rem;color:#555"><i class="fas fa-map-marker-alt"></i> ${s.address}</p><p style="margin:0;font-size:.75rem;color:#888"><i class="fas fa-clock"></i> ${s.hours}</p><button onclick="drawRoute(${s.lat},${s.lng},'${s.name.replace(/'/g,"\\'")}') " style="margin-top:8px;padding:5px 10px;background:#667eea;color:white;border:none;border-radius:5px;font-size:.75rem;cursor:pointer"><i class="fas fa-directions"></i> Chỉ đường</button></div>`);
+    storeMarkers.push(m);
+});
+
+if(STORES.length > 0){
+    const bounds = L.latLngBounds(STORES.map(s => [s.lat, s.lng]));
+    map.fitBounds(bounds, {padding:[50,50]});
+}
+
+// Toast
+function showToast(msg, type='info'){
+    const t=document.getElementById('toast'),ic=document.getElementById('toast-icon');
+    document.getElementById('toast-msg').innerText=msg;
+    t.className='dir-toast show';
+    if(type==='success'){t.classList.add('dir-toast-success');ic.className='fas fa-check-circle';}
+    else if(type==='error'){t.classList.add('dir-toast-error');ic.className='fas fa-triangle-exclamation';}
+    else{t.classList.add('dir-toast-info');ic.className='fas fa-circle-info';}
+    setTimeout(()=>t.classList.remove('show'),3500);
+}
+
+// Haversine
+function calcDist(lat1,lon1,lat2,lon2){
+    const R=6371,dLat=(lat2-lat1)*Math.PI/180,dLon=(lon2-lon1)*Math.PI/180;
+    const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+    return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+function findNearest(lat,lng){
+    let best=null,minD=Infinity;
+    STORES.forEach(s=>{const d=calcDist(lat,lng,s.lat,s.lng);if(d<minD){minD=d;best=s;}});
+    return best?{store:best,distance:minD}:null;
+}
+
+// Draw route
+function drawRoute(destLat, destLng, destName, originLat, originLon, originLabel){
+    if(routingControl) map.removeControl(routingControl);
+    const oLat=originLat, oLng=originLon, oLabel=originLabel||'📍 Vị trí của bạn';
+    routingControl=L.Routing.control({
+        waypoints:[L.latLng(oLat,oLng),L.latLng(destLat,destLng)],
+        routeWhileDragging:true,show:false,
+        createMarker:function(i,wp){
+            if(i===0) return L.marker(wp.latLng,{icon:userIcon,draggable:true}).bindPopup(oLabel).openPopup();
+            return L.marker(wp.latLng,{icon:storeIcon}).bindPopup('<b><i class="fas fa-store"></i> '+destName+'</b>');
+        },
+        lineOptions:{styles:[{color:'#667eea',opacity:.8,weight:6}]}
+    }).addTo(map);
+    routingControl.on('routesfound',function(e){
+        const sm=e.routes[0].summary;
+        document.getElementById('route-distance').innerText=(sm.totalDistance/1000).toFixed(1);
+        document.getElementById('route-time').innerText=Math.round(sm.totalTime/60);
+        document.getElementById('route-info').style.display='block';
+        document.getElementById('btn-clear').style.display='inline-flex';
+    });
+}
+
+function routeToNearest(lat,lng,label){
+    const r=findNearest(lat,lng);
+    if(!r){showToast('Không tìm thấy cửa hàng!','error');return;}
+    drawRoute(r.store.lat,r.store.lng,r.store.name,lat,lng,label);
+    showToast(`Chỉ đường đến ${r.store.name} (${r.distance.toFixed(2)} km)`,'success');
+}
+
+// Search address
+async function searchAddress(){
+    const addr=document.getElementById('address-input').value.trim();
+    if(!addr) return showToast('Vui lòng nhập địa chỉ!','error');
+    showToast('Đang tìm kiếm...','info');
+    try{
+        const res=await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr)}&countrycodes=vn`);
+        const data=await res.json();
+        if(data&&data.length>0){
+            const lat=parseFloat(data[0].lat),lng=parseFloat(data[0].lon);
+            if(pinnedMarker) map.removeLayer(pinnedMarker);
+            pinnedMarker=L.marker([lat,lng],{icon:pinIcon}).addTo(map).bindPopup('<b>📍 '+addr+'</b>').openPopup();
+            routeToNearest(lat,lng,'📍 '+addr);
+            showToast('Đã tìm thấy! Đang chỉ đường...','success');
+        } else showToast('Không tìm thấy địa chỉ!','error');
+    }catch(e){showToast('Lỗi kết nối!','error');}
+}
+
+// GPS
+function getLocation(){
+    if(!navigator.geolocation) return showToast('Trình duyệt không hỗ trợ định vị','error');
+    showToast('Đang lấy vị trí GPS...','info');
+    navigator.geolocation.getCurrentPosition(p=>{
+        const lat=p.coords.latitude,lng=p.coords.longitude;
+        if(userMarker) map.removeLayer(userMarker);
+        userMarker=L.marker([lat,lng],{icon:userIcon}).addTo(map).bindPopup('<b><i class="fas fa-user"></i> Vị trí GPS</b>').openPopup();
+        routeToNearest(lat,lng,'📍 Vị trí GPS');
+        showToast('Đã định vị! Đang chỉ đường...','success');
+    },()=>showToast('Vui lòng cho phép quyền vị trí!','error'));
+}
+
+// Nearby stores
+function findNearbyStores(){
+    if(!navigator.geolocation) return showToast('Trình duyệt không hỗ trợ định vị','error');
+    showToast('Đang tìm quán gần bạn...','info');
+    navigator.geolocation.getCurrentPosition(p=>{
+        const uLat=p.coords.latitude,uLng=p.coords.longitude;
+        if(userMarker) map.removeLayer(userMarker);
+        userMarker=L.marker([uLat,uLng],{icon:userIcon}).addTo(map).bindPopup('<b><i class="fas fa-user"></i> Bạn</b>').openPopup();
+        const nearby=STORES.map(s=>({...s,distance:calcDist(uLat,uLng,s.lat,s.lng)})).filter(s=>s.distance<=5).sort((a,b)=>a.distance-b.distance);
+        if(!nearby.length) return showToast('Không có quán nào trong 5km!','error');
+        const el=document.getElementById('nearby-list'),ct=document.getElementById('nearby-count'),cn=document.getElementById('nearby-content');
+        ct.textContent=nearby.length+' quán';
+        cn.innerHTML=nearby.map(s=>`<div class="dir-store-list-item" onclick="drawRoute(${s.lat},${s.lng},'${s.name.replace(/'/g,"\\'")}',${uLat},${uLng},'Vị trí của bạn');document.getElementById('nearby-list').classList.remove('show')"><div style="font-weight:600;color:#2d3436;font-size:.9rem"><i class="fas fa-store" style="color:#667eea"></i> ${s.name}</div><div style="font-size:.78rem;color:#636e72">${s.address}</div><div style="font-size:.72rem;color:#667eea;font-weight:600;margin-top:2px"><i class="fas fa-walking"></i> ${s.distance.toFixed(2)} km</div></div>`).join('');
+        el.classList.add('show');
+        const bounds=L.latLngBounds([[uLat,uLng]]);nearby.forEach(s=>bounds.extend([s.lat,s.lng]));map.fitBounds(bounds,{padding:[50,50]});
+        showToast(`Tìm thấy ${nearby.length} quán gần bạn!`,'success');
+    },()=>showToast('Vui lòng cho phép quyền vị trí!','error'));
+}
+
+// Click map to pin
+map.on('click',async e=>{
+    const lat=e.latlng.lat,lng=e.latlng.lng;
+    if(pinnedMarker) map.removeLayer(pinnedMarker);
+    pinnedMarker=L.marker([lat,lng],{icon:pinIcon}).addTo(map).bindPopup('<div class="pinned-popup"><h4>Đang tải...</h4></div>').openPopup();
+    try{
+        const res=await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`);
+        const data=await res.json();
+        const addr=(data.display_name||'').split(',').slice(0,3).join(',')||`${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+        const nr=findNearest(lat,lng);
+        const nrInfo=nr?`<div style="margin-top:4px;font-size:.7rem;color:#667eea;font-weight:600"><i class="fas fa-store"></i> Gần nhất: ${nr.store.name} (${nr.distance.toFixed(2)}km)</div>`:'';
+        pinnedMarker.bindPopup(`<div class="pinned-popup"><h4><i class="fas fa-map-pin"></i> Vị trí đã ghim</h4><p>${addr}</p>${nrInfo}<button onclick="routeToNearest(${lat},${lng},'Vị trí đã ghim')" style="margin-top:6px;padding:4px 8px;background:#667eea;color:white;border:none;border-radius:4px;font-size:.7rem;cursor:pointer"><i class="fas fa-directions"></i> Chỉ đường</button></div>`).openPopup();
+    }catch(e){
+        pinnedMarker.bindPopup(`<div class="pinned-popup"><h4><i class="fas fa-map-pin"></i> Đã ghim</h4><p>${lat.toFixed(5)}, ${lng.toFixed(5)}</p><button onclick="routeToNearest(${lat},${lng},'Vị trí đã ghim')" style="margin-top:6px;padding:4px 8px;background:#667eea;color:white;border:none;border-radius:4px;font-size:.7rem;cursor:pointer"><i class="fas fa-directions"></i> Chỉ đường</button></div>`).openPopup();
+    }
+    routeToNearest(lat,lng,'Vị trí đã ghim');
+    showToast('Đã ghim! Đang chỉ đường...','success');
+});
+
+// Select store card
+function selectStoreCard(el){
+    document.querySelectorAll('.dir-store-card').forEach(c=>c.classList.remove('active'));
+    el.classList.add('active');
+    const lat=parseFloat(el.dataset.lat),lng=parseFloat(el.dataset.lng),name=el.dataset.name;
+    // Need user location first
+    if(userMarker){
+        const uLat=userMarker.getLatLng().lat,uLng=userMarker.getLatLng().lng;
+        drawRoute(lat,lng,name,uLat,uLng,'Vị trí của bạn');
+    } else if(pinnedMarker){
+        const pLat=pinnedMarker.getLatLng().lat,pLng=pinnedMarker.getLatLng().lng;
+        drawRoute(lat,lng,name,pLat,pLng,'Vị trí đã ghim');
+    } else {
+        // No origin yet - ask for GPS
+        showToast('Hãy định vị vị trí của bạn trước!','info');
+        getLocation();
+    }
+}
+
+// Clear route
+function clearRoute(){
+    if(routingControl){map.removeControl(routingControl);routingControl=null;}
+    if(userMarker){map.removeLayer(userMarker);userMarker=null;}
+    if(pinnedMarker){map.removeLayer(pinnedMarker);pinnedMarker=null;}
+    document.getElementById('btn-clear').style.display='none';
+    document.getElementById('route-info').style.display='none';
+    document.getElementById('nearby-list').classList.remove('show');
+    document.getElementById('address-input').value='';
+    document.querySelectorAll('.dir-store-card').forEach(c=>c.classList.remove('active'));
+    if(STORES.length>0){const b=L.latLngBounds(STORES.map(s=>[s.lat,s.lng]));map.fitBounds(b,{padding:[50,50]});}
+    showToast('Đã xóa tuyến đường','info');
+}
+
+// Close nearby list on outside click
+document.addEventListener('click',e=>{
+    const sl=document.getElementById('nearby-list');
+    if(!sl.contains(e.target)&&!e.target.closest('.dir-btn-orange'))sl.classList.remove('show');
+});
+
+// Auto-route if target_store provided via URL param
+{% if target_store %}
+document.addEventListener('DOMContentLoaded',()=>{
+    getLocation();
+});
+{% endif %}
+</script>
+{% endblock %}

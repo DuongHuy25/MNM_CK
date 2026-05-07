@@ -1,0 +1,57 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ status_code }} - {{ title }} | ZenMart</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%23667eea'/%3E%3Cstop offset='100%25' style='stop-color:%23764ba2'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='url(%23g)'/%3E%3Cpath d='M18 20h28l-20 24h22' stroke='white' stroke-width='5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'Inter',sans-serif;background:#f5f7fa;color:#2d3436;min-height:100vh;display:flex;align-items:center;justify-content:center}
+        .error-container{text-align:center;max-width:560px;padding:2rem}
+        .error-code{font-size:8rem;font-weight:900;line-height:1;background:linear-gradient(135deg,{{ color }},#764ba2);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:.5rem}
+        .error-icon{width:80px;height:80px;border-radius:50%;background:{{ color }}15;display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem}
+        .error-icon i{font-size:2rem;color:{{ color }}}
+        .error-title{font-size:1.5rem;font-weight:800;color:#2d3436;margin-bottom:.75rem}
+        .error-message{font-size:1rem;color:#636e72;line-height:1.7;margin-bottom:2rem}
+        .error-actions{display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap}
+        .btn{display:inline-flex;align-items:center;gap:8px;padding:12px 28px;border-radius:12px;font-size:.9rem;font-weight:700;text-decoration:none;transition:all .2s}
+        .btn-primary{background:linear-gradient(135deg,#667eea,#764ba2);color:white;box-shadow:0 4px 15px rgba(102,126,234,.3)}
+        .btn-primary:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(102,126,234,.4)}
+        .btn-outline{background:white;color:#2d3436;border:2px solid #e0e0e0}
+        .btn-outline:hover{border-color:#667eea;color:#667eea}
+        .error-details{margin-top:2rem;padding:1rem;background:white;border-radius:12px;font-size:.82rem;color:#b2bec3;text-align:left}
+        .error-details summary{cursor:pointer;font-weight:600;color:#636e72}
+        @media(max-width:480px){
+            .error-code{font-size:5rem}
+            .error-title{font-size:1.2rem}
+            .error-actions{flex-direction:column}
+            .btn{justify-content:center}
+        }
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <div class="error-icon"><i class="{{ icon }}"></i>
+        </div>
+        <div class="error-code">{{ status_code }}</div>
+        <h1 class="error-title">{{ title }}</h1>
+        <p class="error-message">{{ message }}</p>
+        <div class="error-actions">
+            <a href="/" class="btn btn-primary"><i class="fas fa-home"></i> Về Trang Chủ</a>
+            <a href="javascript:history.back()" class="btn btn-outline"><i class="fas fa-arrow-left"></i> Quay Lại</a>
+        </div>
+        {% if status_code >= 500 %}
+        <div class="error-details">
+            <details>
+                <summary><i class="fas fa-info-circle"></i> Chi tiết kỹ thuật</summary>
+                <p style="margin-top:.5rem;">Nếu lỗi tiếp tục xảy ra, vui lòng liên hệ bộ phận hỗ trợ hoặc thử lại sau vài phút.</p>
+            </details>
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>

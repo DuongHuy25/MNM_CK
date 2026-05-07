@@ -1,0 +1,95 @@
+{% extends 'eshop/base.html' %}
+{% block title %}Tra Cứu Đơn Hàng{% endblock %}
+{% block content %}
+<div class="container">
+    <div style="max-width:700px;margin:0 auto;padding:3rem 2rem;">
+        <h1 style="font-size:1.8rem;font-weight:800;color:#2d3436;margin-bottom:1.5rem;text-align:center;">
+            <i class="fas fa-search" style="color:#667eea;"></i> Tra Cứu Đơn Hàng
+        </h1>
+
+        <div class="summary-card" style="margin-bottom:2rem;">
+            <form method="post">
+                {% csrf_token %}
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>{{ form.order_id.label }}</label>
+                    <div style="display:flex;gap:.5rem;">
+                        {{ form.order_id }}
+                        <button type="submit" class="btn-primary" style="white-space:nowrap;">
+                            <i class="fas fa-search"></i> Tìm
+                        </button>
+                    </div>
+                    {% if form.order_id.errors %}
+                    <div style="color:#f5365c;font-size:.8rem;margin-top:4px;">{{ form.order_id.errors.0 }}</div>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+
+        {% if order %}
+        <div class="summary-card">
+            <h3 style="display:flex;align-items:center;justify-content:space-between;">
+                <span><i class="fas fa-receipt" style="color:#667eea;margin-right:6px;"></i>Đơn Hàng</span>
+                <span class="status-badge status-{{ order.status }}">{{ order.get_status_display }}</span>
+            </h3>
+
+            <div class="summary-row">
+                <span>Mã đơn hàng</span>
+                <span style="font-weight:700;color:#667eea;font-family:monospace;">{{ order.order_id }}</span>
+            </div>
+            <div class="summary-row">
+                <span>Người nhận</span>
+                <span>{{ order.full_name }}</span>
+            </div>
+            <div class="summary-row">
+                <span>Số điện thoại</span>
+                <span>{{ order.phone_number }}</span>
+            </div>
+            <div class="summary-row">
+                <span>Địa chỉ giao hàng</span>
+                <span style="max-width:300px;text-align:right;">{{ order.shipping_address }}</span>
+            </div>
+            <div class="summary-row">
+                <span>Ngày đặt</span>
+                <span>{{ order.created_at|date:'d/m/Y H:i' }}</span>
+            </div>
+
+            <!-- Order Items -->
+            <div style="margin:1rem 0;border-top:1px solid #f0f2f5;padding-top:1rem;">
+                <div style="font-size:.78rem;font-weight:700;color:#636e72;text-transform:uppercase;margin-bottom:.75rem;">Sản Phẩm</div>
+                {% for item in order.items.all %}
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f5f7fa;">
+                    <div>
+                        <div style="font-weight:600;font-size:.9rem;color:#2d3436;">{{ item.product.name }}</div>
+                        <div style="font-size:.75rem;color:#636e72;">{{ item.quantity }} x {{ item.unit_price|floatformat:0 }}đ</div>
+                    </div>
+                    <div style="font-weight:700;color:#2d3436;">{{ item.total_price|floatformat:0 }}đ</div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="summary-row total">
+                <span>Tổng cộng</span>
+                <span style="color:#667eea;">{{ order.total_amount|floatformat:0 }}đ</span>
+            </div>
+
+            <!-- Status Timeline -->
+            <div style="margin-top:1.5rem;border-top:1px solid #f0f2f5;padding-top:1.5rem;">
+                <div style="font-size:.78rem;font-weight:700;color:#636e72;text-transform:uppercase;margin-bottom:1rem;">Trạng Thái Đơn Hàng</div>
+                <div style="display:flex;flex-direction:column;gap:0;">
+                    {% for status_info in order.STATUS_CHOICES %}
+                    {% if order.status == status_info.0 or forloop.last %}
+                    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;">
+                        <div style="width:28px;height:28px;border-radius:50%;background:{% if order.status == status_info.0 %}#667eea{% else %}#e8ecf1{% endif %};display:flex;align-items:center;justify-content:center;color:white;font-size:.7rem;">
+                            {% if order.status == status_info.0 %}<i class="fas fa-check"></i>{% endif %}
+                        </div>
+                        <span style="font-weight:{% if order.status == status_info.0 %}700{% else %}400{% endif %};color:{% if order.status == status_info.0 %}#2d3436{% else %}#b2bec3{% endif %};">{{ status_info.1 }}</span>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

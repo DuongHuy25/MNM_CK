@@ -1,0 +1,109 @@
+{% extends 'eshop/base.html' %}
+{% block title %}{{ product.name }} - ZenMart - Cửa Hàng Tiện Lợi{% endblock %}
+{% block content %}
+<div class="container">
+    <div style="padding:2rem 0;">
+        <!-- Breadcrumb -->
+        <div style="font-size:.82rem;color:#636e72;margin-bottom:1.5rem;">
+            <a href="{% url 'eshop:home' %}" style="color:#667eea;">Trang chủ</a>
+            <i class="fas fa-chevron-right" style="font-size:.6rem;margin:0 6px;"></i>
+            <a href="{% url 'eshop:products' %}" style="color:#667eea;">Sản phẩm</a>
+            <i class="fas fa-chevron-right" style="font-size:.6rem;margin:0 6px;"></i>
+            <a href="{% url 'eshop:products' %}?category={{ product.category.slug }}" style="color:#667eea;">{{ product.category.name }}</a>
+            <i class="fas fa-chevron-right" style="font-size:.6rem;margin:0 6px;"></i>
+            <span>{{ product.name }}</span>
+        </div>
+
+        <!-- Product Detail -->
+        <div style="display:grid;grid-template-columns:1fr 1.2fr;gap:2rem;">
+            <!-- Image -->
+            <div>
+                {% if product.image and product.image.name %}
+                <img src="{{ product.image.url }}" alt="{{ product.name }}" style="width:100%;border-radius:20px;box-shadow:0 8px 30px rgba(0,0,0,.1);max-height:450px;object-fit:cover;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                {% endif %}
+                <div style="height:350px;background:linear-gradient(135deg,#f6d365,#fda085);border-radius:20px;display:{% if not product.image or not product.image.name %}flex{% else %}none{% endif %};align-items:center;justify-content:center;">
+                    <i class="fas fa-bowl-food" style="font-size:5rem;color:rgba(255,255,255,.6);"></i>
+                </div>
+            </div>
+
+            <!-- Info -->
+            <div>
+                <div style="display:flex;gap:.5rem;align-items:center;margin-bottom:.75rem;">
+                    <span class="cat-pill active" style="font-size:.75rem;padding:4px 12px;">{{ product.category.name }}</span>
+                    {% if product.brand %}
+                    <a href="{% url 'eshop:products' %}?brand={{ product.brand.id }}" class="cat-pill" style="font-size:.75rem;padding:4px 12px;">{{ product.brand.name }}</a>
+                    {% endif %}
+                </div>
+
+                <h1 style="font-size:2rem;font-weight:800;color:#2d3436;margin-bottom:.5rem;">{{ product.name }}</h1>
+
+                <div style="font-size:2.2rem;font-weight:800;color:#667eea;margin:1rem 0;">
+                    {{ product.sale_price|floatformat:0 }}đ
+                    {% if product.cost_price and product.cost_price > product.sale_price %}
+                    <span style="font-size:1rem;color:#b2bec3;text-decoration:line-through;font-weight:400;margin-left:10px;">{{ product.cost_price|floatformat:0 }}đ</span>
+                    {% endif %}
+                </div>
+
+                <p style="color:#636e72;font-size:.95rem;line-height:1.8;margin-bottom:1.5rem;">{{ product.description|default:'Sản phẩm chất lượng từ ZenMart - Cửa Hàng Tiện Lợi.' }}</p>
+
+                <div style="display:flex;gap:1rem;margin-bottom:1.5rem;font-size:.85rem;">
+                    <div style="display:flex;align-items:center;gap:6px;color:{% if product.stock > product.min_stock %}#2dce89{% else %}#f5365c{% endif %};font-weight:700;">
+                        <i class="fas fa-{% if product.stock > product.min_stock %}check-circle{% else %}exclamation-circle{% endif %}"></i>
+                        {% if product.stock > product.min_stock %}Còn hàng ({{ product.stock }}){% elif product.stock > 0 %}Sắp hết ({{ product.stock }}){% else %}Hết hàng{% endif %}
+                    </div>
+                    <div style="display:flex;align-items:center;gap:6px;color:#636e72;">
+                        <i class="fas fa-truck"></i> Giao hàng nhanh
+                    </div>
+                </div>
+
+                <!-- Add to Cart -->
+                <form method="post" action="{% url 'eshop:cart_add' product.pk %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;">
+                        <div class="qty-control">
+                            <button type="button" onclick="document.getElementById('qty').value=Math.max(1,parseInt(document.getElementById('qty').value)-1)">−</button>
+                            <input type="number" id="qty" name="quantity" value="1" min="1" max="{{ product.stock }}" class="qty-val">
+                            <button type="button" onclick="document.getElementById('qty').value=Math.min({{ product.stock }},parseInt(document.getElementById('qty').value)+1)">+</button>
+                        </div>
+                        <button type="submit" class="btn-primary" style="flex:1;padding:14px 28px;font-size:1rem;" {% if product.stock == 0 %}disabled{% endif %}>
+                            <i class="fas fa-cart-plus"></i> {% if product.stock > 0 %}Thêm vào giỏ{% else %}Hết hàng{% endif %}
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Features -->
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;">
+                    <div style="background:#f3f4ff;border-radius:12px;padding:12px;display:flex;align-items:center;gap:8px;font-size:.82rem;color:#667eea;font-weight:600;">
+                        <i class="fas fa-shield-alt"></i> Chính hãng 100%
+                    </div>
+                    <div style="background:#f0fff4;border-radius:12px;padding:12px;display:flex;align-items:center;gap:8px;font-size:.82rem;color:#2dce89;font-weight:600;">
+                        <i class="fas fa-undo"></i> Đổi trả dễ dàng
+                    </div>
+                    <div style="background:#fff8f0;border-radius:12px;padding:12px;display:flex;align-items:center;gap:8px;font-size:.82rem;color:#fb6340;font-weight:600;">
+                        <i class="fas fa-truck-fast"></i> Giao hàng nhanh
+                    </div>
+                    <div style="background:#f8f5ff;border-radius:12px;padding:12px;display:flex;align-items:center;gap:8px;font-size:.82rem;color:#764ba2;font-weight:600;">
+                        <i class="fas fa-headset"></i> Hỗ trợ 24/7
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Related Products -->
+        {% if related_products %}
+        <div class="section">
+            <div class="section-title">
+                <i class="fas fa-heart"></i> Sản Phẩm Tương Tự
+                <a href="{% url 'eshop:products' %}?category={{ product.category.slug }}">Xem tất cả →</a>
+            </div>
+            <div class="product-grid">
+                {% for product in related_products %}
+                {% include 'eshop/_product_card.html' %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

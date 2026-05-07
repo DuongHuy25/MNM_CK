@@ -1,0 +1,55 @@
+{% extends 'eshop/base.html' %}
+{% block title %}Sản Phẩm - ZenMart - Cửa Hàng Tiện Lợi{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="section">
+        <h1 style="font-size:1.8rem;font-weight:800;color:#2d3436;margin-bottom:1rem;">
+            <i class="fas fa-bowl-food" style="color:#667eea;"></i> Tất Cả Sản Phẩm
+        </h1>
+
+        <!-- FILTERS -->
+        <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1.5rem;align-items:center;">
+            <form method="get" style="display:flex;gap:.5rem;flex:1;min-width:250px;">
+                <input type="text" name="q" value="{{ query }}" placeholder="Tìm sản phẩm..." class="eshop-input" style="max-width:300px;">
+                <button type="submit" class="btn-outline" style="padding:10px 16px;"><i class="fas fa-search"></i></button>
+            </form>
+
+            {% if categories %}
+            <div class="cat-pills">
+                <a href="{% url 'eshop:products' %}" class="cat-pill {% if not current_category %}active{% endif %}">Tất cả</a>
+                {% for cat in categories %}
+                <a href="?category={{ cat.slug }}{% if current_brand %}&brand={{ current_brand }}{% endif %}" class="cat-pill {% if current_category == cat.slug %}active{% endif %}">{{ cat.name }}</a>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if brands %}
+            <select onchange="window.location.href=this.value" style="padding:8px 14px;border:2px solid #e8ecf1;border-radius:50px;font-size:.85rem;font-weight:600;outline:none;">
+                <option value="{% url 'eshop:products' %}">Tất cả nhãn hiệu</option>
+                {% for brand in brands %}
+                <option value="?brand={{ brand.id }}{% if current_category %}&category={{ current_category }}{% endif %}" {% if current_brand == brand.id|stringformat:'s' %}selected{% endif %}>{{ brand.name }}</option>
+                {% endfor %}
+            </select>
+            {% endif %}
+        </div>
+
+        <!-- RESULTS -->
+        <div style="margin-bottom:1rem;font-size:.85rem;color:#636e72;">
+            {{ products|length }} sản phẩm
+            {% if query %} cho "{{ query }}"{% endif %}
+        </div>
+
+        <div class="product-grid">
+            {% for product in products %}
+            {% include 'eshop/_product_card.html' %}
+            {% empty %}
+            <div class="empty-state" style="grid-column:1/-1;">
+                <i class="fas fa-search"></i>
+                <h3>Không tìm thấy sản phẩm</h3>
+                <p>Thử tìm kiếm với từ khóa khác</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

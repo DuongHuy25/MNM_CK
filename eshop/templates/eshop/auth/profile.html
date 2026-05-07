@@ -1,0 +1,165 @@
+{% extends 'eshop/base.html' %}
+{% block title %}Tài Khoản{% endblock %}
+{% block content %}
+<div class="container">
+    <div style="max-width:700px;margin:2rem auto;">
+
+        <!-- Header -->
+        <div class="summary-card" style="margin-bottom:1.5rem;">
+            <div style="display:flex;align-items:center;gap:1rem;">
+                {% if request.user.avatar %}
+                <img src="{{ request.user.avatar.url }}" style="width:56px;height:56px;border-radius:50%;object-fit:cover;border:3px solid #667eea;">
+                {% else %}
+                <div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;color:white;font-size:1.3rem;">
+                    <i class="fas fa-user"></i>
+                </div>
+                {% endif %}
+                <div style="flex:1;">
+                    <h2 style="font-size:1.3rem;font-weight:800;color:#2d3436;margin:0;">{% if request.user.first_name %}{{ request.user.first_name }} {{ request.user.last_name }}{% else %}{{ request.user.email }}{% endif %}</h2>
+                    <div style="font-size:.85rem;color:#636e72;">{{ request.user.email }}</div>
+                </div>
+                <a href="{% url 'eshop:logout' %}" class="btn-outline" style="font-size:.8rem;padding:8px 16px;">
+                    <i class="fas fa-sign-out-alt"></i> Đăng xuất
+                </a>
+            </div>
+        </div>
+
+        <!-- Profile Edit -->
+        <div class="summary-card" style="margin-bottom:1.5rem;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+                <h3 style="margin:0;"><i class="fas fa-id-card" style="color:#667eea;margin-right:6px;"></i>Thông Tin Cá Nhân</h3>
+                <button type="button" onclick="toggleEdit()" id="editBtn" class="btn-outline" style="font-size:.78rem;padding:6px 14px;">
+                    <i class="fas fa-pen"></i> Chỉnh sửa
+                </button>
+            </div>
+
+            <!-- Display mode -->
+            <div id="profileDisplay">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+                    <div style="grid-column:span 2;display:flex;align-items:center;gap:1rem;margin-bottom:.5rem;">
+                        {% if request.user.avatar %}
+                        <img src="{{ request.user.avatar.url }}" style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:3px solid #667eea;">
+                        {% else %}
+                        <div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;color:white;font-size:1.5rem;">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        {% endif %}
+                        <div>
+                            <div style="font-size:1.1rem;color:#2d3436;font-weight:700;">{{ request.user.first_name }} {{ request.user.last_name }}</div>
+                            <div style="font-size:.85rem;color:#636e72;">{{ request.user.email }}</div>
+                        </div>
+                    </div>
+                    <div>
+                        <div style="font-size:.75rem;color:#636e72;text-transform:uppercase;font-weight:700;margin-bottom:4px;">Số điện thoại</div>
+                        <div style="font-size:.95rem;color:#2d3436;">{% if request.user.phone %}{{ request.user.phone }}{% else %}<span style="color:#b2bec3;">Chưa nhập</span>{% endif %}</div>
+                    </div>
+                    <div>
+                        <div style="font-size:.75rem;color:#636e72;text-transform:uppercase;font-weight:700;margin-bottom:4px;">Địa chỉ</div>
+                        <div style="font-size:.95rem;color:#2d3436;">{% if request.user.address %}{{ request.user.address }}{% else %}<span style="color:#b2bec3;">Chưa nhập</span>{% endif %}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Edit mode -->
+            <div id="profileEdit" style="display:none;">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label>{{ form.avatar.label }}</label>
+                        <div style="display:flex;align-items:center;gap:1rem;">
+                            {% if request.user.avatar %}
+                            <img src="{{ request.user.avatar.url }}" style="width:48px;height:48px;border-radius:50%;object-fit:cover;">
+                            {% else %}
+                            <div style="width:48px;height:48px;border-radius:50%;background:#dfe6e9;display:flex;align-items:center;justify-content:center;color:#636e72;font-size:1.2rem;">
+                                <i class="fas fa-camera"></i>
+                            </div>
+                            {% endif %}
+                            {{ form.avatar }}
+                        </div>
+                        {% if form.avatar.errors %}
+                        <div style="color:#f5365c;font-size:.8rem;margin-top:4px;">{{ form.avatar.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="form-group">
+                        <label>{{ form.full_name.label }}</label>
+                        {{ form.full_name }}
+                        {% if form.full_name.errors %}
+                        <div style="color:#f5365c;font-size:.8rem;margin-top:4px;">{{ form.full_name.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="form-group">
+                        <label>{{ form.phone.label }}</label>
+                        {{ form.phone }}
+                        {% if form.phone.errors %}
+                        <div style="color:#f5365c;font-size:.8rem;margin-top:4px;">{{ form.phone.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="form-group">
+                        <label>{{ form.address.label }}</label>
+                        {{ form.address }}
+                        {% if form.address.errors %}
+                        <div style="color:#f5365c;font-size:.8rem;margin-top:4px;">{{ form.address.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div style="display:flex;gap:.5rem;margin-top:1rem;">
+                        <button type="submit" class="btn-primary" style="padding:10px 24px;">
+                            <i class="fas fa-save"></i> Lưu
+                        </button>
+                        <button type="button" onclick="toggleEdit()" class="btn-outline" style="padding:10px 24px;">Hủy</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Orders -->
+        <div class="summary-card">
+            <h3><i class="fas fa-receipt" style="color:#667eea;margin-right:6px;"></i>Đơn Hàng Của Tôi</h3>
+            {% if orders %}
+            <table style="width:100%;border-collapse:collapse;">
+                <thead>
+                    <tr>
+                        <th style="text-align:left;padding:10px 12px;font-size:.78rem;color:#636e72;text-transform:uppercase;font-weight:700;border-bottom:2px solid #f0f2f5;">Mã ĐH</th>
+                        <th style="text-align:left;padding:10px 12px;font-size:.78rem;color:#636e72;text-transform:uppercase;font-weight:700;border-bottom:2px solid #f0f2f5;">Ngày đặt</th>
+                        <th style="text-align:left;padding:10px 12px;font-size:.78rem;color:#636e72;text-transform:uppercase;font-weight:700;border-bottom:2px solid #f0f2f5;">Trạng thái</th>
+                        <th style="text-align:right;padding:10px 12px;font-size:.78rem;color:#636e72;text-transform:uppercase;font-weight:700;border-bottom:2px solid #f0f2f5;">Tổng</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                    <tr>
+                        <td style="padding:10px 12px;border-bottom:1px solid #f0f2f5;font-weight:600;color:#667eea;font-family:monospace;font-size:.85rem;">{{ order.order_id }}</td>
+                        <td style="padding:10px 12px;border-bottom:1px solid #f0f2f5;font-size:.85rem;color:#636e72;">{{ order.created_at|date:'d/m/Y H:i' }}</td>
+                        <td style="padding:10px 12px;border-bottom:1px solid #f0f2f5;"><span class="status-badge status-{{ order.status }}">{{ order.get_status_display }}</span></td>
+                        <td style="padding:10px 12px;border-bottom:1px solid #f0f2f5;text-align:right;font-weight:700;color:#2d3436;">{{ order.total_amount|floatformat:0 }}đ</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty-state" style="padding:2rem;">
+                <i class="fas fa-box-open"></i>
+                <h3>Chưa có đơn hàng</h3>
+                <a href="{% url 'eshop:products' %}" class="btn-primary" style="margin-top:1rem;display:inline-block;">Mua sắm ngay</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleEdit() {
+    const display = document.getElementById('profileDisplay');
+    const edit = document.getElementById('profileEdit');
+    const btn = document.getElementById('editBtn');
+    if (edit.style.display === 'none') {
+        edit.style.display = 'block';
+        display.style.display = 'none';
+        btn.style.display = 'none';
+    } else {
+        edit.style.display = 'none';
+        display.style.display = 'block';
+        btn.style.display = 'inline-block';
+    }
+}
+</script>
+{% endblock %}
