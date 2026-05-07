@@ -1,0 +1,170 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}{% if is_create %}Thêm{% else %}Chỉnh sửa{% endif %} Cửa Hàng{% endblock %}
+{% block content %}
+<style>
+    input[name="latitude"], input[name="longitude"] { display: none !important; }
+</style>
+<div style="margin-bottom:1.5rem;">
+    <a href="{% url 'dashboard:stores_list' %}" class="btn btn-secondary btn-sm"><i class="fas fa-arrow-left"></i> Quay lại danh sách</a>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
+    <div class="card">
+        <div class="card-header">
+            <span><i class="fas fa-{% if is_create %}plus{% else %}edit{% endif %}" style="color:#667eea;margin-right:8px;"></i>
+            {% if is_create %}Thêm Cửa Hàng Mới{% else %}Chỉnh Sửa: {{ store.name }}{% endif %}</span>
+        </div>
+        <div class="card-body">
+            <form method="post" id="storeForm">
+                {% csrf_token %}
+                {% for field in form %}
+                    {% if field.name not in 'latitude,longitude' %}
+                    <div style="margin-bottom:1.2rem;">
+                        <label class="form-label">{{ field.label }}{% if field.field.required %} <span style="color:#f5365c;">*</span>{% endif %}</label>
+                        <input type="{{ field.field.widget.input_type|default:'text' }}"
+                               name="{{ field.html_name }}"
+                               id="id_{{ field.html_name }}"
+                               value="{{ field.value|default:'' }}"
+                               class="form-control"
+                               placeholder="{{ field.field.widget.attrs.placeholder|default:field.label }}"
+                               {% if field.field.required %}required{% endif %}>
+                        {% if field.errors %}<div style="color:#f5365c;font-size:0.78rem;margin-top:4px;">{{ field.errors.0 }}</div>{% endif %}
+                    </div>
+                    {% endif %}
+                {% endfor %}
+                
+                <!-- Hidden fields -->
+                {{ form.latitude }}
+                {{ form.longitude }}
+                
+                <!-- Geocode helper -->
+                <div style="margin-bottom:1.2rem;">
+                    <button type="button" onclick="geocodeAddress()" class="btn btn-outline" style="width:100%;">
+                        <i class="fas fa-map-marker-alt"></i> Tự động lấy tọa độ từ địa chỉ
+                    </button>
+                </div>
+                <div style="display:flex;gap:0.75rem;">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> {% if is_create %}Tạo Cửa Hàng{% else %}Lưu Thay Đổi{% endif %}
+                    </button>
+                    <a href="{% url 'dashboard:stores_list' %}" class="btn btn-secondary">Hủy</a>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header"><span><i class="fas fa-map" style="color:#0052D4;margin-right:8px;"></i>Chọn Vị Trí Trên Bản Đồ</span></div>
+        <div class="card-body" style="padding:0;">
+            <div id="pickMap" style="height:380px;border-radius:0 0 1rem 1rem;"></div>
+        </div>
+        <div class="card-body" style="border-top:1px solid #f0f2f5;">
+            <div style="font-size:0.875rem;">
+                <div style="margin-bottom:0.5rem;"><span style="color:#8898aa;font-weight:600;">Vĩ độ:</span> <span id="latDisplay" style="color:#667eea;font-weight:600;">--</span></div>
+                <div><span style="color:#8898aa;font-weight:600;">Kinh độ:</span> <span id="lngDisplay" style="color:#667eea;font-weight:600;">--</span></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+var lat = parseFloat(document.getElementById('id_latitude')?.value) || 10.7769;
+var lng = parseFloat(document.getElementById('id_longitude')?.value) || 106.7009;
+var map = L.map('pickMap').setView([lat, lng], 13);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png', {attribution:'© OpenStreetMap, © CartoDB',maxZoom:20}).addTo(map);
+var marker = L.marker([lat, lng], {draggable: true}).addTo(map);
+
+function setCoords(lat, lng) {
+    document.getElementById('id_latitude').value = lat.toFixed(6);
+    document.getElementById('id_longitude').value = lng.toFixed(6);
+    document.getElementById('latDisplay').textContent = lat.toFixed(6);
+    document.getElementById('lngDisplay').textContent = lng.toFixed(6);
+}
+
+// Cập nhật tọa độ ban đầu
+setCoords(lat, lng);
+
+marker.on('dragend', function(e) { var p = e.target.getLatLng(); setCoords(p.lat, p.lng); reverseGeocodeCoords(p.lat, p.lng); });
+map.on('click', function(e) { marker.setLatLng(e.latlng); setCoords(e.latlng.lat, e.latlng.lng); reverseGeocodeCoords(e.latlng.lat, e.latlng.lng); });
+
+// Debounce timer
+var geocodeTimer = null;
+var geocodeLoading = false;
+var reverseGeocodeLoading = false;
+
+async function geocodeAddress() {
+    var addr = document.getElementById('id_address').value;
+    if (!addr) return;
+    
+    geocodeLoading = true;
+    document.getElementById('id_address').style.borderColor = '#667eea';
+    
+    try {
+        var res = await fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(addr) + ',Vietnam&limit=1', {
+            timeout: 5000
+        });
+        var data = await res.json();
+        
+        if (data.length) {
+            var lt = parseFloat(data[0].lat), ln = parseFloat(data[0].lon);
+            setCoords(lt, ln); 
+            marker.setLatLng([lt, ln]); 
+            map.setView([lt, ln], 15);
+            document.getElementById('id_address').style.borderColor = '#28a745';
+        } else { 
+            document.getElementById('id_address').style.borderColor = '#f5365c';
+        }
+    } catch(e) {
+        console.error('Geocoding error:', e);
+        document.getElementById('id_address').style.borderColor = '#f5365c';
+    }
+    geocodeLoading = false;
+}
+
+// Reverse geocoding: tọa độ -> địa chỉ
+async function reverseGeocodeCoords(lat, lng) {
+    if (reverseGeocodeLoading) return;
+    
+    reverseGeocodeLoading = true;
+    try {
+        var res = await fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lng + '&zoom=18&addressdetails=1', {
+            timeout: 5000
+        });
+        var data = await res.json();
+        
+        if (data && data.address) {
+            // Xây dựng địa chỉ từ các thành phần
+            var addr = data.address.road || '';
+            if (data.address.house_number) addr = data.address.house_number + ' ' + addr;
+            if (data.address.city) addr += ', ' + data.address.city;
+            if (data.address.province) addr += ', ' + data.address.province;
+            
+            if (addr.trim()) {
+                document.getElementById('id_address').value = addr.trim();
+                document.getElementById('id_address').style.borderColor = '#28a745';
+                setTimeout(function() {
+                    document.getElementById('id_address').style.borderColor = '#e3e6f0';
+                }, 2000);
+            }
+        }
+    } catch(e) {
+        console.error('Reverse geocoding error:', e);
+    }
+    reverseGeocodeLoading = false;
+}
+
+// Tự động search khi người dùng gõ địa chỉ (với debounce 1 giây)
+document.getElementById('id_address').addEventListener('input', function() {
+    clearTimeout(geocodeTimer);
+    document.getElementById('id_address').style.borderColor = '#ffc107';
+    this.style.transition = 'border-color 0.3s ease';
+    
+    geocodeTimer = setTimeout(function() {
+        if (document.getElementById('id_address').value.length > 3) {
+            geocodeAddress();
+        }
+    }, 1000);
+});
+</script>
+{% endblock %}

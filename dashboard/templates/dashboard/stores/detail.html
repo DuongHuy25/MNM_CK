@@ -1,0 +1,62 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}{{ store.name }}{% endblock %}
+{% block content %}
+<div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;">
+    <a href="{% url 'dashboard:stores_list' %}" class="btn btn-secondary btn-sm"><i class="fas fa-arrow-left"></i> Quay lại</a>
+    <div style="margin-left:auto;display:flex;gap:0.5rem;">
+        <a href="{% url 'eshop:directions' %}?store_id={{ store.pk }}" class="btn btn-sm" style="background:#2dce89;color:white;" target="_blank"><i class="fas fa-directions"></i> Tìm đường</a>
+        <a href="{% url 'dashboard:stores_edit' store.pk %}" class="btn btn-primary btn-sm"><i class="fas fa-edit"></i> Chỉnh sửa</a>
+        <form method="post" action="{% url 'dashboard:stores_delete' store.pk %}" style="display:inline;" onsubmit="return confirm('Xóa cửa hàng này?')">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i> Xóa</button>
+        </form>
+    </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
+    <div class="card">
+        <div class="card-header"><span><i class="fas fa-info-circle" style="color:#667eea;margin-right:8px;"></i>Thông Tin Cửa Hàng</span></div>
+        <div class="card-body">
+            <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;">
+                <div style="width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;color:white;font-size:1.4rem;">
+                    <i class="fas fa-store"></i>
+                </div>
+                <div>
+                    <div style="font-size:1.2rem;font-weight:700;color:#32325d;">{{ store.name }}</div>
+                    <div style="font-size:0.82rem;color:#adb5bd;">ID: {{ store.id }}</div>
+                </div>
+            </div>
+            <table style="width:100%;font-size:0.875rem;">
+                <tr style="border-bottom:1px solid #f0f2f5;">
+                    <td style="padding:0.8rem 0;color:#8898aa;font-weight:700;font-size:0.72rem;text-transform:uppercase;width:40%;">Địa chỉ</td>
+                    <td style="padding:0.8rem 0;color:#32325d;font-weight:500;">{{ store.address }}</td>
+                </tr>
+                <tr style="border-bottom:1px solid #f0f2f5;">
+                    <td style="padding:0.8rem 0;color:#8898aa;font-weight:700;font-size:0.72rem;text-transform:uppercase;">Vĩ độ</td>
+                    <td style="padding:0.8rem 0;font-family:monospace;color:#525f7f;">{{ store.latitude }}</td>
+                </tr>
+                <tr>
+                    <td style="padding:0.8rem 0;color:#8898aa;font-weight:700;font-size:0.72rem;text-transform:uppercase;">Kinh độ</td>
+                    <td style="padding:0.8rem 0;font-family:monospace;color:#525f7f;">{{ store.longitude }}</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header"><span><i class="fas fa-map-location-dot" style="color:#ee0979;margin-right:8px;"></i>Vị Trí Bản Đồ</span></div>
+        <div class="card-body" style="padding:0;">
+            <div id="storeMap" style="height:280px;border-radius:0 0 1rem 1rem;"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+var map = L.map('storeMap').setView([{{ store.latitude }}, {{ store.longitude }}], 15);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png', {attribution:'© OpenStreetMap, © CartoDB',maxZoom:20}).addTo(map);
+L.marker([{{ store.latitude }}, {{ store.longitude }}])
+ .addTo(map).bindPopup('<b>{{ store.name }}</b><br>{{ store.address }}').openPopup();
+</script>
+{% endblock %}

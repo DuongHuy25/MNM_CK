@@ -1,0 +1,46 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}{% if is_create %}Thêm{% else %}Chỉnh sửa{% endif %} Khách Hàng{% endblock %}
+{% block content %}
+
+<div style="margin-bottom:1.5rem;">
+    <a href="{% url 'dashboard:customers_list' %}" class="btn btn-secondary btn-sm"><i class="fas fa-arrow-left"></i> Quay lại</a>
+</div>
+
+<div class="card" style="max-width:600px;margin:0 auto;">
+    <div class="card-header">
+        <span><i class="fas fa-{% if is_create %}plus{% else %}edit{% endif %}" style="color:#667eea;margin-right:8px;"></i>{% if is_create %}Thêm Khách Hàng Mới{% else %}Chỉnh Sửa Khách Hàng{% endif %}</span>
+    </div>
+    <div class="card-body">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+            {% endif %}
+
+            {% for field in form %}
+            <div style="margin-bottom:1rem;">
+                <label class="form-label" style="font-weight:700;color:#32325d;margin-bottom:0.5rem;display:block;">
+                    {{ field.label }}{% if field.field.required %} <span style="color:#f5365c;">*</span>{% endif %}
+                </label>
+                {% if field.html_name == 'is_active' %}
+                <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-weight:600;color:#32325d;">
+                    {{ field }} Hoạt động
+                </label>
+                {% else %}
+                {{ field }}
+                {% endif %}
+                {% if field.errors %}
+                <div style="color:#f5365c;font-size:0.78rem;margin-top:4px;">{{ field.errors.0 }}</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+
+            <div style="display:flex;gap:0.5rem;margin-top:1.5rem;">
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Lưu</button>
+                <a href="{% url 'dashboard:customers_list' %}" class="btn btn-secondary"><i class="fas fa-times"></i> Hủy</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,28 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}{% if is_create %}Thêm{% else %}Chỉnh sửa{% endif %} Danh Mục{% endblock %}
+{% block content %}
+<div style="margin-bottom:1.5rem;">
+    <a href="{% url 'dashboard:categories_list' %}" class="btn btn-secondary btn-sm"><i class="fas fa-arrow-left"></i> Quay lại</a>
+</div>
+<div class="card" style="max-width:600px;">
+    <div class="card-header">
+        <span><i class="fas fa-tags" style="color:#667eea;margin-right:8px;"></i>{% if is_create %}Thêm Danh Mục Mới{% else %}Chỉnh Sửa: {{ category.name }}{% endif %}</span>
+    </div>
+    <div class="card-body">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            {% for field in form %}
+            <div style="margin-bottom:1.2rem;">
+                <label class="form-label">{{ field.label }}{% if field.field.required %} <span style="color:#f5365c;">*</span>{% endif %}</label>
+                {{ field }}
+                {% if field.errors %}<div style="color:#f5365c;font-size:0.78rem;margin-top:4px;">{{ field.errors.0 }}</div>{% endif %}
+            </div>
+            {% endfor %}
+            <div style="display:flex;gap:0.75rem;margin-top:1.5rem;">
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> {% if is_create %}Tạo Danh Mục{% else %}Lưu Thay Đổi{% endif %}</button>
+                <a href="{% url 'dashboard:categories_list' %}" class="btn btn-secondary">Hủy</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

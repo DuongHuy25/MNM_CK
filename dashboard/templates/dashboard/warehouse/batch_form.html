@@ -1,0 +1,272 @@
+{% extends 'dashboard/base.html' %}
+{% load dashboard_tags %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block content %}
+
+<div style="margin-bottom:1.5rem;">
+    <a href="{% url 'dashboard:warehouse_batch_list' %}" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i> Quay lại</a>
+</div>
+
+<div style="display:grid;grid-template-columns:2fr 1fr;gap:1.5rem;">
+    <!-- Main Form -->
+    <div class="card">
+        <div class="card-header">
+            <span><i class="fas fa-file-invoice" style="color:#667eea;margin-right:8px;"></i>{{ page_title }}</span>
+        </div>
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data" id="batchForm">
+                {% csrf_token %}
+
+                {% if form.non_field_errors %}
+                <div style="background:#fff5f5;color:#f5365c;padding:1rem;border-radius:8px;margin-bottom:1rem;">
+                    {% for err in form.non_field_errors %}<div><i class="fas fa-exclamation-circle"></i> {{ err }}</div>{% endfor %}
+                </div>
+                {% endif %}
+
+                {% for field in form %}
+                <div style="margin-bottom:1rem;">
+                    <label class="form-label" style="font-weight:700;color:#32325d;margin-bottom:0.5rem;display:block;">
+                        {{ field.label }}{% if field.field.required %}<span style="color:#f5365c;"> *</span>{% endif %}
+                    </label>
+                    {{ field }}
+                    {% if field.errors %}
+                    <div style="color:#f5365c;font-size:0.78rem;margin-top:0.5rem;">
+                        {% for error in field.errors %}<div><i class="fas fa-exclamation-circle"></i> {{ error }}</div>{% endfor %}
+                    </div>
+                    {% endif %}
+                    {% if field.name == 'batch_type' %}
+                    <small style="color:#8898aa;">Chọn loại phiếu Nhập hoặc Xuất kho</small>
+                    {% elif field.name == 'warehouse' %}
+                    <small style="color:#8898aa;">Chọn kho hàng đích</small>
+                    {% endif %}
+                </div>
+                {% endfor %}
+
+                <!-- Excel Import Section -->
+                <div style="border-top:1px solid #f0f2f5;padding-top:1.5rem;margin-top:1.5rem;">
+                    <h3 style="font-weight:700;color:#32325d;margin-bottom:1rem;"><i class="fas fa-file-excel" style="color:#28a745;margin-right:8px;"></i>Nhập Dữ Liệu Từ Excel (Tùy Chọn)</h3>
+
+                    <div style="background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:1rem;margin-bottom:1rem;">
+                        <p style="font-weight:700;color:#f57f17;font-size:0.9rem;margin-bottom:0.5rem;">Format Excel cần có:</p>
+                        <ul style="color:#5d4037;font-size:0.82rem;line-height:1.8;margin-left:1.5rem;">
+                            <li><strong>Cột 1:</strong> Tên sản phẩm (phải tồn tại trong kho)</li>
+                            <li><strong>Cột 2:</strong> Số lượng (số nguyên dương)</li>
+                            <li><strong>Cột 3:</strong> Đơn giá (số thập phân)</li>
+                            <li><strong>Cột 4:</strong> Ghi chú (tùy chọn)</li>
+                        </ul>
+                    </div>
+
+                    <div style="display:flex;gap:0.75rem;align-items:flex-end;margin-bottom:1rem;">
+                        <div style="flex:1;">
+                            <label class="form-label">Chọn file Excel</label>
+                            <input type="file" id="excel-file" name="excel_file" accept=".xlsx,.xls,.csv" class="form-control">
+                            <small style="color:#8898aa;">Hỗ trợ: .xlsx, .xls, .csv</small>
+                        </div>
+                        <button type="button" id="import-excel-btn" class="btn btn-success" disabled>
+                            <i class="fas fa-file-import"></i> Import Excel
+                        </button>
+                    </div>
+
+                    <!-- Download Template -->
+                    <div id="template-download" style="display:none;margin-bottom:1rem;">
+                        <a id="template-link" href="#" class="btn btn-outline btn-sm">
+                            <i class="fas fa-download"></i> Tải Mẫu Excel Cho Kho Này
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Save Template Section -->
+                <div style="border-top:1px solid #f0f2f5;padding-top:1.5rem;margin-top:1.5rem;">
+                    <h3 style="font-weight:700;color:#32325d;margin-bottom:1rem;"><i class="fas fa-save" style="color:#667eea;margin-right:8px;"></i>Lưu Mẫu Phiếu (Tùy Chọn)</h3>
+                    <p style="color:#8898aa;font-size:0.85rem;margin-bottom:1rem;">Lưu mẫu phiếu để sử dụng lại cho các lần nhập/xuất kho sau. Mẫu sẽ ghi nhớ kho, loại phiếu, nhà cung cấp.</p>
+
+                    <div style="display:flex;gap:0.75rem;align-items:flex-end;">
+                        <div style="flex:1;">
+                            <label class="form-label">Tên mẫu</label>
+                            <input type="text" id="template-name" name="template_name" class="form-control" placeholder="VD: Nhập kho hàng tuần...">
+                        </div>
+                        <button type="button" id="save-template-btn" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Lưu Mẫu
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div style="display:flex;gap:0.75rem;margin-top:2rem;padding-top:1.5rem;border-top:1px solid #f0f2f5;">
+                    <button type="submit" name="action" value="create" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Tạo Phiếu
+                    </button>
+                    <a href="{% url 'dashboard:warehouse_batch_list' %}" class="btn btn-secondary">Hủy</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Sidebar: Saved Templates -->
+    <div>
+        <div class="card">
+            <div class="card-header">
+                <span><i class="fas fa-bookmark" style="color:#667eea;margin-right:8px;"></i>Mẫu Đã Lưu</span>
+            </div>
+            <div class="card-body" id="templates-list">
+                <div style="text-align:center;padding:2rem;color:#adb5bd;">
+                    <i class="fas fa-bookmark" style="font-size:2rem;display:block;margin-bottom:0.5rem;opacity:0.3;"></i>
+                    <p>Chưa có mẫu nào</p>
+                    <small>Lưu mẫu từ form bên trái</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirm Modal -->
+<div id="confirm-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:none;align-items:center;justify-content:center;">
+    <div style="background:white;border-radius:1rem;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+        <div style="padding:1.5rem;">
+            <h3 style="font-weight:700;color:#32325d;margin-bottom:1rem;"><i class="fas fa-exclamation-triangle" style="color:#ff9800;"></i> Xác Nhận Import</h3>
+            <p style="color:#525f7f;margin-bottom:0.5rem;">Bạn sắp import dữ liệu từ file: <strong id="file-name" style="color:#667eea;"></strong></p>
+            <p style="color:#8898aa;font-size:0.85rem;margin-bottom:1rem;">Tất cả sản phẩm trong file sẽ được lưu vào phiếu.</p>
+            <div style="background:#e8edff;border-radius:8px;padding:0.75rem;font-size:0.85rem;color:#32325d;">
+                <i class="fas fa-info-circle" style="color:#667eea;"></i> Dữ liệu sẽ được lưu theo nội dung file Excel.
+            </div>
+        </div>
+        <div style="padding:1rem 1.5rem;border-top:1px solid #f0f2f5;display:flex;gap:0.75rem;justify-content:flex-end;">
+            <button type="button" onclick="cancelImport()" class="btn btn-secondary">Hủy</button>
+            <button type="button" onclick="confirmImport()" class="btn btn-success"><i class="fas fa-check"></i> Xác Nhận</button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const excelFileInput = document.getElementById('excel-file');
+    const importExcelBtn = document.getElementById('import-excel-btn');
+    const confirmModal = document.getElementById('confirm-modal');
+    const fileNameSpan = document.getElementById('file-name');
+    const warehouseSelect = document.getElementById('id_warehouse');
+    const templateDownload = document.getElementById('template-download');
+    const templateLink = document.getElementById('template-link');
+
+    // Show template download when warehouse selected
+    function updateTemplateLink() {
+        if (warehouseSelect && warehouseSelect.value) {
+            templateDownload.style.display = 'block';
+            templateLink.href = '{% url "dashboard:warehouse_batch_template_excel" 0 %}'.replace('0', warehouseSelect.value);
+        } else {
+            templateDownload.style.display = 'none';
+        }
+    }
+    if (warehouseSelect) {
+        warehouseSelect.addEventListener('change', updateTemplateLink);
+        updateTemplateLink();
+    }
+
+    // Enable import button when file selected
+    excelFileInput.addEventListener('change', function() {
+        importExcelBtn.disabled = !this.files || !this.files.length;
+    });
+
+    // Import Excel button click
+    importExcelBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        if (!excelFileInput.files[0]) { alert('Vui lòng chọn file!'); return; }
+        fileNameSpan.textContent = excelFileInput.files[0].name;
+        confirmModal.style.display = 'flex';
+    });
+
+    // Load saved templates from localStorage
+    function loadTemplates() {
+        const templates = JSON.parse(localStorage.getItem('warehouseBatchTemplates') || '[]');
+        const container = document.getElementById('templates-list');
+        if (!templates.length) {
+            container.innerHTML = '<div style="text-align:center;padding:2rem;color:#adb5bd;"><i class="fas fa-bookmark" style="font-size:2rem;display:block;margin-bottom:0.5rem;opacity:0.3;"></i><p>Chưa có mẫu nào</p><small>Lưu mẫu từ form bên trái</small></div>';
+            return;
+        }
+        let html = '';
+        templates.forEach(function(t, i) {
+            html += '<div style="padding:0.75rem;border:1px solid #f0f2f5;border-radius:8px;margin-bottom:0.5rem;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background=\'#f8f9ff\'" onmouseout="this.style.background=\'white\'" onclick="applyTemplate(' + i + ')">';
+            html += '<div style="font-weight:600;color:#32325d;font-size:0.9rem;">' + t.name + '</div>';
+            html += '<div style="font-size:0.78rem;color:#8898aa;margin-top:4px;">';
+            html += '<span style="background:' + (t.batch_type === 'import' ? '#d1e7dd;color:#0a3622' : '#f8d7da;color:#842029') + ';padding:2px 8px;border-radius:4px;font-weight:600;">' + (t.batch_type === 'import' ? 'Nhập' : 'Xuất') + '</span> ';
+            html += t.warehouse_name || '';
+            html += '</div>';
+            html += '<div style="display:flex;justify-content:flex-end;margin-top:4px;"><button type="button" onclick="event.stopPropagation();deleteTemplate(' + i + ')" style="background:none;border:none;color:#f5365c;cursor:pointer;font-size:0.8rem;"><i class="fas fa-trash"></i></button></div>';
+            html += '</div>';
+        });
+        container.innerHTML = html;
+    }
+
+    // Save template
+    document.getElementById('save-template-btn').addEventListener('click', function() {
+        const name = document.getElementById('template-name').value.trim();
+        if (!name) { alert('Vui lòng nhập tên mẫu!'); return; }
+        const warehouseEl = document.getElementById('id_warehouse');
+        const batchTypeEl = document.getElementById('id_batch_type');
+        const supplierEl = document.getElementById('id_supplier');
+        const descEl = document.getElementById('id_description');
+
+        const template = {
+            name: name,
+            warehouse: warehouseEl ? warehouseEl.value : '',
+            warehouse_name: warehouseEl ? warehouseEl.options[warehouseEl.selectedIndex].text : '',
+            batch_type: batchTypeEl ? batchTypeEl.value : '',
+            supplier: supplierEl ? supplierEl.value : '',
+            description: descEl ? descEl.value : '',
+        };
+
+        const templates = JSON.parse(localStorage.getItem('warehouseBatchTemplates') || '[]');
+        templates.push(template);
+        localStorage.setItem('warehouseBatchTemplates', JSON.stringify(templates));
+        document.getElementById('template-name').value = '';
+        loadTemplates();
+        alert('Đã lưu mẫu "' + name + '" thành công!');
+    });
+
+    // Apply template
+    window.applyTemplate = function(index) {
+        const templates = JSON.parse(localStorage.getItem('warehouseBatchTemplates') || '[]');
+        const t = templates[index];
+        if (!t) return;
+        const warehouseEl = document.getElementById('id_warehouse');
+        const batchTypeEl = document.getElementById('id_batch_type');
+        const supplierEl = document.getElementById('id_supplier');
+        const descEl = document.getElementById('id_description');
+        if (warehouseEl) warehouseEl.value = t.warehouse;
+        if (batchTypeEl) batchTypeEl.value = t.batch_type;
+        if (supplierEl) supplierEl.value = t.supplier;
+        if (descEl) descEl.value = t.description;
+        updateTemplateLink();
+    };
+
+    // Delete template
+    window.deleteTemplate = function(index) {
+        if (!confirm('Xóa mẫu này?')) return;
+        const templates = JSON.parse(localStorage.getItem('warehouseBatchTemplates') || '[]');
+        templates.splice(index, 1);
+        localStorage.setItem('warehouseBatchTemplates', JSON.stringify(templates));
+        loadTemplates();
+    };
+
+    // Modal functions
+    window.cancelImport = function() { confirmModal.style.display = 'none'; };
+    window.confirmImport = function() {
+        const form = document.getElementById('batchForm');
+        const oldAction = form.querySelector('input[name="action"]');
+        if (oldAction) oldAction.remove();
+        const actionInput = document.createElement('input');
+        actionInput.type = 'hidden';
+        actionInput.name = 'action';
+        actionInput.value = 'import-excel';
+        form.appendChild(actionInput);
+        confirmModal.style.display = 'none';
+        form.submit();
+    };
+    confirmModal.addEventListener('click', function(e) { if (e.target === confirmModal) cancelImport(); });
+
+    loadTemplates();
+});
+</script>
+{% endblock %}

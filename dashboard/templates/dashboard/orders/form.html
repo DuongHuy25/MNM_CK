@@ -1,0 +1,138 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}{% if is_create %}Thêm Đơn Hàng{% else %}Cập Nhật Đơn #{{ order.id }}{% endif %}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+    input[name="lat"], input[name="lng"] { display: none !important; }
+</style>
+
+<div style="margin-bottom:1.5rem;">
+    {% if is_create %}
+        <a href="{% url 'dashboard:orders_list' %}" class="btn btn-secondary btn-sm"><i class="fas fa-arrow-left"></i> Quay lại</a>
+    {% else %}
+        <a href="{% url 'dashboard:orders_detail' order.pk %}" class="btn btn-secondary btn-sm"><i class="fas fa-arrow-left"></i> Quay lại</a>
+    {% endif %}
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
+    <!-- Form phần bên trái -->
+    <div class="card">
+        <div class="card-header">
+            <span>
+                {% if is_create %}
+                    <i class="fas fa-plus" style="color:#667eea;margin-right:8px;"></i>
+                    Thêm Đơn Hàng Mới
+                {% else %}
+                    <i class="fas fa-edit" style="color:#667eea;margin-right:8px;"></i>
+                    Cập Nhật Đơn Hàng #{{ order.id }}
+                {% endif %}
+            </span>
+        </div>
+        <div class="card-body">
+            <form method="post" id="orderForm">
+                {% csrf_token %}
+                {% for field in form %}
+                    {% if field.name not in 'lat,lng' %}
+                    <div style="margin-bottom:1.2rem;">
+                        <label class="form-label">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.errors %}<div style="color:#f5365c;font-size:0.78rem;margin-top:4px;">{{ field.errors.0 }}</div>{% endif %}
+                    </div>
+                    {% endif %}
+                {% endfor %}
+                
+                <!-- Hidden fields để lưu tọa độ -->
+                {{ form.lat }}
+                {{ form.lng }}
+                
+                <div style="display:flex;gap:0.75rem;margin-top:1.5rem;">
+                    <button type="submit" class="btn btn-primary">
+                        {% if is_create %}
+                            <i class="fas fa-plus"></i>
+                        {% else %}
+                            <i class="fas fa-save"></i>
+                        {% endif %}
+                        {% if is_create %}Thêm Đơn Hàng{% else %}Lưu Thay Đổi{% endif %}
+                    </button>
+                    {% if is_create %}
+                        <a href="{% url 'dashboard:orders_list' %}" class="btn btn-secondary">Hủy</a>
+                    {% else %}
+                        <a href="{% url 'dashboard:orders_detail' order.pk %}" class="btn btn-secondary">Hủy</a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Bản đồ phần bên phải -->
+    <div class="card">
+        <div class="card-header">
+            <span><i class="fas fa-map-marker-alt" style="color:#ee0979;margin-right:8px;"></i>Chọn Vị Trí Trên Bản Đồ</span>
+        </div>
+        <div class="card-body" style="padding:0;">
+            <div id="map" style="width:100%;height:500px;border-radius:0 0 8px 8px;"></div>
+        </div>
+        <div style="padding:1rem;background:#f8f9fa;border-top:1px solid #e3e8ef;border-radius:0 0 8px 8px;">
+            <div style="font-size:0.875rem;">
+                <div style="margin-bottom:0.5rem;"><span style="color:#8898aa;font-weight:600;">Vĩ độ:</span> <span id="latDisplay" style="color:#667eea;font-weight:600;">--</span></div>
+                <div><span style="color:#8898aa;font-weight:600;">Kinh độ:</span> <span id="lngDisplay" style="color:#667eea;font-weight:600;">--</span></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Khởi tạo bản đồ
+    const map = L.map('map').setView([10.7769, 106.7009], 13); // Mặc định TP.HCM
+    
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png', {
+        attribution: '© OpenStreetMap, © CartoDB',
+        maxZoom: 20
+    }).addTo(map);
+    
+    let marker = null;
+    const latField = document.querySelector('input[name="lat"]');
+    const lngField = document.querySelector('input[name="lng"]');
+    
+    // Nếu đã có tọa độ, hiển thị marker
+    if (latField.value && lngField.value) {
+        const lat = parseFloat(latField.value);
+        const lng = parseFloat(lngField.value);
+        if (lat > 0 && lng > 0) {
+            marker = L.marker([lat, lng]).addTo(map);
+            map.setView([lat, lng], 13);
+            document.getElementById('latDisplay').textContent = lat.toFixed(6);
+            document.getElementById('lngDisplay').textContent = lng.toFixed(6);
+        }
+    }
+    
+    // Xử lý click trên bản đồ
+    map.on('click', function(e) {
+        const lat = e.latlng.lat;
+        const lng = e.latlng.lng;
+        
+        // Xoá marker cũ
+        if (marker) {
+            map.removeLayer(marker);
+        }
+        
+        // Thêm marker mới
+        marker = L.marker([lat, lng]).addTo(map);
+        
+        // Cập nhật form fields
+        latField.value = lat.toFixed(6);
+        lngField.value = lng.toFixed(6);
+        
+        // Cập nhật hiển thị
+        document.getElementById('latDisplay').textContent = lat.toFixed(6);
+        document.getElementById('lngDisplay').textContent = lng.toFixed(6);
+    });
+    
+    // Cho phép double-click để zoom
+    map.doubleClickZoom.enable();
+});
+</script>
+
+{% endblock %}

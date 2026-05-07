@@ -1,0 +1,57 @@
+{% extends "dashboard/base.html" %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block content %}
+
+<!-- Header -->
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+    <div></div>
+    <a href="{% url 'dashboard:about_detail' article.pk %}" class="btn btn-outline"><i class="fas fa-arrow-left"></i> Quay lại</a>
+</div>
+
+<!-- Warning -->
+<div class="alert alert-danger" style="margin-bottom:1.5rem;">
+    <i class="fas fa-exclamation-triangle" style="margin-right:8px;"></i><strong>Cảnh báo:</strong> Hành động này không thể hoàn tác. Bài viết sẽ bị xóa vĩnh viễn.
+</div>
+
+<!-- Article Info -->
+<div class="card" style="margin-bottom:1.5rem;">
+    <div class="card-body" style="display:flex;align-items:center;gap:1rem;">
+        {% if article.image %}
+        <img src="{{ article.image.url }}" alt="{{ article.title }}" style="width:80px;height:80px;border-radius:8px;object-fit:cover;">
+        {% endif %}
+        <div>
+            <div style="font-size:1.2rem;font-weight:700;color:#32325d;">{{ article.title }}</div>
+            {% if article.summary %}<div style="font-size:0.85rem;color:#8898aa;margin-top:4px;">{{ article.summary }}</div>{% endif %}
+            <div style="display:flex;gap:1rem;font-size:0.8rem;color:#adb5bd;margin-top:8px;">
+                <span><i class="fas fa-user" style="margin-right:4px;"></i>{{ article.author.username|default:"—" }}</span>
+                <span><i class="fas fa-calendar" style="margin-right:4px;"></i>{{ article.created_at|date:"d/m/Y" }}</span>
+                {% if article.status == 'published' %}<span class="badge badge-available" style="font-size:0.75rem;">Đã xuất bản</span>
+                {% elif article.status == 'draft' %}<span class="badge badge-pending" style="font-size:0.75rem;">Bản nháp</span>
+                {% else %}<span class="badge" style="background:#e9ecef;color:#525f7f;font-size:0.75rem;">Lưu trữ</span>{% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Form -->
+<div class="card">
+    <div class="card-body">
+        <form method="POST">
+            {% csrf_token %}
+            <p style="color:#525f7f;margin-bottom:1rem;">Bạn có chắc chắn muốn xóa bài viết "<strong style="color:#32325d;">{{ article.title }}</strong>" không?</p>
+            <ul style="list-style:none;padding:0;font-size:0.85rem;color:#8898aa;margin-bottom:1.5rem;">
+                <li style="margin-bottom:0.5rem;"><i class="fas fa-info-circle" style="color:#667eea;margin-right:8px;"></i>Tất cả nội dung và hình ảnh sẽ bị xóa</li>
+                <li style="margin-bottom:0.5rem;"><i class="fas fa-info-circle" style="color:#667eea;margin-right:8px;"></i>Không thể khôi phục sau khi xóa</li>
+                <li><i class="fas fa-info-circle" style="color:#667eea;margin-right:8px;"></i>Bài viết sẽ không còn hiển thị trên trang giới thiệu</li>
+            </ul>
+            <div style="display:flex;justify-content:space-between;">
+                <a href="{% url 'dashboard:about_detail' article.pk %}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Hủy bỏ</a>
+                <div style="display:flex;gap:0.5rem;">
+                    <a href="{% url 'dashboard:about_edit' article.pk %}" class="btn btn-primary"><i class="fas fa-edit"></i> Chỉnh sửa</a>
+                    <button type="submit" class="btn btn-danger"><i class="fas fa-trash"></i> Xóa bài viết</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

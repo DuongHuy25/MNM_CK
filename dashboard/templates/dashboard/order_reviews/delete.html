@@ -1,0 +1,39 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block content %}
+
+<!-- Header -->
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+    <div></div>
+    <a href="{% url 'dashboard:order_review_list' %}" class="btn btn-outline"><i class="fas fa-arrow-left"></i> Quay lại</a>
+</div>
+
+<!-- Warning -->
+<div class="alert alert-danger" style="margin-bottom:1.5rem;">
+    <i class="fas fa-exclamation-triangle" style="margin-right:8px;"></i><strong>Cảnh báo:</strong> Hành động này không thể hoàn tác.
+</div>
+
+<!-- Delete Card -->
+<div class="card" style="max-width:500px;margin:0 auto;">
+    <div class="card-body" style="text-align:center;">
+        <i class="fas fa-trash-alt" style="font-size:2.5rem;color:#f5365c;margin-bottom:1rem;"></i>
+        <div style="font-size:1.3rem;font-weight:700;color:#32325d;margin-bottom:0.5rem;">Xác nhận xóa</div>
+        <div style="color:#8898aa;margin-bottom:0.5rem;">Bạn có chắc chắn muốn xóa đánh giá đơn hàng này?</div>
+        <div style="font-size:1.1rem;font-weight:600;color:#32325d;margin-bottom:1.5rem;">Đánh giá đơn hàng #{{ order_review.order.id }}</div>
+
+        <div style="background:#fff3cd;border-left:4px solid #ffc107;border-radius:0 8px 8px 0;padding:1rem;text-align:left;margin-bottom:1.5rem;">
+            <div style="font-weight:600;color:#856404;margin-bottom:0.5rem;">Lưu ý:</div>
+            <ul style="list-style:disc;padding-left:1.2rem;font-size:0.85rem;color:#856404;">
+                <li>Hành động này không thể hoàn tác</li>
+                <li>Đánh giá đơn hàng sẽ bị xóa vĩnh viễn</li>
+            </ul>
+        </div>
+
+        <form method="post" style="display:flex;justify-content:center;gap:0.5rem;">
+            {% csrf_token %}
+            <a href="{% url 'dashboard:order_review_list' %}" class="btn btn-secondary">Hủy</a>
+            <button type="submit" class="btn btn-danger"><i class="fas fa-trash"></i> Xóa đánh giá</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

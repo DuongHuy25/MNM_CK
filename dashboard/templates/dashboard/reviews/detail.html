@@ -1,0 +1,158 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}Chi tiết Đánh giá #{{ review.id }}{% endblock %}
+{% block content %}
+
+<!-- Header -->
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+    <div></div>
+    <a href="{% url 'dashboard:review_list' %}" class="btn btn-outline"><i class="fas fa-arrow-left"></i> Quay lại</a>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 320px;gap:1.5rem;">
+    <!-- Main Content -->
+    <div>
+        <!-- Review Content Card -->
+        <div class="card" style="margin-bottom:1.5rem;">
+            <div class="card-header">
+                <span><i class="fas fa-comment" style="color:#667eea;margin-right:8px;"></i>Nội dung đánh giá</span>
+            </div>
+            <div class="card-body">
+                <!-- Rating -->
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:1.5rem;padding:1rem;background:#f8f9fe;border-radius:8px;">
+                    <span style="font-size:1.8rem;color:#ffd600;">
+                        {% for i in "12345" %}{% if forloop.counter <= review.rating %}⭐{% else %}<span style="color:#dee2e6;">☆</span>{% endif %}{% endfor %}
+                    </span>
+                    <span style="font-size:1.3rem;font-weight:700;color:#32325d;">{{ review.rating }}/5</span>
+                </div>
+                {% if review.content %}
+                <div style="background:#f8f9fe;border-left:4px solid #667eea;border-radius:0 8px 8px 0;padding:1rem;margin-bottom:1.5rem;">
+                    <p style="color:#525f7f;font-style:italic;line-height:1.7;">"{{ review.content }}"</p>
+                </div>
+                {% else %}
+                <p style="color:#adb5bd;margin-bottom:1.5rem;">Người dùng không để lại bình luận.</p>
+                {% endif %}
+                {% if review.images.exists %}
+                <div style="font-weight:600;color:#32325d;margin-bottom:0.75rem;"><i class="fas fa-camera" style="margin-right:6px;"></i>Hình ảnh đánh giá</div>
+                <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                    {% for image in review.images.all %}
+                    <a href="{{ image.image.url }}" target="_blank" rel="noopener">
+                        <img src="{{ image.image.url }}" alt="Review image" style="width:100px;height:100px;object-fit:cover;border-radius:8px;border:2px solid #f0f2f5;">
+                    </a>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Order Info Card -->
+        <div class="card" style="margin-bottom:1.5rem;">
+            <div class="card-header">
+                <span><i class="fas fa-receipt" style="color:#667eea;margin-right:8px;"></i>Thông tin đơn hàng</span>
+            </div>
+            <div class="card-body">
+                {% if review.order_item and review.order_item.order %}
+                <div style="display:flex;justify-content:space-between;padding:0.75rem 0;border-bottom:1px solid #f0f2f5;">
+                    <span style="font-weight:600;color:#525f7f;">Mã đơn hàng:</span>
+                    <a href="{% url 'dashboard:order_detail' review.order_item.order.pk %}" style="color:#667eea;">#{{ review.order_item.order.id }}</a>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:0.75rem 0;border-bottom:1px solid #f0f2f5;">
+                    <span style="font-weight:600;color:#525f7f;">Sản phẩm:</span>
+                    <span style="color:#32325d;">{{ review.order_item.product.name|default:"—" }}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:0.75rem 0;">
+                    <span style="font-weight:600;color:#525f7f;">Ngày tạo:</span>
+                    <span style="color:#8898aa;">{{ review.created_at|date:"d/m/Y H:i" }}</span>
+                </div>
+                {% else %}
+                <p style="color:#adb5bd;">Không có thông tin đơn hàng.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Admin Reply -->
+        <div class="card">
+            <div class="card-header">
+                <span><i class="fas fa-reply" style="color:#667eea;margin-right:8px;"></i>Phản hồi quản trị</span>
+            </div>
+            <div class="card-body">
+                {% if review.admin_reply %}
+                <div style="background:#e8edff;border-left:4px solid #667eea;border-radius:0 8px 8px 0;padding:1rem;margin-bottom:1rem;">
+                    <p style="color:#525f7f;">{{ review.admin_reply }}</p>
+                    <p style="font-size:0.8rem;color:#adb5bd;margin-top:8px;">{{ review.admin_reply_at|date:"d/m/Y H:i" }}</p>
+                </div>
+                {% endif %}
+                <form method="post">
+                    {% csrf_token %}
+                    <textarea name="admin_reply" rows="3" class="form-control" placeholder="Nhập phản hồi...">{{ review.admin_reply|default:'' }}</textarea>
+                    <button type="submit" class="btn btn-primary" style="margin-top:0.5rem;"><i class="fas fa-reply"></i> Gửi phản hồi</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div>
+        <!-- Status Card -->
+        <div class="card" style="margin-bottom:1.5rem;">
+            <div class="card-header">
+                <span><i class="fas fa-info-circle" style="color:#667eea;margin-right:8px;"></i>Trạng thái</span>
+            </div>
+            <div class="card-body">
+                <div style="display:flex;justify-content:space-between;padding:0.75rem 0;border-bottom:1px solid #f0f2f5;">
+                    <span style="font-weight:600;color:#525f7f;">Trạng thái:</span>
+                    {% if review.status == 'approved' %}
+                    <span class="badge badge-available"><i class="fas fa-check-circle"></i> Đã duyệt</span>
+                    {% elif review.status == 'pending' %}
+                    <span class="badge badge-pending"><i class="fas fa-clock"></i> Chờ duyệt</span>
+                    {% else %}
+                    <span class="badge badge-unavailable"><i class="fas fa-times-circle"></i> Từ chối</span>
+                    {% endif %}
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:0.75rem 0;border-bottom:1px solid #f0f2f5;">
+                    <span style="font-weight:600;color:#525f7f;">Người đánh giá:</span>
+                    <span style="color:#32325d;">{{ review.user.get_full_name|default:review.user.email }}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:0.75rem 0;border-bottom:1px solid #f0f2f5;">
+                    <span style="font-weight:600;color:#525f7f;">Ngày tạo:</span>
+                    <span style="color:#8898aa;">{{ review.created_at|date:"d/m/Y" }}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:0.75rem 0;">
+                    <span style="font-weight:600;color:#525f7f;">Cập nhật:</span>
+                    <span style="color:#8898aa;">{{ review.updated_at|date:"d/m/Y" }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions Card -->
+        <div class="card">
+            <div class="card-header">
+                <span><i class="fas fa-cog" style="color:#667eea;margin-right:8px;"></i>Thao tác</span>
+            </div>
+            <div class="card-body">
+                {% if review.status == 'pending' %}
+                <form method="post" action="{% url 'dashboard:review_approve' review.pk %}" style="margin-bottom:0.5rem;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-success" style="width:100%;"><i class="fas fa-check-circle"></i> Duyệt</button>
+                </form>
+                <form method="post" action="{% url 'dashboard:review_reject' review.pk %}" style="margin-bottom:0.5rem;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger" style="width:100%;"><i class="fas fa-times-circle"></i> Từ chối</button>
+                </form>
+                {% elif review.status == 'approved' %}
+                <form method="post" action="{% url 'dashboard:review_reject' review.pk %}" style="margin-bottom:0.5rem;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger" style="width:100%;"><i class="fas fa-times-circle"></i> Từ chối</button>
+                </form>
+                {% else %}
+                <form method="post" action="{% url 'dashboard:review_approve' review.pk %}" style="margin-bottom:0.5rem;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-success" style="width:100%;"><i class="fas fa-check-circle"></i> Duyệt lại</button>
+                </form>
+                {% endif %}
+                <a href="{% url 'dashboard:review_delete' review.pk %}" class="btn btn-danger" style="width:100%;margin-bottom:0.5rem;"><i class="fas fa-trash"></i> Xóa</a>
+                <a href="{% url 'dashboard:review_list' %}" class="btn btn-secondary" style="width:100%;"><i class="fas fa-arrow-left"></i> Quay lại</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,94 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}Quản Lý Khách Hàng{% endblock %}
+{% block content %}
+
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+    <form method="get" style="display:flex;gap:0.5rem;">
+        <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Tìm khách hàng..." class="form-control" style="width:280px;">
+        <button type="submit" class="btn btn-outline"><i class="fas fa-search"></i></button>
+        {% if request.GET.q %}<a href="{% url 'dashboard:customers_list' %}" class="btn btn-secondary">Xóa</a>{% endif %}
+    </form>
+    <a href="{% url 'dashboard:customers_create' %}" class="btn btn-primary"><i class="fas fa-plus"></i> Thêm Khách Hàng</a>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <span><i class="fas fa-users" style="color:#667eea;margin-right:8px;"></i>Danh Sách Khách Hàng</span>
+        <span style="font-size:0.8rem;color:#adb5bd;">{{ page_obj.paginator.count }} khách hàng</span>
+    </div>
+    <div style="overflow-x:auto;">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Họ Tên</th>
+                    <th>Số Điện Thoại</th>
+                    <th>Email</th>
+                    <th>Nhóm</th>
+                    <th>Điểm Tích Lũy</th>
+                    <th>Trạng Thái</th>
+                    <th style="text-align:center;">Thao Tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for customer in page_obj %}
+                <tr>
+                    <td style="font-weight:600;color:#32325d;">{{ customer.first_name }} {{ customer.last_name }}</td>
+                    <td style="color:#525f7f;">{{ customer.phone }}</td>
+                    <td style="color:#525f7f;">{{ customer.email }}</td>
+                    <td>
+                        {% if customer.group %}
+                        <span class="badge" style="background:#667eea;color:white;">{{ customer.group.name }}</span>
+                        {% else %}
+                        <span style="color:#adb5bd;">—</span>
+                        {% endif %}
+                    </td>
+                    <td style="color:#32325d;">{{ customer.loyalty_points }}</td>
+                    <td>
+                        {% if customer.is_active %}
+                        <span class="badge badge-available"><i class="fas fa-check-circle"></i> Hoạt động</span>
+                        {% else %}
+                        <span class="badge badge-unavailable"><i class="fas fa-times-circle"></i> Ngừng</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align:center;">
+                        <a href="{% url 'dashboard:customers_edit' customer.pk %}" class="btn btn-outline btn-sm btn-icon" title="Sửa"><i class="fas fa-edit"></i></a>
+                        <form method="post" action="{% url 'dashboard:customers_delete' customer.pk %}" style="display:inline;" onsubmit="return confirm('Bạn chắc chắn muốn xóa?');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger btn-sm btn-icon" title="Xóa"><i class="fas fa-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" style="text-align:center;padding:3rem;color:#adb5bd;">
+                        <i class="fas fa-users" style="font-size:2.5rem;display:block;margin-bottom:1rem;opacity:0.3;"></i>
+                        Không có khách hàng nào.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if page_obj.paginator.num_pages > 1 %}
+<div style="display:flex;justify-content:center;gap:0.5rem;margin-top:1.5rem;">
+    {% if page_obj.has_previous %}
+    <a href="?page=1" class="btn btn-outline btn-sm">&laquo;</a>
+    <a href="?page={{ page_obj.previous_page_number }}" class="btn btn-outline btn-sm">Trước</a>
+    {% endif %}
+    {% for num in page_obj.paginator.page_range %}
+        {% if page_obj.number == num %}
+        <span class="btn btn-primary btn-sm">{{ num }}</span>
+        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+        <a href="?page={{ num }}" class="btn btn-outline btn-sm">{{ num }}</a>
+        {% endif %}
+    {% endfor %}
+    {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}" class="btn btn-outline btn-sm">Tiếp</a>
+    <a href="?page={{ page_obj.paginator.num_pages }}" class="btn btn-outline btn-sm">&raquo;</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

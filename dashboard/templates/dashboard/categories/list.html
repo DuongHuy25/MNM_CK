@@ -1,0 +1,75 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}Danh Mục{% endblock %}
+{% block content %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+    <form method="get" style="display:flex;gap:0.5rem;">
+        <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Tìm danh mục..." class="form-control" style="width:280px;">
+        <button type="submit" class="btn btn-outline"><i class="fas fa-search"></i></button>
+        {% if request.GET.q %}<a href="{% url 'dashboard:categories_list' %}" class="btn btn-secondary">Xóa</a>{% endif %}
+    </form>
+    <a href="{% url 'dashboard:categories_create' %}" class="btn btn-primary"><i class="fas fa-plus"></i> Thêm Danh Mục</a>
+</div>
+<div class="card">
+    <div class="card-header">
+        <span><i class="fas fa-tags" style="color:#667eea;margin-right:8px;"></i>Danh Sách Danh Mục</span>
+        <span style="font-size:0.8rem;color:#adb5bd;">{{ page_obj.paginator.count }} danh mục</span>
+    </div>
+    <div style="overflow-x:auto;">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Hình Ảnh</th>
+                    <th>Tên Danh Mục</th>
+                    <th>Slug</th>
+                    <th>Số Món</th>
+                    <th style="text-align:center;">Thao Tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cat in page_obj %}
+                <tr>
+                    <td>
+                        {% if cat.image %}
+                        <img src="{{ cat.image.url }}" alt="{{ cat.name }}" style="width:44px;height:44px;border-radius:10px;object-fit:cover;box-shadow:0 2px 6px rgba(0,0,0,0.1);">
+                        {% else %}
+                        <div style="width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,#e8edff,#c5cae9);display:flex;align-items:center;justify-content:center;color:#667eea;">
+                            <i class="fas fa-image"></i>
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td style="font-weight:600;color:#32325d;">{{ cat.name }}</td>
+                    <td><span style="font-family:monospace;font-size:0.8rem;background:#f0f2f5;padding:2px 8px;border-radius:6px;color:#525f7f;">{{ cat.slug }}</span></td>
+                    <td>
+                        <span class="badge badge-category">{{ cat.products.count }} món</span>
+                    </td>
+                    <td style="text-align:center;">
+                        <a href="{% url 'dashboard:categories_edit' cat.pk %}" class="btn btn-primary btn-sm btn-icon" title="Chỉnh sửa" style="margin-right:4px;"><i class="fas fa-edit"></i></a>
+                        <form method="post" action="{% url 'dashboard:categories_delete' cat.pk %}" style="display:inline;" onsubmit="return confirm('Xóa danh mục « {{ cat.name }} »?')">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger btn-sm btn-icon" title="Xóa"><i class="fas fa-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" style="text-align:center;padding:3rem;color:#adb5bd;">
+                        <i class="fas fa-tags" style="font-size:2.5rem;display:block;margin-bottom:1rem;opacity:0.3;"></i>
+                        Chưa có danh mục. <a href="{% url 'dashboard:categories_create' %}" style="color:#667eea;">Thêm ngay</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if page_obj.has_other_pages %}
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:1rem 1.5rem;border-top:1px solid #f0f2f5;">
+        <span style="font-size:0.82rem;color:#8898aa;">Trang {{ page_obj.number }} / {{ paginator.num_pages }}</span>
+        <div style="display:flex;gap:6px;">
+            {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}" class="page-link">‹</a>{% endif %}
+            {% for i in paginator.page_range %}<a href="?page={{ i }}" class="page-link {% if i == page_obj.number %}active{% endif %}">{{ i }}</a>{% endfor %}
+            {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}" class="page-link">›</a>{% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

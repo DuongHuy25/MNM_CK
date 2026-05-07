@@ -1,0 +1,188 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block content %}
+
+<!-- Stats Row -->
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:1rem;margin-bottom:1.5rem;">
+    <div class="stat-card grad-purple">
+        <div class="icon-bg"><i class="fas fa-users"></i></div>
+        <div class="stat-label">Tổng khách hàng</div>
+        <div class="stat-value">{{ stats.total }}</div>
+    </div>
+    <div class="stat-card grad-green">
+        <div class="icon-bg"><i class="fas fa-check-circle"></i></div>
+        <div class="stat-label">Đã xác thực</div>
+        <div class="stat-value">{{ stats.verified }}</div>
+    </div>
+    <div class="stat-card grad-orange">
+        <div class="icon-bg"><i class="fas fa-crown"></i></div>
+        <div class="stat-label">VIP</div>
+        <div class="stat-value">{{ stats.vip }}</div>
+    </div>
+    <div class="stat-card grad-blue">
+        <div class="icon-bg"><i class="fas fa-user-check"></i></div>
+        <div class="stat-label">Đang hoạt động</div>
+        <div class="stat-value">{{ stats.active }}</div>
+    </div>
+    <div class="stat-card grad-teal">
+        <div class="icon-bg"><i class="fas fa-user-plus"></i></div>
+        <div class="stat-label">Mới tháng này</div>
+        <div class="stat-value">{{ stats.new_this_month }}</div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card" style="margin-bottom:1.5rem;">
+    <div class="card-header">
+        <span><i class="fas fa-filter" style="color:#667eea;margin-right:8px;"></i>Tìm kiếm & Lọc</span>
+    </div>
+    <div class="card-body">
+        <form method="get" style="display:flex;flex-wrap:wrap;gap:0.75rem;align-items:end;">
+            <div style="flex:2;min-width:200px;">
+                <label class="form-label">Tìm kiếm</label>
+                <input type="text" name="search" value="{{ search_query }}" placeholder="Tên, email, SĐT..." class="form-control">
+            </div>
+            <div style="flex:1;min-width:130px;">
+                <label class="form-label">Trạng thái</label>
+                <select name="status" class="form-control">
+                    <option value="">Tất cả</option>
+                    <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Hoạt động</option>
+                    <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Bị khóa</option>
+                </select>
+            </div>
+            <div style="flex:1;min-width:130px;">
+                <label class="form-label">Quyền</label>
+                <select name="role" class="form-control">
+                    <option value="">Tất cả</option>
+                    <option value="admin" {% if role_filter == 'admin' %}selected{% endif %}>Quản trị</option>
+                    <option value="user" {% if role_filter == 'user' %}selected{% endif %}>Người dùng</option>
+                </select>
+            </div>
+            <div style="flex:1;min-width:130px;">
+                <label class="form-label">Loại KH</label>
+                <select name="vip" class="form-control">
+                    <option value="">Tất cả</option>
+                    <option value="vip" {% if vip_filter == 'vip' %}selected{% endif %}>VIP</option>
+                    <option value="normal" {% if vip_filter == 'normal' %}selected{% endif %}>Thường</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Lọc</button>
+            <a href="{% url 'dashboard:customers_unified_list' %}" class="btn btn-secondary"><i class="fas fa-redo"></i> Đặt lại</a>
+        </form>
+    </div>
+</div>
+
+<!-- Table -->
+<div class="card">
+    <div class="card-header">
+        <span><i class="fas fa-users" style="color:#667eea;margin-right:8px;"></i>Danh Sách Khách Hàng</span>
+        <div style="display:flex;align-items:center;gap:1rem;">
+            <span style="font-size:0.8rem;color:#adb5bd;">{{ page_obj.paginator.count }} khách hàng</span>
+            <a href="{% url 'dashboard:customers_unified_create' %}" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> Thêm</a>
+        </div>
+    </div>
+    <div style="overflow-x:auto;">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Khách Hàng</th>
+                    <th>Liên Hệ</th>
+                    <th>Địa Chỉ</th>
+                    <th>Điểm Tích Lũy</th>
+                    <th>Ngày Tham Gia</th>
+                    <th>Trạng Thái</th>
+                    <th style="text-align:center;">Thao Tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in page_obj %}
+                {% with profile=u.profile %}
+                <tr>
+                    <td>
+                        <div style="display:flex;align-items:center;gap:12px;">
+                            {% if profile and profile.avatar %}
+                            <img src="{{ profile.avatar.url }}" alt="{{ u.get_full_name }}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;box-shadow:0 2px 8px rgba(0,0,0,0.12);">
+                            {% elif u.avatar %}
+                            <img src="{{ u.avatar.url }}" alt="{{ u.get_full_name }}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;box-shadow:0 2px 8px rgba(0,0,0,0.12);">
+                            {% else %}
+                            <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;color:white;font-size:0.9rem;">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            {% endif %}
+                            <div>
+                                <div style="font-weight:600;color:#32325d;">{{ u.get_full_name|default:u.email }}</div>
+                                <div style="font-size:0.8rem;color:#adb5bd;">{{ u.email }}</div>
+                            </div>
+                            {% if profile and profile.is_premium %}
+                            <span class="badge" style="background:#fff3cd;color:#856404;"><i class="fas fa-crown"></i> VIP</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        <div style="font-size:0.85rem;color:#525f7f;">
+                            {% if u.phone %}<div><i class="fas fa-phone" style="color:#adb5bd;margin-right:6px;font-size:0.75rem;"></i>{{ u.phone }}</div>{% endif %}
+                            {% if profile and profile.phone and not u.phone %}<div><i class="fas fa-phone" style="color:#adb5bd;margin-right:6px;font-size:0.75rem;"></i>{{ profile.phone }}</div>{% endif %}
+                        </div>
+                    </td>
+                    <td style="color:#525f7f;max-width:180px;font-size:0.85rem;">
+                        {% if u.address %}{{ u.address|truncatechars:40 }}{% elif profile and profile.address %}{{ profile.address|truncatechars:40 }}{% else %}<span style="color:#adb5bd;">—</span>{% endif %}
+                    </td>
+                    <td>
+                        <span class="badge badge-category"><i class="fas fa-coins" style="margin-right:4px;"></i>{% if profile %}{{ profile.loyalty_points }}{% else %}0{% endif %} điểm</span>
+                    </td>
+                    <td style="color:#8898aa;font-size:0.85rem;">{{ u.date_joined|date:"d/m/Y" }}</td>
+                    <td>
+                        {% if u.is_active %}
+                        <span class="badge badge-available"><i class="fas fa-check-circle"></i> Hoạt động</span>
+                        {% else %}
+                        <span class="badge badge-unavailable"><i class="fas fa-ban"></i> Đã khóa</span>
+                        {% endif %}
+                        {% if profile and profile.is_verified %}
+                        <span class="badge badge-category" style="margin-top:4px;"><i class="fas fa-shield-alt"></i> Đã xác thực</span>
+                        {% elif profile %}
+                        <span class="badge badge-pending" style="margin-top:4px;"><i class="fas fa-clock"></i> Chưa xác thực</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align:center;">
+                        <a href="{% url 'dashboard:customers_unified_detail' u.pk %}" class="btn btn-outline btn-sm btn-icon" title="Xem"><i class="fas fa-eye"></i></a>
+                        <a href="{% url 'dashboard:customers_unified_edit' u.pk %}" class="btn btn-primary btn-sm btn-icon" title="Sửa" style="margin:0 4px;"><i class="fas fa-edit"></i></a>
+                        <a href="{% url 'dashboard:customers_unified_toggle_verification' u.pk %}" class="btn btn-sm btn-icon" title="Xác thực" style="background:#e8edff;color:#667eea;border:none;cursor:pointer;margin:0 4px;"><i class="fas fa-shield-alt"></i></a>
+                        <form method="post" action="{% url 'dashboard:customers_unified_delete' u.pk %}" style="display:inline;" onsubmit="return confirm('Xóa khách hàng « {{ u.get_full_name|default:u.email }} »?')">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger btn-sm btn-icon" title="Xóa"><i class="fas fa-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+                {% endwith %}
+                {% empty %}
+                <tr>
+                    <td colspan="7" style="text-align:center;padding:3rem;color:#adb5bd;">
+                        <i class="fas fa-users" style="font-size:2.5rem;display:block;margin-bottom:1rem;opacity:0.3;"></i>
+                        Không tìm thấy khách hàng nào.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if page_obj.paginator.num_pages > 1 %}
+    <div style="display:flex;align-items:center;justify-content:center;padding:1.5rem;border-top:1px solid #f0f2f5;background:#f8f9fe;gap:1rem;flex-wrap:wrap;">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}{% if vip_filter %}&vip={{ vip_filter }}{% endif %}" style="color:#667eea;font-weight:700;text-decoration:none;font-size:0.95rem;">« Trước</a>
+        {% endif %}
+        <div style="display:flex;gap:0.5rem;align-items:center;">
+            {% for i in paginator.page_range %}
+                {% if i == page_obj.number %}
+                <span style="color:#667eea;font-weight:700;font-size:0.95rem;padding:0.5rem 0.75rem;background:#e8edff;border-radius:6px;min-width:32px;text-align:center;">{{ i }}</span>
+                {% elif i > page_obj.number|add:'-3' and i < page_obj.number|add:'3' %}
+                <a href="?page={{ i }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}{% if vip_filter %}&vip={{ vip_filter }}{% endif %}" style="color:#667eea;text-decoration:none;font-weight:600;font-size:0.95rem;padding:0.5rem 0.75rem;border-radius:6px;min-width:32px;text-align:center;">{{ i }}</a>
+                {% endif %}
+            {% endfor %}
+        </div>
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}{% if vip_filter %}&vip={{ vip_filter }}{% endif %}" style="color:#667eea;font-weight:700;text-decoration:none;font-size:0.95rem;">Tiếp »</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

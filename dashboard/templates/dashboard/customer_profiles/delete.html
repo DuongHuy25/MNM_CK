@@ -1,0 +1,102 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block content %}
+
+<!-- Header -->
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+    <div></div>
+    <a href="{% url 'dashboard:customer_profile_detail' profile.pk %}" class="btn btn-outline"><i class="fas fa-arrow-left"></i> Quay lại</a>
+</div>
+
+<!-- Warning Card -->
+<div class="card" style="border:2px solid #f5365c;">
+    <div class="card-header" style="background:#f5365c;color:white;">
+        <span><i class="fas fa-exclamation-triangle" style="margin-right:8px;"></i>Cảnh báo: Hành động không thể hoàn tác</span>
+    </div>
+    <div class="card-body">
+        <div style="display:grid;grid-template-columns:2fr 1fr;gap:2rem;">
+            <div>
+                <p style="margin-bottom:1rem;">Bạn đang chuẩn bị <strong style="color:#f5365c;">xóa vĩnh viễn</strong> tài khoản và tất cả dữ liệu liên quan:</p>
+
+                <!-- User info -->
+                <div class="alert alert-danger">
+                    <div style="display:flex;align-items:center;gap:12px;">
+                        {% if profile.avatar %}
+                        <img src="{{ profile.avatar.url }}" alt="{{ profile.display_name }}" style="width:50px;height:50px;border-radius:50%;object-fit:cover;">
+                        {% else %}
+                        <div style="width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;color:white;">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        {% endif %}
+                        <div>
+                            <div style="font-weight:600;color:#32325d;">{{ profile.display_name }}</div>
+                            <div style="font-size:0.8rem;color:#adb5bd;">@{{ profile.user.username }} · {{ profile.user.email }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="font-size:0.85rem;color:#f5365c;font-weight:600;margin-bottom:0.5rem;"><i class="fas fa-exclamation-circle" style="margin-right:6px;"></i>Dữ liệu sẽ bị xóa:</div>
+                <ul style="list-style:none;padding:0;font-size:0.85rem;color:#525f7f;">
+                    <li style="margin-bottom:0.5rem;"><i class="fas fa-user-times" style="color:#f5365c;margin-right:8px;"></i>Thông tin cá nhân và profile</li>
+                    <li style="margin-bottom:0.5rem;"><i class="fas fa-image" style="color:#f5365c;margin-right:8px;"></i>Ảnh đại diện</li>
+                    <li style="margin-bottom:0.5rem;"><i class="fas fa-shopping-cart" style="color:#f5365c;margin-right:8px;"></i>Lịch sử đơn hàng</li>
+                    <li style="margin-bottom:0.5rem;"><i class="fas fa-history" style="color:#f5365c;margin-right:8px;"></i>Tất cả hoạt động liên quan</li>
+                </ul>
+
+                <div class="alert alert-danger" style="font-size:0.85rem;">
+                    <i class="fas fa-info-circle" style="margin-right:6px;"></i><strong>Lưu ý:</strong> Hành động này không thể hoàn tác.
+                </div>
+            </div>
+            <div>
+                <div class="card" style="background:#f8f9fe;">
+                    <div class="card-body" style="text-align:center;">
+                        <i class="fas fa-trash-alt" style="font-size:2.5rem;color:#f5365c;margin-bottom:1rem;"></i>
+                        <div style="font-weight:600;color:#f5365c;margin-bottom:0.5rem;">Xác nhận xóa</div>
+                        <div style="font-size:0.8rem;color:#8898aa;margin-bottom:1rem;">Nhập tên người dùng để xác nhận:</div>
+                        <input type="text" class="form-control" id="confirmName" placeholder="{{ profile.display_name }}" style="margin-bottom:1rem;">
+                        <form method="POST" id="deleteForm">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger" id="confirmDeleteBtn" disabled style="width:100%;"><i class="fas fa-trash"></i> Xóa vĩnh viễn</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Action Buttons -->
+<div style="display:flex;gap:0.5rem;margin-top:1rem;">
+    <a href="{% url 'dashboard:customer_profile_detail' profile.pk %}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Quay lại chi tiết</a>
+    <a href="{% url 'dashboard:customer_profile_list' %}" class="btn btn-outline"><i class="fas fa-list"></i> Danh sách</a>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var confirmNameInput = document.getElementById('confirmName');
+    var confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+    var deleteForm = document.getElementById('deleteForm');
+    var profileName = '{{ profile.display_name }}';
+
+    confirmNameInput.addEventListener('input', function() {
+        if (confirmNameInput.value.trim() === profileName) {
+            confirmDeleteBtn.disabled = false;
+        } else {
+            confirmDeleteBtn.disabled = true;
+        }
+    });
+
+    deleteForm.addEventListener('submit', function(e) {
+        if (confirmNameInput.value.trim() !== profileName) {
+            e.preventDefault();
+            alert('Vui lòng nhập đúng tên người dùng để xác nhận xóa.');
+            return false;
+        }
+        if (!confirm('Bạn có chắc chắn muốn xóa tài khoản "' + profileName + '" vĩnh viễn?')) {
+            e.preventDefault();
+            return false;
+        }
+    });
+});
+</script>
+{% endblock %}

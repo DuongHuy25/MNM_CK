@@ -1,0 +1,141 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block content %}
+
+<!-- Stats -->
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem;margin-bottom:1.5rem;">
+    <div class="stat-card grad-purple">
+        <div class="stat-label">Tổng đánh giá</div>
+        <div class="stat-value">{{ stats.total }}</div>
+        <i class="fas fa-clipboard-check icon-bg"></i>
+    </div>
+    <div class="stat-card grad-green">
+        <div class="stat-label">Chờ duyệt</div>
+        <div class="stat-value">{{ stats.pending }}</div>
+        <i class="fas fa-clock icon-bg"></i>
+    </div>
+    <div class="stat-card grad-orange">
+        <div class="stat-label">Điểm TB</div>
+        <div class="stat-value">{{ stats.avg_rating|floatformat:1 }}</div>
+        <i class="fas fa-chart-line icon-bg"></i>
+    </div>
+</div>
+
+<!-- Filters -->
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+    <form method="get" style="display:flex;gap:0.5rem;align-items:center;">
+        <select name="status" class="form-control" style="width:auto;">
+            <option value="">Tất cả trạng thái</option>
+            <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Chờ duyệt</option>
+            <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>Đã duyệt</option>
+            <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>Từ chối</option>
+        </select>
+        <select name="rating" class="form-control" style="width:auto;">
+            <option value="">Tất cả đánh giá</option>
+            {% for i in "54321" %}
+            <option value="{{ i }}" {% if rating_filter == i %}selected{% endif %}>{{ i }} ⭐</option>
+            {% endfor %}
+        </select>
+        <div style="position:relative;">
+            <i class="fas fa-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#adb5bd;"></i>
+            <input type="text" name="q" value="{{ search_query }}" placeholder="Tìm kiếm..." class="form-control" style="padding-left:35px;width:200px;">
+        </div>
+        <button type="submit" class="btn btn-outline"><i class="fas fa-filter"></i> Lọc</button>
+        {% if status_filter or rating_filter or search_query %}
+        <a href="{% url 'dashboard:order_review_list' %}" class="btn btn-secondary">Xóa lọc</a>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Reviews Table -->
+<div class="card">
+    <div class="card-header">
+        <span><i class="fas fa-clipboard-check" style="color:#667eea;margin-right:8px;"></i>Đánh Giá Đơn Hàng</span>
+    </div>
+    <div style="overflow-x:auto;">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Người đánh giá</th>
+                    <th>Đơn hàng</th>
+                    <th>Đánh giá</th>
+                    <th>Nội dung</th>
+                    <th>Trạng thái</th>
+                    <th>Ngày tạo</th>
+                    <th style="text-align:center;">Thao Tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for or_item in order_reviews %}
+                <tr>
+                    <td style="font-weight:600;color:#667eea;">#{{ or_item.id }}</td>
+                    <td style="color:#32325d;font-weight:500;">{{ or_item.user.get_full_name|default:or_item.user.email }}</td>
+                    <td>
+                        {% if or_item.order %}
+                        <a href="{% url 'dashboard:orders_detail' or_item.order.pk %}" style="color:#667eea;">#{{ or_item.order.id }}</a>
+                        {% else %}—{% endif %}
+                    </td>
+                    <td>
+                        <span style="color:#ffd600;font-size:1rem;">
+                            {% for i in "12345" %}{% if forloop.counter <= or_item.overall_rating %}⭐{% else %}<span style="color:#dee2e6;">☆</span>{% endif %}{% endfor %}
+                        </span>
+                        <span style="font-size:0.8rem;color:#8898aa;">({{ or_item.overall_rating }}/5)</span>
+                    </td>
+                    <td style="max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#525f7f;font-size:0.85rem;">
+                        {{ or_item.content|truncatewords:20 }}
+                    </td>
+                    <td>
+                        {% if or_item.status == 'approved' %}
+                        <span class="badge badge-available"><i class="fas fa-check-circle"></i> Đã duyệt</span>
+                        {% elif or_item.status == 'pending' %}
+                        <span class="badge badge-pending"><i class="fas fa-clock"></i> Chờ duyệt</span>
+                        {% else %}
+                        <span class="badge badge-unavailable"><i class="fas fa-times-circle"></i> Từ chối</span>
+                        {% endif %}
+                    </td>
+                    <td style="color:#8898aa;font-size:0.85rem;">{{ or_item.created_at|date:"d/m/Y" }}</td>
+                    <td style="text-align:center;">
+                        <a href="{% url 'dashboard:order_review_detail' or_item.id %}" class="btn btn-outline btn-sm btn-icon" title="Xem"><i class="fas fa-eye"></i></a>
+                        {% if or_item.status == 'pending' %}
+                        <form method="post" action="{% url 'dashboard:order_review_approve' or_item.id %}" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-success btn-sm btn-icon" title="Duyệt" style="margin:0 2px;"><i class="fas fa-check"></i></button>
+                        </form>
+                        <form method="post" action="{% url 'dashboard:order_review_reject' or_item.id %}" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger btn-sm btn-icon" title="Từ chối"><i class="fas fa-times"></i></button>
+                        </form>
+                        {% endif %}
+                        <a href="{% url 'dashboard:order_review_delete' or_item.id %}" class="btn btn-danger btn-sm btn-icon" title="Xóa" style="margin-left:2px;"><i class="fas fa-trash"></i></a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" style="text-align:center;padding:3rem;color:#adb5bd;">
+                        <i class="fas fa-clipboard-check" style="font-size:2.5rem;display:block;margin-bottom:1rem;opacity:0.3;"></i>
+                        Chưa có đánh giá đơn hàng nào.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if order_reviews.has_other_pages %}
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:1rem 1.5rem;border-top:1px solid #f0f2f5;">
+        <span style="font-size:0.82rem;color:#8898aa;">Trang {{ order_reviews.number }} / {{ order_reviews.paginator.num_pages }}</span>
+        <div style="display:flex;gap:6px;">
+            {% if order_reviews.has_previous %}
+            <a href="?page={{ order_reviews.previous_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if rating_filter %}&rating={{ rating_filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}" class="page-link">‹</a>
+            {% endif %}
+            {% for i in order_reviews.paginator.page_range %}
+            <a href="?page={{ i }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if rating_filter %}&rating={{ rating_filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}" class="page-link {% if i == order_reviews.number %}active{% endif %}">{{ i }}</a>
+            {% endfor %}
+            {% if order_reviews.has_next %}
+            <a href="?page={{ order_reviews.next_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if rating_filter %}&rating={{ rating_filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}" class="page-link">›</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

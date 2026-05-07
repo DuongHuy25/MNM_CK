@@ -1,0 +1,180 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}Cửa Hàng{% endblock %}
+{% block content %}
+
+<style>
+    /* Responsive cho mobile */
+    @media (max-width: 768px) {
+        /* Ẩn sidebar trên mobile */
+        .sidebar, [class*="sidebar"] {
+            display: none !important;
+        }
+        
+        /* Main content full width */
+        .main-content, [class*="main"], [class*="content"] {
+            width: 100% !important;
+            margin-left: 0 !important;
+        }
+        
+        /* Table responsive */
+        .admin-table {
+            font-size: 0.8rem;
+        }
+        
+        .admin-table th, .admin-table td {
+            padding: 0.5rem !important;
+        }
+        
+        /* Ẩn cột ID và tọa độ trên mobile */
+        .admin-table th:nth-child(1),
+        .admin-table td:nth-child(1),
+        .admin-table th:nth-child(4),
+        .admin-table td:nth-child(4),
+        .admin-table th:nth-child(5),
+        .admin-table td:nth-child(5) {
+            display: none;
+        }
+        
+        /* Search input responsive */
+        input[name="q"] {
+            width: 100% !important;
+            margin-bottom: 0.75rem;
+        }
+        
+        /* Search form responsive */
+        form[method="get"] {
+            flex-direction: column !important;
+            width: 100%;
+        }
+        
+        /* Button responsive */
+        .btn {
+            padding: 0.5rem 0.75rem !important;
+            font-size: 0.85rem !important;
+        }
+        
+        /* Card responsive */
+        .card {
+            margin: 0 -1rem;
+            border-radius: 0;
+        }
+        
+        .card-header {
+            padding: 1rem !important;
+            flex-wrap: wrap;
+        }
+        
+        /* Header responsive */
+        div[style*="display:flex"] {
+            flex-direction: column !important;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        /* Extra small screens */
+        .admin-table {
+            font-size: 0.75rem;
+        }
+        
+        .admin-table th:nth-child(3),
+        .admin-table td:nth-child(3) {
+            max-width: 120px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        /* Ẩn giờ mở cửa trên very small screens */
+        .admin-table th:nth-child(6),
+        .admin-table td:nth-child(6) {
+            display: none;
+        }
+        
+        .btn-sm {
+            padding: 0.35rem 0.5rem !important;
+            font-size: 0.75rem !important;
+        }
+    }
+</style>
+
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+    <div style="display:flex;gap:0.5rem;">
+        <form method="get" style="display:flex;gap:0.5rem;">
+            <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Tìm cửa hàng..." class="form-control" style="width:280px;">
+            <button type="submit" class="btn btn-outline"><i class="fas fa-search"></i></button>
+            {% if request.GET.q %}<a href="{% url 'dashboard:stores_list' %}" class="btn btn-secondary">Xóa</a>{% endif %}
+        </form>
+    </div>
+    <a href="{% url 'dashboard:stores_create' %}" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Thêm Cửa Hàng
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <span><i class="fas fa-store" style="color:#667eea;margin-right:8px;"></i>Danh Sách Cửa Hàng</span>
+        <span style="font-size:0.8rem;color:#adb5bd;">{{ page_obj.paginator.count }} cửa hàng</span>
+    </div>
+    <div style="overflow-x:auto;">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Tên Cửa Hàng</th>
+                    <th>Địa Chỉ</th>
+                    <th>Vĩ Độ</th>
+                    <th>Kinh Độ</th>
+                    <th>Giờ Mở Cửa</th>
+                    <th style="text-align:center;">Thao Tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for store in page_obj %}
+                <tr>
+                    <td style="color:#adb5bd;font-size:0.8rem;font-family:monospace;">{{ store.id }}</td>
+                    <td>
+                        <div style="font-weight:600;color:#32325d;">{{ store.name }}</div>
+                    </td>
+                    <td style="color:#525f7f;max-width:220px;">{{ store.address }}</td>
+                    <td style="font-family:monospace;font-size:0.8rem;color:#8898aa;">{{ store.latitude|floatformat:5 }}</td>
+                    <td style="font-family:monospace;font-size:0.8rem;color:#8898aa;">{{ store.longitude|floatformat:5 }}</td>
+                    <td style="color:#667eea;font-weight:600;font-size:0.9rem;"><i class="fas fa-clock" style="margin-right:6px;"></i>{{ store.opening_hours }}</td>
+                    <td style="text-align:center;">
+                        <a href="{% url 'dashboard:stores_detail' store.pk %}" class="btn btn-outline btn-sm btn-icon" title="Xem chi tiết"><i class="fas fa-eye"></i></a>
+                        <a href="{% url 'eshop:directions' %}?store_id={{ store.pk }}" class="btn btn-sm btn-icon" style="background:#2dce89;color:white;border:none;cursor:pointer;" title="Tìm đường" target="_blank"><i class="fas fa-directions"></i></a>
+                        <a href="{% url 'dashboard:stores_edit' store.pk %}" class="btn btn-primary btn-sm btn-icon" title="Chỉnh sửa" style="margin:0 4px;"><i class="fas fa-edit"></i></a>
+                        <form method="post" action="{% url 'dashboard:stores_delete' store.pk %}" style="display:inline;" onsubmit="return confirm('Xóa cửa hàng « {{ store.name }} »?')">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger btn-sm btn-icon" title="Xóa"><i class="fas fa-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" style="text-align:center;padding:3rem;color:#adb5bd;">
+                        <i class="fas fa-store" style="font-size:2.5rem;display:block;margin-bottom:1rem;opacity:0.3;"></i>
+                        Chưa có cửa hàng nào. <a href="{% url 'dashboard:stores_create' %}" style="color:#667eea;">Thêm ngay</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if page_obj.has_other_pages %}
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:1rem 1.5rem;border-top:1px solid #f0f2f5;">
+        <span style="font-size:0.82rem;color:#8898aa;">Trang {{ page_obj.number }} / {{ paginator.num_pages }} · {{ paginator.count }} kết quả</span>
+        <div style="display:flex;gap:6px;">
+            {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" class="page-link">‹</a>
+            {% endif %}
+            {% for i in paginator.page_range %}
+            <a href="?page={{ i }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" class="page-link {% if i == page_obj.number %}active{% endif %}">{{ i }}</a>
+            {% endfor %}
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" class="page-link">›</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

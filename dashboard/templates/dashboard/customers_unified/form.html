@@ -1,0 +1,156 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block content %}
+
+<!-- Header -->
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+    <h1 style="font-size:1.5rem;font-weight:700;color:#32325d;margin:0;">
+        <i class="fas fa-user-{% if is_create %}plus{% else %}edit{% endif %}" style="color:#667eea;margin-right:8px;"></i>{{ page_title }}
+    </h1>
+    <a href="{% url 'dashboard:customers_unified_list' %}" class="btn btn-outline"><i class="fas fa-arrow-left"></i> Quay lại</a>
+</div>
+
+<!-- Form -->
+<div class="card">
+    <div class="card-body">
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <!-- Account Info -->
+            <div style="margin-bottom:2rem;">
+                <div style="font-size:1rem;font-weight:700;color:#32325d;margin-bottom:1rem;padding-bottom:0.5rem;border-bottom:1px solid #f0f2f5;">
+                    <i class="fas fa-lock" style="color:#667eea;margin-right:8px;"></i>Thông tin tài khoản
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+                    <div>
+                        <label class="form-label">Email <span style="color:#f5365c;">*</span></label>
+                        {{ user_form.email }}
+                        {% if user_form.email.errors %}<div style="color:#f5365c;font-size:0.8rem;margin-top:4px;">{{ user_form.email.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div>
+                        <label class="form-label">Mật khẩu {% if is_create %}<span style="color:#f5365c;">*</span>{% else %}<span style="color:#adb5bd;">(để trống nếu không đổi)</span>{% endif %}</label>
+                        {{ user_form.password }}
+                        {% if user_form.password.errors %}<div style="color:#f5365c;font-size:0.8rem;margin-top:4px;">{{ user_form.password.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div>
+                        <label class="form-label">Vai trò</label>
+                        {{ user_form.role }}
+                        {% if user_form.role.errors %}<div style="color:#f5365c;font-size:0.8rem;margin-top:4px;">{{ user_form.role.errors.0 }}</div>{% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Personal Info -->
+            <div style="margin-bottom:2rem;">
+                <div style="font-size:1rem;font-weight:700;color:#32325d;margin-bottom:1rem;padding-bottom:0.5rem;border-bottom:1px solid #f0f2f5;">
+                    <i class="fas fa-user" style="color:#667eea;margin-right:8px;"></i>Thông tin cá nhân
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+                    <div>
+                        <label class="form-label">Họ</label>
+                        {{ user_form.first_name }}
+                        {% if user_form.first_name.errors %}<div style="color:#f5365c;font-size:0.8rem;margin-top:4px;">{{ user_form.first_name.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div>
+                        <label class="form-label">Tên</label>
+                        {{ user_form.last_name }}
+                        {% if user_form.last_name.errors %}<div style="color:#f5365c;font-size:0.8rem;margin-top:4px;">{{ user_form.last_name.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div>
+                        <label class="form-label">Số điện thoại</label>
+                        {{ profile_form.phone }}
+                        {% if profile_form.phone.errors %}<div style="color:#f5365c;font-size:0.8rem;margin-top:4px;">{{ profile_form.phone.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div>
+                        <label class="form-label">Ngày sinh</label>
+                        {{ profile_form.birth_date }}
+                        {% if profile_form.birth_date.errors %}<div style="color:#f5365c;font-size:0.8rem;margin-top:4px;">{{ profile_form.birth_date.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div>
+                        <label class="form-label">Giới tính</label>
+                        {{ profile_form.gender }}
+                        {% if profile_form.gender.errors %}<div style="color:#f5365c;font-size:0.8rem;margin-top:4px;">{{ profile_form.gender.errors.0 }}</div>{% endif %}
+                    </div>
+                </div>
+                <div style="margin-top:1rem;">
+                    <label class="form-label">Địa chỉ</label>
+                    {{ profile_form.address }}
+                    {% if profile_form.address.errors %}<div style="color:#f5365c;font-size:0.8rem;margin-top:4px;">{{ profile_form.address.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+
+            <!-- Avatar -->
+            <div style="margin-bottom:2rem;">
+                <div style="font-size:1rem;font-weight:700;color:#32325d;margin-bottom:1rem;padding-bottom:0.5rem;border-bottom:1px solid #f0f2f5;">
+                    <i class="fas fa-camera" style="color:#667eea;margin-right:8px;"></i>Ảnh đại diện
+                </div>
+                <div style="display:flex;align-items:center;gap:1.5rem;">
+                    {% if profile and profile.avatar %}
+                    <img src="{{ profile.avatar.url }}" alt="Avatar" style="width:80px;height:80px;border-radius:50%;object-fit:cover;box-shadow:0 2px 8px rgba(0,0,0,0.12);">
+                    {% elif user_obj and user_obj.avatar %}
+                    <img src="{{ user_obj.avatar.url }}" alt="Avatar" style="width:80px;height:80px;border-radius:50%;object-fit:cover;box-shadow:0 2px 8px rgba(0,0,0,0.12);">
+                    {% else %}
+                    <div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;color:white;font-size:2rem;flex-shrink:0;">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    {% endif %}
+                    <div style="flex:1;">
+                        <label class="form-label">Chọn ảnh mới</label>
+                        {{ profile_form.avatar }}
+                        <div style="font-size:0.8rem;color:#adb5bd;margin-top:4px;">JPG, PNG. Tối đa 5MB.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Status -->
+            <div style="margin-bottom:2rem;">
+                <div style="font-size:1rem;font-weight:700;color:#32325d;margin-bottom:1rem;padding-bottom:0.5rem;border-bottom:1px solid #f0f2f5;">
+                    <i class="fas fa-cog" style="color:#667eea;margin-right:8px;"></i>Trạng thái
+                </div>
+                <div style="display:flex;gap:2rem;flex-wrap:wrap;">
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.9rem;color:#525f7f;">
+                        <input type="checkbox" name="is_active" {% if is_create or user_obj.is_active %}checked{% endif %}> Hoạt động
+                    </label>
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.9rem;color:#525f7f;">
+                        <input type="checkbox" name="is_staff" {% if user_obj and user_obj.is_staff %}checked{% endif %}> Quản trị viên
+                    </label>
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.9rem;color:#525f7f;">
+                        <input type="checkbox" name="is_verified" {% if profile and profile.is_verified %}checked{% endif %}> Đã xác thực
+                    </label>
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.9rem;color:#525f7f;">
+                        <input type="checkbox" name="is_premium" {% if profile and profile.is_premium %}checked{% endif %}> VIP
+                    </label>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div style="display:flex;gap:0.5rem;padding-top:1rem;border-top:1px solid #f0f2f5;">
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> {% if is_create %}Tạo khách hàng{% else %}Lưu thay đổi{% endif %}</button>
+                <a href="{% url 'dashboard:customers_unified_list' %}" class="btn btn-secondary"><i class="fas fa-times"></i> Hủy</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('input[type="text"], input[type="email"], input[type="tel"], input[type="date"], input[type="url"], textarea, select').forEach(function(el) {
+        el.classList.add('form-control');
+    });
+    var avatarInput = document.querySelector('input[type="file"]');
+    if (avatarInput) {
+        avatarInput.addEventListener('change', function(e) {
+            var file = e.target.files[0];
+            if (file) {
+                var reader = new FileReader();
+                reader.onload = function(ev) {
+                    var img = document.querySelector('img[alt="Avatar"]');
+                    if (img) img.src = ev.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

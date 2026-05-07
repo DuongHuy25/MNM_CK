@@ -1,0 +1,112 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}Người Dùng{% endblock %}
+{% block content %}
+
+<div style="margin-bottom:2rem;">
+    <h1 style="font-size:2rem;font-weight:700;color:#32325d;margin-bottom:1.5rem;">Quản Lý Người Dùng</h1>
+    
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+        <form method="get" style="display:flex;gap:0.5rem;flex:1;max-width:500px;">
+            <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Tìm username, email..." class="form-control" style="flex:1;padding:0.65rem 1rem;border:1px solid #dee2e6;border-radius:8px;">
+            <button type="submit" class="btn btn-outline"><i class="fas fa-search"></i></button>
+            {% if request.GET.q %}<a href="{% url 'dashboard:users_list' %}" class="btn btn-secondary">Xóa</a>{% endif %}
+        </form>
+        <div style="display:flex;align-items:center;gap:1rem;">
+            <span style="font-size:0.9rem;color:#8898aa;font-weight:600;">{{ page_obj.paginator.count }} người dùng</span>
+            <a href="{% url 'dashboard:users_create' %}" class="btn btn-primary" style="padding:0.65rem 1.5rem;"><i class="fas fa-plus"></i> Thêm Người Dùng</a>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <span><i class="fas fa-users" style="color:#667eea;margin-right:8px;"></i>Danh Sách Người Dùng</span>
+    </div>
+    <div style="overflow-x:auto;">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th style="text-transform:uppercase;font-size:0.72rem;">Người Dùng</th>
+                    <th style="text-transform:uppercase;font-size:0.72rem;">Email</th>
+                    <th style="text-align:center;text-transform:uppercase;font-size:0.72rem;">Staff</th>
+                    <th style="text-align:center;text-transform:uppercase;font-size:0.72rem;">Hoạt Động</th>
+                    <th style="text-transform:uppercase;font-size:0.72rem;">Ngày Tham Gia</th>
+                    <th style="text-align:center;text-transform:uppercase;font-size:0.72rem;">Thao Tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in page_obj %}
+                <tr>
+                    <td>
+                        <div style="display:flex;align-items:center;gap:12px;">
+                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed={{ u.username }}" style="width:40px;height:40px;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.12);" alt="{{ u.username }}">
+                            <div>
+                                <div style="font-weight:700;color:#32325d;font-size:0.95rem;">{{ u.get_full_name|default:u.username }}</div>
+                                <div style="font-size:0.8rem;color:#adb5bd;">@{{ u.username }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td style="color:#525f7f;font-size:0.9rem;">{{ u.email|default:'—' }}</td>
+                    <td style="text-align:center;">
+                        {% if u.is_staff %}
+                            <i class="fas fa-check-circle" style="color:#2dce89;font-size:1.2rem;"></i>
+                        {% else %}
+                            <i class="fas fa-minus-circle" style="color:#dee2e6;font-size:1.2rem;"></i>
+                        {% endif %}
+                    </td>
+                    <td style="text-align:center;">
+                        {% if u.is_active %}
+                            <span style="background:#d1e7dd;color:#0a3622;padding:0.35rem 0.85rem;border-radius:20px;font-size:0.8rem;font-weight:700;display:inline-block;"><i class="fas fa-check"></i> Hoạt động</span>
+                        {% else %}
+                            <span style="background:#f8d7da;color:#842029;padding:0.35rem 0.85rem;border-radius:20px;font-size:0.8rem;font-weight:700;display:inline-block;"><i class="fas fa-times"></i> Bị khóa</span>
+                        {% endif %}
+                    </td>
+                    <td style="color:#8898aa;font-size:0.85rem;">{{ u.date_joined|date:'d/m/Y' }}</td>
+                    <td style="text-align:center;">
+                        <a href="{% url 'dashboard:users_detail' u.pk %}" class="btn" style="width:36px;height:36px;padding:0;display:inline-flex;align-items:center;justify-content:center;border:none;background:#e8edff;color:#667eea;border-radius:8px;cursor:pointer;font-size:0.9rem;" title="Xem"><i class="fas fa-eye"></i></a>
+                        <a href="{% url 'dashboard:users_edit' u.pk %}" class="btn" style="width:36px;height:36px;padding:0;display:inline-flex;align-items:center;justify-content:center;border:none;background:#667eea;color:white;border-radius:8px;cursor:pointer;font-size:0.9rem;margin:0 0.5rem;" title="Sửa"><i class="fas fa-edit"></i></a>
+                        <form method="post" action="{% url 'dashboard:users_delete' u.pk %}" style="display:inline;" onsubmit="return confirm('Xóa người dùng « {{ u.username }} »?')">
+                            {% csrf_token %}
+                            <button type="submit" class="btn" style="width:36px;height:36px;padding:0;display:inline-flex;align-items:center;justify-content:center;border:none;background:#f5365c;color:white;border-radius:8px;cursor:pointer;font-size:0.9rem;" title="Xóa"><i class="fas fa-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" style="text-align:center;padding:3rem;color:#adb5bd;">
+                        <div><i class="fas fa-users" style="font-size:2.5rem;display:block;margin-bottom:1rem;opacity:0.3;"></i></div>
+                        <div>Không có người dùng</div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if paginator.count > 6 %}
+    <div style="display:flex;align-items:center;justify-content:center;padding:1.5rem;border-top:1px solid #f0f2f5;background:#f8f9fe;gap:1rem;flex-wrap:wrap;">
+        {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" style="color:#667eea;font-weight:700;text-decoration:none;font-size:0.95rem;">« Trước</a>
+        {% else %}
+            <span style="color:#ccc;font-weight:700;font-size:0.95rem;">« Trước</span>
+        {% endif %}
+        
+        <div style="display:flex;gap:0.5rem;align-items:center;">
+            {% for i in paginator.page_range %}
+                {% if i == page_obj.number %}
+                    <span style="color:#667eea;font-weight:700;font-size:0.95rem;padding:0.5rem 0.75rem;background:#e8edff;border-radius:6px;min-width:32px;text-align:center;">{{ i }}</span>
+                {% else %}
+                    <a href="?page={{ i }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" style="color:#667eea;text-decoration:none;font-weight:600;font-size:0.95rem;padding:0.5rem 0.75rem;border-radius:6px;min-width:32px;text-align:center;">{{ i }}</a>
+                {% endif %}
+            {% endfor %}
+        </div>
+        
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" style="color:#667eea;font-weight:700;text-decoration:none;font-size:0.95rem;">Tiếp »</a>
+        {% else %}
+            <span style="color:#ccc;font-weight:700;font-size:0.95rem;">Tiếp »</span>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

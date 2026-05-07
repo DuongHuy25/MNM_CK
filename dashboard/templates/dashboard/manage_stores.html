@@ -1,0 +1,496 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}Quản Lý Cửa Hàng & Thực Đơn{% endblock %}
+{% block extra_css %}
+<style>
+    .spinner { display:none; width:14px; height:14px; border:2px solid rgba(255,255,255,0.4); border-top-color:white; border-radius:50%; animation:spin 0.7s linear infinite; margin-left:4px; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    #mapPicker { height:240px; border-radius:0 0 8px 8px; overflow:hidden; }
+    .quick-action { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:110px; text-decoration:none; color:#32325d; transition:all 0.2s; cursor:pointer; background:white; border-radius:1rem; box-shadow:0 0 1.5rem rgba(136,152,170,.12); border:2px solid transparent; }
+    .quick-action:hover { transform:translateY(-3px); box-shadow:0 8px 25px rgba(136,152,170,.18); }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ===== STAT CARDS ===== -->
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1.25rem;margin-bottom:1.75rem;">
+    <div class="stat-card grad-purple">
+        <div class="stat-label">Cửa Hàng</div>
+        <div class="stat-value" id="statStore">--</div>
+        <i class="fas fa-store icon-bg"></i>
+    </div>
+    <div class="stat-card grad-green">
+        <div class="stat-label">Món Ăn</div>
+        <div class="stat-value" id="statProduct">--</div>
+        <i class="fas fa-bowl-food icon-bg"></i>
+    </div>
+    <div class="stat-card grad-orange">
+        <div class="stat-label">Danh Mục</div>
+        <div class="stat-value" id="statCat">--</div>
+        <i class="fas fa-tags icon-bg"></i>
+    </div>
+    <div class="stat-card grad-blue">
+        <div class="stat-label">Đơn Hàng</div>
+        <div class="stat-value" id="statOrder">--</div>
+        <i class="fas fa-receipt icon-bg"></i>
+    </div>
+</div>
+
+<!-- ===== QUICK ACTIONS ===== -->
+<div style="margin-bottom:2rem;">
+    <div style="font-size:0.85rem;font-weight:700;color:#8898aa;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:1rem;"><i class="fas fa-zap" style="color:#ffc107;margin-right:6px;"></i>Hành Động Nhanh</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1rem;">
+        <a href="{% url 'dashboard:stores_create' %}" class="quick-action">
+            <div style="width:44px;height:44px;background:#e8edff;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#667eea;font-size:1.3rem;margin-bottom:0.5rem;"><i class="fas fa-store"></i></div>
+            <span style="font-weight:600;text-align:center;font-size:0.9rem;">Thêm Cửa Hàng</span>
+        </a>
+        <a href="{% url 'dashboard:categories_create' %}" class="quick-action">
+            <div style="width:44px;height:44px;background:#c8e8c8;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#2dce89;font-size:1.3rem;margin-bottom:0.5rem;"><i class="fas fa-layer-group"></i></div>
+            <span style="font-weight:600;text-align:center;font-size:0.9rem;">Thêm Danh Mục</span>
+        </a>
+        <a href="{% url 'dashboard:products_create' %}" class="quick-action">
+            <div style="width:44px;height:44px;background:#fff0cd;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#ffc107;font-size:1.3rem;margin-bottom:0.5rem;"><i class="fas fa-plus"></i></div>
+            <span style="font-weight:600;text-align:center;font-size:0.9rem;">Thêm Món Ăn</span>
+        </a>
+        <a href="{% url 'dashboard:orders_list' %}" class="quick-action">
+            <div style="width:44px;height:44px;background:#ffe8e8;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#ee0979;font-size:1.3rem;margin-bottom:0.5rem;"><i class="fas fa-envelope-open"></i></div>
+            <span style="font-weight:600;text-align:center;font-size:0.9rem;">Xem Đơn Hàng</span>
+        </a>
+        <div onclick="showStoreHours()" class="quick-action">
+            <div style="width:44px;height:44px;background:#e8d4ff;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#9b59b6;font-size:1.3rem;margin-bottom:0.5rem;"><i class="fas fa-clock"></i></div>
+            <span style="font-weight:600;text-align:center;font-size:0.9rem;">Giờ Mở Cửa</span>
+        </div>
+        <a href="{% url 'dashboard:manage_stores' %}" class="quick-action">
+            <div style="width:44px;height:44px;background:#d4f1ff;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#0052D4;font-size:1.3rem;margin-bottom:0.5rem;"><i class="fas fa-sliders"></i></div>
+            <span style="font-weight:600;text-align:center;font-size:0.9rem;">Quản Lý & Bản Đồ</span>
+        </a>
+    </div>
+</div>
+
+<!-- ===== MAIN GRID ===== -->
+<div style="display:grid;grid-template-columns:340px 1fr;gap:1.5rem;">
+
+    <!-- LEFT: FORMS -->
+    <div>
+        <!-- Add Store -->
+        <div class="card" style="margin-bottom:1.5rem;">
+            <div class="card-header">
+                <span><i class="fas fa-store" style="color:#667eea;margin-right:8px;"></i>Thêm Cửa Hàng</span>
+            </div>
+            <div class="card-body">
+                <div style="margin-bottom:0.85rem;">
+                    <label class="form-label" style="font-weight:700;color:#8898aa;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:5px;display:block;">Tên cửa hàng <span style="color:#f5365c;">*</span></label>
+                    <input type="text" id="storeName" class="form-control" placeholder="VD: Chi nhánh Q.1">
+                </div>
+                <div style="margin-bottom:0.85rem;">
+                    <label class="form-label" style="font-weight:700;color:#8898aa;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:5px;display:block;">Địa chỉ <span style="color:#f5365c;">*</span></label>
+                    <textarea id="storeAddress" class="form-control" rows="2" placeholder="Địa chỉ chi tiết..."></textarea>
+                </div>
+                <div style="margin-bottom:0.85rem;">
+                    <label class="form-label" style="font-weight:700;color:#8898aa;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:5px;display:block;">Giờ Mở Cửa</label>
+                    <input type="text" id="storeHours" class="form-control" placeholder="9:00 - 22:00">
+                </div>
+                <div style="margin-bottom:0.85rem;">
+                    <label class="form-label" style="font-weight:700;color:#8898aa;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:5px;display:block;">Thông Tin Quản Lý Kho</label>
+                    <textarea id="storeWarehouse" class="form-control" rows="2" placeholder="Thông tin quản lý kho..."></textarea>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.7rem;margin-bottom:0.85rem;">
+                    <div>
+                        <label class="form-label" style="font-weight:700;color:#8898aa;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:5px;display:block;">Vĩ độ</label>
+                        <input type="number" id="storeLat" class="form-control" placeholder="10.7769" step="0.000001">
+                    </div>
+                    <div>
+                        <label class="form-label" style="font-weight:700;color:#8898aa;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:5px;display:block;">Kinh độ</label>
+                        <input type="number" id="storeLng" class="form-control" placeholder="106.7009" step="0.000001">
+                    </div>
+                </div>
+                <div style="margin-bottom:0.85rem;">
+                    <label style="font-weight:700;color:#8898aa;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:5px;display:block;">📍 Click bản đồ để chọn tọa độ</label>
+                    <div id="mapPicker"></div>
+                </div>
+                <button onclick="addStore()" class="btn btn-primary" style="width:100%;">
+                    <i class="fas fa-plus"></i> Lưu Cửa Hàng
+                    <div class="spinner" id="storeSpinner"></div>
+                </button>
+            </div>
+        </div>
+
+        <!-- Add Product -->
+        <div class="card">
+            <div class="card-header">
+                <span><i class="fas fa-bowl-food" style="color:#2dce89;margin-right:8px;"></i>Thêm Món Ăn</span>
+            </div>
+            <div class="card-body">
+                <div style="margin-bottom:0.85rem;">
+                    <label style="font-weight:700;color:#8898aa;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:5px;display:block;">Danh mục <span style="color:#f5365c;">*</span></label>
+                    <select id="productCatId" class="form-control">
+                        <option value="">-- Chọn danh mục --</option>
+                    </select>
+                </div>
+                <div style="margin-bottom:0.85rem;">
+                    <label style="font-weight:700;color:#8898aa;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:5px;display:block;">Tên món ăn <span style="color:#f5365c;">*</span></label>
+                    <input type="text" id="productName" class="form-control" placeholder="VD: Burger Bò Phô Mai">
+                </div>
+                <div style="margin-bottom:0.85rem;">
+                    <label style="font-weight:700;color:#8898aa;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:5px;display:block;">Mô tả</label>
+                    <textarea id="productDesc" class="form-control" rows="2" placeholder="Mô tả ngắn..."></textarea>
+                </div>
+                <div style="margin-bottom:0.85rem;">
+                    <label style="font-weight:700;color:#8898aa;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:5px;display:block;">Giá tiền (VNĐ) <span style="color:#f5365c;">*</span></label>
+                    <input type="number" id="productPrice" class="form-control" placeholder="VD: 45000">
+                </div>
+                <button onclick="addProduct()" class="btn btn-success" style="width:100%;">
+                    <i class="fas fa-plus"></i> Thêm vào Menu
+                    <div class="spinner" id="productSpinner"></div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- RIGHT: TABLES -->
+    <div>
+        <!-- Stores table -->
+        <div class="card" style="margin-bottom:1.5rem;">
+            <div class="card-header">
+                <span><i class="fas fa-store" style="color:#667eea;margin-right:8px;"></i>Danh Sách Cửa Hàng</span>
+                <button onclick="loadAll()" style="background:none;border:none;color:#8898aa;cursor:pointer;font-size:0.85rem;" title="Làm mới">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+            <div style="overflow-x:auto;max-height:280px;">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Tên Cửa Hàng</th>
+                            <th>Địa Chỉ</th>
+                            <th>Giờ Mở Cửa</th>
+                            <th>Quản Lý Kho</th>
+                            <th>Tọa Độ</th>
+                            <th style="text-align:center;">Xóa</th>
+                        </tr>
+                    </thead>
+                    <tbody id="storeBody">
+                        <tr><td colspan="6" style="text-align:center;padding:2.5rem;color:#adb5bd;"><i class="fas fa-spinner fa-spin" style="font-size:2rem;display:block;margin-bottom:0.75rem;opacity:0.35;"></i>Đang tải...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Products table -->
+        <div class="card" style="margin-bottom:1.5rem;">
+            <div class="card-header">
+                <span><i class="fas fa-bowl-food" style="color:#2dce89;margin-right:8px;"></i>Danh Sách Món Ăn</span>
+                <div style="display:flex;align-items:center;gap:0.5rem;">
+                    <input type="text" id="productSearch" class="form-control" style="width:160px;padding:0.3rem 0.7rem;" placeholder="Tìm món..." oninput="filterProducts()">
+                </div>
+            </div>
+            <div style="overflow-x:auto;max-height:320px;">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Tên Món</th>
+                            <th>Danh Mục</th>
+                            <th>Giá</th>
+                            <th>Tình Trạng</th>
+                            <th style="text-align:center;">Thao Tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productBody">
+                        <tr><td colspan="5" style="text-align:center;padding:2.5rem;color:#adb5bd;"><i class="fas fa-spinner fa-spin" style="font-size:2rem;display:block;margin-bottom:0.75rem;opacity:0.35;"></i>Đang tải...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Map overview -->
+        <div class="card">
+            <div class="card-header">
+                <span><i class="fas fa-map-location-dot" style="color:#0052D4;margin-right:8px;"></i>Bản Đồ Các Cửa Hàng</span>
+            </div>
+            <div id="overviewMap" style="height:300px;border-radius:0 0 8px 8px;"></div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const CSRF = '{{ csrf_token }}';
+const API_STORES   = '/dashboard/api/stores/';
+const API_PRODUCTS = '/dashboard/api/products/';
+const API_CATS     = '/dashboard/api/categories/';
+const API_ORDERS   = '/dashboard/api/orders/';
+
+let allProducts = [];
+let overviewMap, pickMap, pickMarker;
+
+// ===== MAPS =====
+function initMaps() {
+    // Overview map
+    overviewMap = L.map('overviewMap').setView([10.7769, 106.7009], 12);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png', {attribution:'© OpenStreetMap, © CartoDB',maxZoom:20}).addTo(overviewMap);
+
+    // Picker map
+    pickMap = L.map('mapPicker').setView([10.7769, 106.7009], 13);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png', {attribution:'© OpenStreetMap, © CartoDB',maxZoom:20}).addTo(pickMap);
+    pickMarker = L.marker([10.7769, 106.7009], {draggable:true}).addTo(pickMap);
+    pickMap.on('click', function(e) { pickMarker.setLatLng(e.latlng); setPickCoords(e.latlng.lat, e.latlng.lng); });
+    pickMarker.on('dragend', function(e) { var p = e.target.getLatLng(); setPickCoords(p.lat, p.lng); });
+}
+function setPickCoords(lat, lng) {
+    document.getElementById('storeLat').value = lat.toFixed(6);
+    document.getElementById('storeLng').value = lng.toFixed(6);
+}
+
+// ===== LOAD DATA =====
+async function loadAll() { await Promise.all([loadStores(), loadProducts(), loadCategories(), loadStats()]); }
+
+async function loadStats() {
+    try {
+        const [sR, pR, cR, oR] = await Promise.all([
+            fetch(API_STORES), fetch(API_PRODUCTS), fetch(API_CATS), fetch(API_ORDERS)
+        ]);
+        const [s, p, c, o] = await Promise.all([sR.json(), pR.json(), cR.json(), oR.json()]);
+        document.getElementById('statStore').textContent   = Array.isArray(s) ? s.length : (s.count || '--');
+        document.getElementById('statProduct').textContent = Array.isArray(p) ? p.length : (p.count || '--');
+        document.getElementById('statCat').textContent     = Array.isArray(c) ? c.length : (c.count || '--');
+        document.getElementById('statOrder').textContent   = Array.isArray(o) ? o.length : (o.count || '--');
+    } catch(e) { console.warn('Stats error', e); }
+}
+
+async function loadCategories() {
+    try {
+        const res = await fetch(API_CATS);
+        const data = await res.json();
+        const cats = Array.isArray(data) ? data : (data.results || []);
+        let opts = '<option value="">-- Chọn danh mục --</option>';
+        cats.forEach(c => { opts += `<option value="${c.id}">${c.name}</option>`; });
+        document.getElementById('productCatId').innerHTML = opts;
+    } catch(e) {}
+}
+
+async function loadStores() {
+    try {
+        const res = await fetch(API_STORES);
+        const data = await res.json();
+        const stores = Array.isArray(data) ? data : (data.results || []);
+        // Clear overview map markers
+        overviewMap.eachLayer(l => { if (l instanceof L.Marker) overviewMap.removeLayer(l); });
+
+        let html = '';
+        stores.forEach(s => {
+            html += `<tr>
+                <td style="font-weight:600;color:#32325d;">${s.name}</td>
+                <td style="color:#8898aa;font-size:0.8rem;">${s.address || '—'}</td>
+                <td style="font-size:0.82rem;color:#667eea;"><i class="fas fa-clock"></i> ${s.opening_hours || '—'}</td>
+                <td style="font-size:0.8rem;color:#8898aa;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${s.warehouse_info}">${s.warehouse_info || '—'}</td>
+                <td style="font-family:monospace;font-size:0.75rem;color:#adb5bd;">${parseFloat(s.latitude||0).toFixed(4)}, ${parseFloat(s.longitude||0).toFixed(4)}</td>
+                <td style="text-align:center;">
+                    <button onclick="deleteStore(${s.id})" class="btn btn-danger btn-sm btn-icon" title="Xóa"><i class="fas fa-trash-can"></i></button>
+                </td>
+            </tr>`;
+            // Add marker to overview map
+            if (s.latitude && s.longitude) {
+                L.marker([s.latitude, s.longitude])
+                 .addTo(overviewMap)
+                 .bindPopup(`<b>${s.name}</b><br><small>${s.address}</small><br><small>⏰ ${s.opening_hours || 'N/A'}</small>`);
+            }
+        });
+        document.getElementById('storeBody').innerHTML = html || '<tr><td colspan="6" style="text-align:center;padding:2.5rem;color:#adb5bd;"><i class="fas fa-store" style="font-size:2rem;display:block;margin-bottom:0.75rem;opacity:0.35;"></i>Chưa có cửa hàng</td></tr>';
+    } catch(e) { document.getElementById('storeBody').innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2.5rem;color:#adb5bd;">Lỗi tải dữ liệu</td></tr>'; }
+}
+
+async function loadProducts() {
+    try {
+        const res = await fetch(API_PRODUCTS);
+        const data = await res.json();
+        allProducts = Array.isArray(data) ? data : (data.results || []);
+        renderProducts(allProducts);
+    } catch(e) {}
+}
+
+function renderProducts(products) {
+    let html = '';
+    products.forEach(p => {
+        const price = Number(p.price).toLocaleString('vi-VN');
+        const avail = p.is_available
+            ? '<span class="badge badge-available"><i class="fas fa-check-circle"></i> Còn hàng</span>'
+            : '<span class="badge badge-unavailable"><i class="fas fa-times-circle"></i> Hết hàng</span>';
+        const catName = p.category_name || '—';
+        html += `<tr>
+            <td style="font-weight:600;color:#32325d;">${p.name}</td>
+            <td><span style="background:#e8edff;color:#5e37d6;padding:2px 8px;border-radius:20px;font-size:0.72rem;font-weight:700;">${catName}</span></td>
+            <td><span style="background:#e8edff;color:#5e37d6;padding:0.3em 0.8em;border-radius:20px;font-size:0.78rem;font-weight:700;">${price}đ</span></td>
+            <td>${avail}</td>
+            <td style="text-align:center;">
+                <button onclick="deleteProduct(${p.id})" class="btn btn-danger btn-sm btn-icon" title="Xóa"><i class="fas fa-trash-can"></i></button>
+            </td>
+        </tr>`;
+    });
+    document.getElementById('productBody').innerHTML = html || '<tr><td colspan="5" style="text-align:center;padding:2.5rem;color:#adb5bd;"><i class="fas fa-bowl-food" style="font-size:2rem;display:block;margin-bottom:0.75rem;opacity:0.35;"></i>Chưa có món ăn</td></tr>';
+}
+
+function filterProducts() {
+    const q = document.getElementById('productSearch').value.toLowerCase();
+    renderProducts(allProducts.filter(p => p.name.toLowerCase().includes(q) || (p.category_name||'').toLowerCase().includes(q)));
+}
+
+// ===== ADD STORE =====
+async function addStore() {
+    const name = document.getElementById('storeName').value.trim();
+    const address = document.getElementById('storeAddress').value.trim();
+    const hours = document.getElementById('storeHours').value.trim() || '9:00 - 22:00';
+    const warehouse = document.getElementById('storeWarehouse').value.trim() || '';
+    let lat = document.getElementById('storeLat').value;
+    let lng = document.getElementById('storeLng').value;
+    if (!name || !address) return showMsg('Vui lòng nhập tên và địa chỉ!', 'error');
+    const sp = document.getElementById('storeSpinner');
+    sp.style.display = 'block';
+    try {
+        if (!lat || !lng) {
+            // Geocode
+            const g = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address+', Vietnam')}&limit=1`);
+            const gd = await g.json();
+            if (gd.length) { lat = gd[0].lat; lng = gd[0].lon; }
+        }
+        const res = await fetch(API_STORES, {
+            method: 'POST',
+            headers: {'Content-Type':'application/json', 'X-CSRFToken': CSRF},
+            body: JSON.stringify({name, address, latitude: lat||10.7769, longitude: lng||106.7009, opening_hours: hours, warehouse_info: warehouse})
+        });
+        if (res.ok) {
+            showMsg('Cửa hàng đã được thêm!', 'success');
+            document.getElementById('storeName').value = '';
+            document.getElementById('storeAddress').value = '';
+            document.getElementById('storeHours').value = '';
+            document.getElementById('storeWarehouse').value = '';
+            document.getElementById('storeLat').value = '';
+            document.getElementById('storeLng').value = '';
+            loadStores(); loadStats();
+        } else {
+            const err = await res.json();
+            showMsg('Lỗi: ' + JSON.stringify(err), 'error');
+        }
+    } catch(e) { showMsg('Lỗi kết nối!', 'error'); }
+    sp.style.display = 'none';
+}
+
+// ===== ADD PRODUCT =====
+async function addProduct() {
+    const cat = document.getElementById('productCatId').value;
+    const name = document.getElementById('productName').value.trim();
+    const desc = document.getElementById('productDesc').value.trim();
+    const price = document.getElementById('productPrice').value;
+    if (!cat || !name || !price) return showMsg('Vui lòng điền đủ thông tin!', 'error');
+    const sp = document.getElementById('productSpinner');
+    sp.style.display = 'block';
+    try {
+        const res = await fetch(API_PRODUCTS, {
+            method: 'POST',
+            headers: {'Content-Type':'application/json', 'X-CSRFToken': CSRF},
+            body: JSON.stringify({category: cat, name, description: desc, price, is_available: true})
+        });
+        if (res.ok) {
+            showMsg('Món ăn đã được thêm!', 'success');
+            document.getElementById('productName').value = '';
+            document.getElementById('productDesc').value = '';
+            document.getElementById('productPrice').value = '';
+            loadProducts(); loadStats();
+        } else {
+            const err = await res.json();
+            showMsg('Lỗi: ' + JSON.stringify(err), 'error');
+        }
+    } catch(e) { showMsg('Lỗi kết nối!', 'error'); }
+    sp.style.display = 'none';
+}
+
+// ===== DELETE =====
+async function deleteStore(id) {
+    if (!confirm('Xóa cửa hàng này?')) return;
+    await fetch(`${API_STORES}${id}/`, {method:'DELETE', headers:{'X-CSRFToken':CSRF}});
+    showMsg('Đã xóa cửa hàng!', 'success'); loadStores(); loadStats();
+}
+
+async function showStoreHours() {
+    try {
+        const res = await fetch(API_STORES);
+        const data = await res.json();
+        const stores = Array.isArray(data) ? data : (data.results || []);
+        
+        let hoursHtml = '<table style="width:100%;border-collapse:collapse;">';
+        hoursHtml += '<tr style="background:#f8f9fe;"><th style="text-align:left;padding:0.75rem;border-bottom:1px solid #e9ecef;font-weight:700;color:#32325d;font-size:0.85rem;">Cửa Hàng</th><th style="text-align:left;padding:0.75rem;border-bottom:1px solid #e9ecef;font-weight:700;color:#32325d;font-size:0.85rem;">⏰ Giờ Mở Cửa</th></tr>';
+        
+        stores.forEach(s => {
+            hoursHtml += `<tr style="border-bottom:1px solid #f0f2f5;"><td style="padding:0.75rem;color:#32325d;font-weight:600;">${s.name}</td><td style="padding:0.75rem;color:#667eea;"><i class="fas fa-clock"></i> ${s.opening_hours || 'Chưa cập nhật'}</td></tr>`;
+        });
+        hoursHtml += '</table>';
+        
+        showModalMsg('Giờ Mở Cửa Các Cửa Hàng', hoursHtml);
+    } catch(e) {
+        showMsg('Lỗi tải dữ liệu!', 'error');
+    }
+}
+async function deleteProduct(id) {
+    if (!confirm('Xóa món ăn này?')) return;
+    await fetch(`${API_PRODUCTS}${id}/`, {method:'DELETE', headers:{'X-CSRFToken':CSRF}});
+    showMsg('Đã xóa món ăn!', 'success'); loadProducts(); loadStats();
+}
+
+// ===== TOAST & MODAL =====
+function showMsg(msg, type) {
+    const d = document.createElement('div');
+    d.style.cssText = `position:fixed;top:1.5rem;right:1.5rem;z-index:9999;
+        padding:0.9rem 1.5rem;border-radius:12px;font-size:0.875rem;font-weight:600;
+        box-shadow:0 8px 25px rgba(0,0,0,0.12);display:flex;align-items:center;gap:10px;
+        ${type==='success' ? 'background:#d1e7dd;color:#0a3622;border:1px solid #badbcc;' : 'background:#f8d7da;color:#842029;border:1px solid #f5c2c7;'}`;
+    d.innerHTML = `<i class="fas fa-${type==='success'?'check-circle':'exclamation-circle'}"></i> ${msg}`;
+    document.body.appendChild(d);
+    setTimeout(() => d.remove(), 3500);
+}
+
+function showModalMsg(title, content) {
+    // Xoá modal cũ nếu có
+    const oldModal = document.getElementById('customModal');
+    if (oldModal) oldModal.remove();
+    
+    const modal = document.createElement('div');
+    modal.id = 'customModal';
+    modal.style.cssText = `position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:10000;`;
+    modal.innerHTML = `
+        <div style="background:white;border-radius:12px;padding:1.5rem;max-width:500px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                <h2 style="margin:0;color:#32325d;font-size:1.1rem;">${title}</h2>
+                <button onclick="document.getElementById('customModal').remove();" style="background:none;border:none;font-size:1.5rem;color:#adb5bd;cursor:pointer;">&times;</button>
+            </div>
+            <div style="color:#32325d;">${content}</div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+}
+
+// ===== INIT =====
+document.addEventListener('DOMContentLoaded', () => {
+    initMaps();
+    loadAll();
+    // Auto-geocode when address loses focus
+    document.getElementById('storeAddress').addEventListener('blur', async function() {
+        const addr = this.value.trim();
+        if (!addr || document.getElementById('storeLat').value) return;
+        try {
+            const g = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr+', Vietnam')}&limit=1`);
+            const gd = await g.json();
+            if (gd.length) {
+                const lt = parseFloat(gd[0].lat), ln = parseFloat(gd[0].lon);
+                document.getElementById('storeLat').value = lt.toFixed(6);
+                document.getElementById('storeLng').value = ln.toFixed(6);
+                pickMarker.setLatLng([lt, ln]); pickMap.setView([lt, ln], 15);
+            }
+        } catch(e) {}
+    });
+});
+</script>
+{% endblock %}

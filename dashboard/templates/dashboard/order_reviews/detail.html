@@ -1,0 +1,96 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block content %}
+
+<!-- Header -->
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+    <div></div>
+    <a href="{% url 'dashboard:order_review_list' %}" class="btn btn-outline"><i class="fas fa-arrow-left"></i> Quay lại</a>
+</div>
+
+<!-- Detail Card -->
+<div class="card" style="margin-bottom:1.5rem;">
+    <!-- Header with gradient -->
+    <div style="background:linear-gradient(135deg,#667eea,#764ba2);padding:1.5rem;border-radius:1rem 1rem 0 0;color:white;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+            <div style="font-size:1.3rem;font-weight:700;">Đánh giá Đơn hàng #{{ order_review.order.id }}</div>
+            <div style="font-size:0.85rem;opacity:0.8;margin-top:4px;">Bởi {{ order_review.user.get_full_name|default:order_review.user.email }} · {{ order_review.created_at|date:"d/m/Y H:i" }}</div>
+        </div>
+        <div>
+            {% if order_review.status == 'approved' %}
+            <span class="badge" style="background:#2dce89;color:white;"><i class="fas fa-check-circle"></i> Đã duyệt</span>
+            {% elif order_review.status == 'pending' %}
+            <span class="badge" style="background:#ffd600;color:#525f7f;"><i class="fas fa-clock"></i> Chờ duyệt</span>
+            {% else %}
+            <span class="badge" style="background:#f5365c;color:white;"><i class="fas fa-times-circle"></i> Từ chối</span>
+            {% endif %}
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Rating -->
+        <div style="margin-bottom:1.5rem;">
+            <div style="font-weight:600;color:#32325d;margin-bottom:0.5rem;">Đánh giá tổng thể</div>
+            <div style="display:flex;align-items:center;gap:4px;">
+                {% for i in "12345" %}
+                    {% if forloop.counter <= order_review.overall_rating %}
+                    <span style="font-size:1.5rem;color:#ffd600;">⭐</span>
+                    {% else %}
+                    <span style="font-size:1.5rem;color:#dee2e6;">☆</span>
+                    {% endif %}
+                {% endfor %}
+                <span style="font-size:0.9rem;font-weight:600;color:#32325d;margin-left:8px;">({{ order_review.overall_rating }}/5)</span>
+            </div>
+        </div>
+
+        <!-- Content -->
+        {% if order_review.content %}
+        <div style="margin-bottom:1.5rem;">
+            <div style="font-weight:600;color:#32325d;margin-bottom:0.5rem;">Nội dung đánh giá</div>
+            <div style="background:#f8f9fe;border-left:4px solid #667eea;border-radius:0 8px 8px 0;padding:1rem;">
+                <p style="color:#525f7f;font-style:italic;">"{{ order_review.content }}"</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Order Info -->
+        <div style="margin-bottom:1.5rem;">
+            <div style="font-weight:600;color:#32325d;margin-bottom:0.5rem;">Thông tin đơn hàng</div>
+            <div style="background:#f8f9fe;border-radius:8px;padding:1rem;font-size:0.9rem;color:#525f7f;">
+                <div style="margin-bottom:0.5rem;"><strong>Mã đơn hàng:</strong> #{{ order_review.order.id }}</div>
+                <div style="margin-bottom:0.5rem;"><strong>Tổng tiền:</strong> {{ order_review.order.total_amount }} VNĐ</div>
+                <div><strong>Trạng thái:</strong> {{ order_review.order.get_status_display|default:order_review.order.status }}</div>
+            </div>
+        </div>
+
+        <!-- Admin Reply -->
+        <div style="margin-bottom:1.5rem;">
+            <div style="font-weight:600;color:#32325d;margin-bottom:0.5rem;">Phản hồi quản trị</div>
+            {% if order_review.admin_reply %}
+            <div style="background:#e8edff;border-left:4px solid #667eea;border-radius:0 8px 8px 0;padding:1rem;margin-bottom:1rem;">
+                <p style="color:#525f7f;">{{ order_review.admin_reply }}</p>
+                <p style="font-size:0.8rem;color:#adb5bd;margin-top:8px;">{{ order_review.admin_reply_at|date:"d/m/Y H:i" }}</p>
+            </div>
+            {% endif %}
+            <form method="post">
+                {% csrf_token %}
+                <textarea name="admin_reply" rows="3" class="form-control" placeholder="Nhập phản hồi...">{{ order_review.admin_reply|default:'' }}</textarea>
+                <button type="submit" class="btn btn-primary" style="margin-top:0.5rem;"><i class="fas fa-reply"></i> Gửi phản hồi</button>
+            </form>
+        </div>
+
+        <!-- Actions -->
+        {% if order_review.status == 'pending' %}
+        <div style="display:flex;gap:0.5rem;padding-top:1rem;border-top:1px solid #f0f2f5;">
+            <form method="post" action="{% url 'dashboard:order_review_approve' order_review.id %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-success"><i class="fas fa-check-circle"></i> Duyệt</button>
+            </form>
+            <form method="post" action="{% url 'dashboard:order_review_reject' order_review.id %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger"><i class="fas fa-times-circle"></i> Từ chối</button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

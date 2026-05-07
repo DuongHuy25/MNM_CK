@@ -1,0 +1,132 @@
+{% extends "dashboard/base.html" %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block content %}
+
+<!-- Header -->
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+    <div style="font-size:0.9rem;color:#8898aa;">Nhập nội dung bài viết từ file Word hoặc liên kết URL</div>
+    <a href="{% url 'dashboard:about_list' %}" class="btn btn-outline"><i class="fas fa-arrow-left"></i> Quay lại</a>
+</div>
+
+<!-- Import Options -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem;">
+    <div class="card" style="border:2px solid #e8edff;">
+        <div class="card-body" style="text-align:center;">
+            <i class="fas fa-file-word" style="font-size:3rem;color:#667eea;margin-bottom:1rem;"></i>
+            <div style="font-size:1.1rem;font-weight:700;color:#32325d;margin-bottom:0.5rem;">Nhập từ file Word</div>
+            <div style="font-size:0.85rem;color:#8898aa;margin-bottom:1rem;">Tải lên file .docx hoặc .doc</div>
+            <div style="font-size:0.8rem;color:#525f7f;text-align:left;">
+                <div style="margin-bottom:0.5rem;"><i class="fas fa-check" style="color:#2dce89;margin-right:8px;"></i>Hỗ trợ định dạng văn bản</div>
+                <div style="margin-bottom:0.5rem;"><i class="fas fa-check" style="color:#2dce89;margin-right:8px;"></i>Giữ lại định dạng cơ bản</div>
+                <div><i class="fas fa-check" style="color:#2dce89;margin-right:8px;"></i>Tự động trích xuất hình ảnh</div>
+            </div>
+        </div>
+    </div>
+    <div class="card" style="border:2px solid #d4edda;">
+        <div class="card-body" style="text-align:center;">
+            <i class="fas fa-link" style="font-size:3rem;color:#2dce89;margin-bottom:1rem;"></i>
+            <div style="font-size:1.1rem;font-weight:700;color:#32325d;margin-bottom:0.5rem;">Nhập từ URL</div>
+            <div style="font-size:0.85rem;color:#8898aa;margin-bottom:1rem;">Nhập nội dung từ trang web khác</div>
+            <div style="font-size:0.8rem;color:#525f7f;text-align:left;">
+                <div style="margin-bottom:0.5rem;"><i class="fas fa-check" style="color:#2dce89;margin-right:8px;"></i>Tự động lấy nội dung</div>
+                <div style="margin-bottom:0.5rem;"><i class="fas fa-check" style="color:#2dce89;margin-right:8px;"></i>Trích xuất hình ảnh</div>
+                <div><i class="fas fa-check" style="color:#2dce89;margin-right:8px;"></i>Giữ lại liên kết gốc</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Import Form -->
+<div class="card" style="margin-bottom:1.5rem;">
+    <div class="card-header">
+        <span><i class="fas fa-file-import" style="color:#667eea;margin-right:8px;"></i>Nhập Bài Viết</span>
+    </div>
+    <div class="card-body">
+        <form method="POST" enctype="multipart/form-data" id="import-form">
+            {% csrf_token %}
+            <div style="margin-bottom:1.5rem;">
+                <label class="form-label">Chọn phương thức nhập</label>
+                {{ form.import_type }}
+                {% if form.import_type.errors %}<div style="color:#f5365c;font-size:0.8rem;margin-top:4px;">{% for e in form.import_type.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+            <div id="word-import-section" class="import-section">
+                <div style="margin-bottom:1.5rem;">
+                    <label class="form-label">Chọn file Word <span style="color:#f5365c;">*</span></label>
+                    <div style="border:2px dashed #dee2e6;border-radius:8px;padding:2rem;text-align:center;">
+                        <i class="fas fa-cloud-upload-alt" style="font-size:2rem;color:#adb5bd;margin-bottom:0.5rem;"></i>
+                        <div style="color:#8898aa;margin-bottom:0.5rem;">Kéo và thả file hoặc</div>
+                        {{ form.word_file }}
+                        <div style="font-size:0.8rem;color:#adb5bd;margin-top:0.5rem;">Hỗ trợ: .docx, .doc (tối đa 10MB)</div>
+                    </div>
+                    {% if form.word_file.errors %}<div style="color:#f5365c;font-size:0.8rem;margin-top:4px;">{% for e in form.word_file.errors %}{{ e }}{% endfor %}</div>{% endif %}
+                </div>
+            </div>
+            <div id="external-import-section" class="import-section" style="display:none;">
+                <div style="margin-bottom:1.5rem;">
+                    <label class="form-label">URL bài viết <span style="color:#f5365c;">*</span></label>
+                    {{ form.external_url }}
+                    <div style="font-size:0.8rem;color:#adb5bd;margin-top:4px;">Ví dụ: https://example.com/bai-viet</div>
+                    {% if form.external_url.errors %}<div style="color:#f5365c;font-size:0.8rem;margin-top:4px;">{% for e in form.external_url.errors %}{{ e }}{% endfor %}</div>{% endif %}
+                </div>
+            </div>
+            <div id="preview-section" style="display:none;margin-bottom:1.5rem;">
+                <div style="font-weight:600;color:#32325d;margin-bottom:0.5rem;">Xem trước nội dung:</div>
+                <div style="background:#f8f9fe;border-radius:8px;padding:1rem;max-height:250px;overflow-y:auto;">
+                    <div id="preview-content"></div>
+                </div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding-top:1rem;border-top:1px solid #f0f2f5;">
+                <a href="{% url 'dashboard:about_list' %}" class="btn btn-outline"><i class="fas fa-arrow-left"></i> Quay lại</a>
+                <div style="display:flex;gap:0.5rem;">
+                    <button type="button" id="preview-btn" class="btn btn-secondary"><i class="fas fa-eye"></i> Xem trước</button>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-file-import"></i> Nhập bài viết</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Help -->
+<div class="card" style="background:#e8edff;border:none;">
+    <div class="card-body">
+        <div style="font-weight:600;color:#32325d;margin-bottom:0.75rem;"><i class="fas fa-info-circle" style="color:#667eea;margin-right:8px;"></i>Hướng dẫn sử dụng</div>
+        <div style="font-size:0.85rem;color:#525f7f;">
+            <div style="margin-bottom:0.5rem;"><i class="fas fa-check-circle" style="color:#2dce89;margin-right:8px;"></i><strong>Từ Word:</strong> Chọn file Word, hệ thống tự động trích xuất nội dung và hình ảnh.</div>
+            <div style="margin-bottom:0.5rem;"><i class="fas fa-check-circle" style="color:#2dce89;margin-right:8px;"></i><strong>Từ URL:</strong> Nhập đường dẫn, hệ thống sẽ lấy nội dung từ trang web đó.</div>
+            <div><i class="fas fa-check-circle" style="color:#2dce89;margin-right:8px;"></i><strong>Sau khi nhập:</strong> Bài viết sẽ được lưu dưới dạng bản nháp.</div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.querySelector('select[name="import_type"]').addEventListener('change', function(e) {
+        document.querySelectorAll('.import-section').forEach(function(s) { s.style.display = 'none'; });
+        if (e.target.value === 'word') document.getElementById('word-import-section').style.display = '';
+        else if (e.target.value === 'external') document.getElementById('external-import-section').style.display = '';
+    });
+    document.querySelector('input[name="word_file"]').addEventListener('change', function(e) {
+        var file = e.target.files[0];
+        if (file && file.size > 10*1024*1024) { alert('File quá lớn. Tối đa 10MB.'); e.target.value=''; }
+    });
+    document.getElementById('preview-btn').addEventListener('click', function() {
+        var importType = document.querySelector('select[name="import_type"]').value;
+        var ps = document.getElementById('preview-section');
+        var pc = document.getElementById('preview-content');
+        if (importType === 'word') {
+            var fi = document.querySelector('input[name="word_file"]');
+            if (fi.files.length > 0) {
+                pc.innerHTML = '<div style="text-align:center;"><i class="fas fa-file-word" style="font-size:2rem;color:#667eea;"></i><div style="font-weight:600;margin-top:0.5rem;">'+fi.files[0].name+'</div><div style="font-size:0.8rem;color:#8898aa;">'+(fi.files[0].size/1024/1024).toFixed(2)+' MB</div></div>';
+                ps.style.display = '';
+            } else alert('Vui lòng chọn file Word.');
+        } else if (importType === 'external') {
+            var ui = document.querySelector('input[name="external_url"]');
+            if (ui.value) {
+                pc.innerHTML = '<div style="text-align:center;"><i class="fas fa-link" style="font-size:2rem;color:#2dce89;"></i><div style="font-weight:600;margin-top:0.5rem;">'+ui.value+'</div></div>';
+                ps.style.display = '';
+            } else alert('Vui lòng nhập URL.');
+        }
+    });
+</script>
+{% endblock %}

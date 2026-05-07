@@ -1,0 +1,111 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}Sản phẩm{% endblock %}
+{% block content %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:0.75rem;">
+    <form method="get" style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+        <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Tìm sản phẩm..." class="form-control" style="width:240px;">
+        <select name="category" class="form-control" style="width:160px;">
+            <option value="">Tất cả danh mục</option>
+            {% for cat in categories %}
+            <option value="{{ cat.id }}" {% if current_category == cat.id|stringformat:'s' %}selected{% endif %}>{{ cat.name }}</option>
+            {% endfor %}
+        </select>
+        <select name="available" class="form-control" style="width:130px;">
+            <option value="">Tất cả</option>
+            <option value="1" {% if request.GET.available == '1' %}selected{% endif %}>Còn hàng</option>
+            <option value="0" {% if request.GET.available == '0' %}selected{% endif %}>Hết hàng</option>
+        </select>
+        <button type="submit" class="btn btn-outline"><i class="fas fa-filter"></i> Lọc</button>
+        <a href="{% url 'dashboard:products_list' %}" class="btn btn-secondary">Xóa</a>
+    </form>
+    <a href="{% url 'dashboard:products_create' %}" class="btn btn-primary"><i class="fas fa-plus"></i> Thêm Sản phẩm</a>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <span><i class="fas fa-bowl-food" style="color:#2dce89;margin-right:8px;"></i>Danh Sách Sản phẩm</span>
+        <span style="font-size:0.8rem;color:#adb5bd;">{{ page_obj.paginator.count }} sản phẩm</span>
+    </div>
+    <div style="overflow-x:auto;">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Hình ảnh</th>
+                    <th>Tên Sản phẩm</th>
+                    <th>Danh Mục</th>
+                    <th>Nhãn Hiệu</th>
+                    <th>Giá</th>
+                    <th>Tồn Kho</th>
+                    <th>Tình Trạng</th>
+                    <th style="text-align:center;">Thao Tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for product in page_obj %}
+                <tr>
+                    <td>
+                        {% if product.image and product.image.name %}
+                        <img src="{{ product.image.url }}" alt="{{ product.name }}" style="width:48px;height:48px;border-radius:12px;object-fit:cover;box-shadow:0 2px 8px rgba(0,0,0,0.12);" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                        <div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#f6d365,#fda085);display:none;align-items:center;justify-content:center;color:white;">
+                            <i class="fas fa-bowl-food"></i>
+                        </div>
+                        {% else %}
+                        <div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#f6d365,#fda085);display:flex;align-items:center;justify-content:center;color:white;">
+                            <i class="fas fa-bowl-food"></i>
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'dashboard:products_detail' product.pk %}" style="font-weight:700;color:#32325d;text-decoration:none;">{{ product.name }}</a>
+                        <div style="font-size:0.75rem;color:#adb5bd;margin-top:2px;">{{ product.description|truncatechars:45 }}</div>
+                    </td>
+                    <td><span class="badge badge-category">{{ product.category.name }}</span></td>
+                    <td>
+                        {% if product.brand %}
+                        <a href="{% url 'dashboard:brands_detail' product.brand.pk %}" style="color:#667eea;text-decoration:none;font-weight:600;font-size:0.85rem;">{{ product.brand.name }}</a>
+                        {% else %}
+                        <span style="color:#adb5bd;">—</span>
+                        {% endif %}
+                    </td>
+                    <td style="font-weight:700;color:#667eea;font-size:0.95rem;">{{ product.sale_price|default:product.cost_price|floatformat:0 }}đ</td>
+                    <td style="text-align:center;">
+                        {% if product.stock <= product.min_stock %}
+                        <a href="{% url 'dashboard:warehouse_list' %}" style="text-decoration:none;">
+                            <span style="color:#f5365c;font-weight:700;">{{ product.stock }}</span>
+                            <i class="fas fa-exclamation-triangle" style="color:#f5365c;font-size:0.7rem;margin-left:2px;"></i>
+                        </a>
+                        {% else %}
+                        <a href="{% url 'dashboard:warehouse_list' %}" style="text-decoration:none;color:#2dce89;font-weight:600;">{{ product.stock }}</a>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if product.is_active %}
+                        <span class="badge badge-available">✓ Có sẵn</span>
+                        {% else %}
+                        <span class="badge badge-unavailable">✗ Tạm dừng</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align:center;">
+                        <a href="{% url 'dashboard:products_detail' product.pk %}" class="btn btn-outline btn-sm btn-icon" title="Xem"><i class="fas fa-eye"></i></a>
+                        <a href="{% url 'dashboard:products_edit' product.pk %}" class="btn btn-primary btn-sm btn-icon" title="Sửa" style="margin:0 4px;"><i class="fas fa-edit"></i></a>
+                        <form method="post" action="{% url 'dashboard:products_delete' product.pk %}" style="display:inline;" onsubmit="return confirm('Xóa sản phẩm « {{ product.name }} »?')">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger btn-sm btn-icon" title="Xóa"><i class="fas fa-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" style="text-align:center;padding:3rem;color:#adb5bd;">
+                        <i class="fas fa-bowl-food" style="font-size:2.5rem;display:block;margin-bottom:1rem;opacity:0.3;"></i>
+                        Chưa có sản phẩm. <a href="{% url 'dashboard:products_create' %}" style="color:#667eea;">Thêm ngay</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
+{% endblock %}
+

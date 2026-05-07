@@ -1,0 +1,106 @@
+{% extends "dashboard/base.html" %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block content %}
+
+<!-- Header -->
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+    <div style="display:flex;gap:0.5rem;">
+        <form method="get" style="display:flex;gap:0.5rem;align-items:center;">
+            <label style="font-size:0.85rem;color:#525f7f;font-weight:600;">Trạng thái:</label>
+            <select name="status" class="form-control" style="width:auto;">
+                <option value="">Tất cả</option>
+                <option value="draft" {% if status_filter == 'draft' %}selected{% endif %}>Bản nháp</option>
+                <option value="published" {% if status_filter == 'published' %}selected{% endif %}>Đã xuất bản</option>
+                <option value="archived" {% if status_filter == 'archived' %}selected{% endif %}>Lưu trữ</option>
+            </select>
+            <button type="submit" class="btn btn-outline"><i class="fas fa-filter"></i> Lọc</button>
+            {% if status_filter %}<a href="{% url 'dashboard:about_list' %}" class="btn btn-secondary"><i class="fas fa-times"></i> Xóa</a>{% endif %}
+        </form>
+    </div>
+    <div style="display:flex;gap:0.5rem;">
+        <a href="{% url 'dashboard:about_import' %}" class="btn btn-outline"><i class="fas fa-file-import"></i> Nhập bài viết</a>
+        <a href="{% url 'dashboard:about_create' %}" class="btn btn-primary"><i class="fas fa-plus"></i> Tạo bài viết</a>
+    </div>
+</div>
+
+<!-- Articles Table -->
+<div class="card">
+    <div class="card-header">
+        <span><i class="fas fa-info-circle" style="color:#667eea;margin-right:8px;"></i>Bài Viết Giới Thiệu</span>
+        <span style="font-size:0.8rem;color:#adb5bd;">{{ articles.paginator.count }} bài viết</span>
+    </div>
+    <div style="overflow-x:auto;">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Tiêu đề</th>
+                    <th>Trạng thái</th>
+                    <th>Tác giả</th>
+                    <th>Ngày tạo</th>
+                    <th>Thứ tự</th>
+                    <th style="text-align:center;">Thao Tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for article in articles %}
+                <tr>
+                    <td>
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            {% if article.image %}
+                            <img src="{{ article.image.url }}" alt="{{ article.title }}" style="width:40px;height:40px;border-radius:8px;object-fit:cover;">
+                            {% endif %}
+                            <div>
+                                <div style="font-weight:600;color:#32325d;">{{ article.title }}</div>
+                                {% if article.summary %}
+                                <div style="font-size:0.8rem;color:#adb5bd;max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ article.summary }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        {% if article.status == 'published' %}
+                        <span class="badge badge-available"><i class="fas fa-check-circle"></i> Đã xuất bản</span>
+                        {% elif article.status == 'draft' %}
+                        <span class="badge badge-pending"><i class="fas fa-edit"></i> Bản nháp</span>
+                        {% else %}
+                        <span class="badge" style="background:#e9ecef;color:#525f7f;"><i class="fas fa-archive"></i> Lưu trữ</span>
+                        {% endif %}
+                    </td>
+                    <td style="color:#525f7f;">{{ article.author.username|default:"—" }}</td>
+                    <td style="color:#8898aa;font-size:0.85rem;">{{ article.created_at|date:"d/m/Y" }}</td>
+                    <td style="color:#8898aa;">{{ article.order }}</td>
+                    <td style="text-align:center;">
+                        <a href="{% url 'dashboard:about_detail' article.pk %}" class="btn btn-outline btn-sm btn-icon" title="Xem"><i class="fas fa-eye"></i></a>
+                        <a href="{% url 'dashboard:about_edit' article.pk %}" class="btn btn-primary btn-sm btn-icon" title="Sửa" style="margin:0 4px;"><i class="fas fa-edit"></i></a>
+                        <a href="{% url 'dashboard:about_delete' article.pk %}" class="btn btn-danger btn-sm btn-icon" title="Xóa"><i class="fas fa-trash"></i></a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" style="text-align:center;padding:3rem;color:#adb5bd;">
+                        <i class="fas fa-file-alt" style="font-size:2.5rem;display:block;margin-bottom:1rem;opacity:0.3;"></i>
+                        Chưa có bài viết nào. <a href="{% url 'dashboard:about_create' %}" style="color:#667eea;">Tạo ngay</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if articles.has_other_pages %}
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:1rem 1.5rem;border-top:1px solid #f0f2f5;">
+        <span style="font-size:0.82rem;color:#8898aa;">Trang {{ articles.number }} / {{ articles.paginator.num_pages }}</span>
+        <div style="display:flex;gap:6px;">
+            {% if articles.has_previous %}
+            <a href="?page={{ articles.previous_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="page-link">‹</a>
+            {% endif %}
+            {% for i in articles.paginator.page_range %}
+            <a href="?page={{ i }}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="page-link {% if i == articles.number %}active{% endif %}">{{ i }}</a>
+            {% endfor %}
+            {% if articles.has_next %}
+            <a href="?page={{ articles.next_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="page-link">›</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

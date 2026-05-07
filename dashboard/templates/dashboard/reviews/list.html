@@ -1,0 +1,147 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}Quản lý Đánh giá{% endblock %}
+{% block content %}
+
+<!-- Stats -->
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1.25rem;margin-bottom:1.5rem;">
+    <div class="stat-card grad-purple">
+        <div class="stat-label">Tổng đánh giá</div>
+        <div class="stat-value">{{ stats.total }}</div>
+        <i class="fas fa-star icon-bg"></i>
+    </div>
+    <div class="stat-card grad-orange">
+        <div class="stat-label">Chờ duyệt</div>
+        <div class="stat-value">{{ stats.pending }}</div>
+        <i class="fas fa-clock icon-bg"></i>
+    </div>
+    <div class="stat-card grad-green">
+        <div class="stat-label">Đã duyệt</div>
+        <div class="stat-value">{{ stats.approved }}</div>
+        <i class="fas fa-check-circle icon-bg"></i>
+    </div>
+    <div class="stat-card grad-blue">
+        <div class="stat-label">Điểm TB</div>
+        <div class="stat-value">{{ stats.avg_rating|floatformat:1 }}</div>
+        <i class="fas fa-chart-line icon-bg"></i>
+    </div>
+</div>
+
+<!-- Filters -->
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+    <form method="get" style="display:flex;gap:0.5rem;align-items:center;">
+        <select name="status" class="form-control" style="width:auto;">
+            <option value="">Tất cả trạng thái</option>
+            <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Chờ duyệt</option>
+            <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>Đã duyệt</option>
+            <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>Từ chối</option>
+        </select>
+        <select name="rating" class="form-control" style="width:auto;">
+            <option value="">Tất cả đánh giá</option>
+            {% for i in "54321" %}
+            <option value="{{ i }}" {% if rating_filter == i %}selected{% endif %}>{{ i }} ⭐</option>
+            {% endfor %}
+        </select>
+        <div style="position:relative;">
+            <i class="fas fa-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#adb5bd;"></i>
+            <input type="text" name="q" value="{{ search_query }}" placeholder="Tìm kiếm..." class="form-control" style="padding-left:35px;width:200px;">
+        </div>
+        <button type="submit" class="btn btn-outline"><i class="fas fa-filter"></i> Lọc</button>
+        {% if status_filter or rating_filter or search_query %}
+        <a href="{% url 'dashboard:review_list' %}" class="btn btn-secondary">Xóa lọc</a>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Reviews Table -->
+<div class="card">
+    <div class="card-header">
+        <span><i class="fas fa-star" style="color:#667eea;margin-right:8px;"></i>Danh Sách Đánh Giá</span>
+    </div>
+    <div style="overflow-x:auto;">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Người đánh giá</th>
+                    <th>Sản phẩm</th>
+                    <th>Đánh giá</th>
+                    <th>Nội dung</th>
+                    <th>Trạng thái</th>
+                    <th>Ngày tạo</th>
+                    <th style="text-align:center;">Thao Tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for review in reviews %}
+                <tr>
+                    <td style="font-weight:600;color:#667eea;">#{{ review.id }}</td>
+                    <td style="color:#32325d;font-weight:500;">{{ review.user.get_full_name|default:review.user.email }}</td>
+                    <td style="color:#525f7f;">{{ review.order_item.product.name|default:"—" }}</td>
+                    <td>
+                        <span style="color:#ffd600;font-size:1rem;">
+                            {% for i in "12345" %}{% if forloop.counter <= review.rating %}⭐{% else %}<span style="color:#dee2e6;">☆</span>{% endif %}{% endfor %}
+                        </span>
+                        <span style="font-size:0.8rem;color:#8898aa;">({{ review.rating }}/5)</span>
+                    </td>
+                    <td style="max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#525f7f;font-size:0.85rem;">
+                        {{ review.content|truncatewords:20 }}
+                    </td>
+                    <td>
+                        {% if review.status == 'approved' %}
+                        <span class="badge badge-available"><i class="fas fa-check-circle"></i> Đã duyệt</span>
+                        {% elif review.status == 'pending' %}
+                        <span class="badge badge-pending"><i class="fas fa-clock"></i> Chờ duyệt</span>
+                        {% else %}
+                        <span class="badge badge-unavailable"><i class="fas fa-times-circle"></i> Từ chối</span>
+                        {% endif %}
+                    </td>
+                    <td style="color:#8898aa;font-size:0.85rem;">{{ review.created_at|date:"d/m/Y" }}</td>
+                    <td style="text-align:center;">
+                        <a href="{% url 'dashboard:review_detail' review.pk %}" class="btn btn-outline btn-sm btn-icon" title="Xem"><i class="fas fa-eye"></i></a>
+                        {% if review.status == 'pending' %}
+                        <form method="post" action="{% url 'dashboard:review_approve' review.pk %}" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-success btn-sm btn-icon" title="Duyệt"><i class="fas fa-check"></i></button>
+                        </form>
+                        <form method="post" action="{% url 'dashboard:review_reject' review.pk %}" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger btn-sm btn-icon" title="Từ chối"><i class="fas fa-times"></i></button>
+                        </form>
+                        {% endif %}
+                        <a href="{% url 'dashboard:review_delete' review.pk %}" class="btn btn-danger btn-sm btn-icon" title="Xóa" style="margin-left:2px;"><i class="fas fa-trash"></i></a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" style="text-align:center;padding:3rem;color:#adb5bd;">
+                        <i class="fas fa-star" style="font-size:2.5rem;display:block;margin-bottom:1rem;opacity:0.3;"></i>
+                        Chưa có đánh giá nào.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if page_obj.paginator.num_pages > 1 %}
+<div style="display:flex;justify-content:center;gap:0.5rem;margin-top:1.5rem;">
+    {% if page_obj.has_previous %}
+    <a href="?page=1" class="btn btn-outline btn-sm">&laquo;</a>
+    <a href="?page={{ page_obj.previous_page_number }}" class="btn btn-outline btn-sm">Trước</a>
+    {% endif %}
+    {% for num in page_obj.paginator.page_range %}
+        {% if page_obj.number == num %}
+        <span class="btn btn-primary btn-sm">{{ num }}</span>
+        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+        <a href="?page={{ num }}" class="btn btn-outline btn-sm">{{ num }}</a>
+        {% endif %}
+    {% endfor %}
+    {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}" class="btn btn-outline btn-sm">Tiếp</a>
+    <a href="?page={{ page_obj.paginator.num_pages }}" class="btn btn-outline btn-sm">&raquo;</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

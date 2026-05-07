@@ -1,0 +1,170 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block content %}
+
+<!-- Header -->
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+    <div></div>
+    <div style="display:flex;gap:0.5rem;">
+        <a href="{% url 'dashboard:customer_profile_list' %}" class="btn btn-outline"><i class="fas fa-arrow-left"></i> Quay lại</a>
+        <a href="{% url 'dashboard:customer_profile_edit' profile.pk %}" class="btn btn-primary"><i class="fas fa-edit"></i> Chỉnh sửa</a>
+    </div>
+</div>
+
+<!-- Profile Header Card -->
+<div class="card" style="margin-bottom:1.5rem;">
+    <div class="card-body" style="display:flex;align-items:center;gap:2rem;padding:2rem;">
+        {% if profile.avatar %}
+        <img src="{{ profile.avatar.url }}" alt="{{ profile.display_name }}" style="width:100px;height:100px;border-radius:50%;object-fit:cover;box-shadow:0 4px 12px rgba(0,0,0,0.15);">
+        {% else %}
+        <div style="width:100px;height:100px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;color:white;font-size:2.5rem;flex-shrink:0;">
+            <i class="fas fa-user"></i>
+        </div>
+        {% endif %}
+        <div style="flex:1;">
+            <div style="font-size:1.5rem;font-weight:700;color:#32325d;">{{ profile.display_name }}</div>
+            <div style="color:#adb5bd;margin-bottom:0.5rem;">@{{ profile.user.username }}</div>
+            <div style="display:flex;gap:1.5rem;flex-wrap:wrap;font-size:0.9rem;color:#525f7f;">
+                <span><i class="fas fa-envelope" style="color:#adb5bd;margin-right:6px;"></i>{{ profile.user.email }}</span>
+                {% if profile.phone %}<span><i class="fas fa-phone" style="color:#adb5bd;margin-right:6px;"></i>{{ profile.phone }}</span>{% endif %}
+                {% if profile.address %}<span><i class="fas fa-map-marker-alt" style="color:#adb5bd;margin-right:6px;"></i>{{ profile.address }}</span>{% endif %}
+            </div>
+        </div>
+        <div style="text-align:right;">
+            {% if profile.is_verified %}
+            <span class="badge badge-available" style="font-size:0.85rem;"><i class="fas fa-check-circle"></i> Đã xác thực</span>
+            {% else %}
+            <span class="badge badge-pending" style="font-size:0.85rem;"><i class="fas fa-clock"></i> Chưa xác thực</span>
+            {% endif %}
+            <div style="font-size:0.8rem;color:#adb5bd;margin-top:0.5rem;"><i class="fas fa-calendar"></i> Tham gia: {{ profile.created_at|date:"d/m/Y" }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Stats Row -->
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-bottom:1.5rem;">
+    <div class="stat-card grad-purple">
+        <div class="icon-bg"><i class="fas fa-shopping-cart"></i></div>
+        <div class="stat-label">Tổng đơn hàng</div>
+        <div class="stat-value">{{ order_stats.total_orders }}</div>
+    </div>
+    <div class="stat-card grad-green">
+        <div class="icon-bg"><i class="fas fa-dollar-sign"></i></div>
+        <div class="stat-label">Tổng chi tiêu</div>
+        <div class="stat-value">{{ order_stats.total_spent|floatformat:0 }}đ</div>
+    </div>
+    <div class="stat-card grad-orange">
+        <div class="icon-bg"><i class="fas fa-coins"></i></div>
+        <div class="stat-label">Điểm tích lũy</div>
+        <div class="stat-value">{{ loyalty_points }}</div>
+    </div>
+    <div class="stat-card grad-blue">
+        <div class="icon-bg"><i class="fas fa-chart-pie"></i></div>
+        <div class="stat-label">Hoàn thành hồ sơ</div>
+        <div class="stat-value">{{ profile_completion }}%</div>
+    </div>
+</div>
+
+<!-- Info Cards Row -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem;">
+    <!-- Basic Info -->
+    <div class="card">
+        <div class="card-header"><span><i class="fas fa-user" style="color:#667eea;margin-right:8px;"></i>Thông tin cơ bản</span></div>
+        <div class="card-body">
+            <table class="admin-table">
+                <tr><td style="font-weight:600;width:35%;color:#8898aa;">Họ và tên</td><td>{% if profile.user.first_name or profile.user.last_name %}{{ profile.user.first_name }} {{ profile.user.last_name }}{% else %}<span style="color:#adb5bd;">Chưa cập nhật</span>{% endif %}</td></tr>
+                <tr><td style="font-weight:600;color:#8898aa;">Tên đăng nhập</td><td>{{ profile.user.username }}</td></tr>
+                <tr><td style="font-weight:600;color:#8898aa;">Email</td><td>{{ profile.user.email }}</td></tr>
+                <tr><td style="font-weight:600;color:#8898aa;">Số điện thoại</td><td>{% if profile.phone %}{{ profile.phone }}{% else %}<span style="color:#adb5bd;">Chưa cập nhật</span>{% endif %}</td></tr>
+                <tr><td style="font-weight:600;color:#8898aa;">Ngày sinh</td><td>{% if profile.date_of_birth %}{{ profile.date_of_birth|date:"d/m/Y" }}{% else %}<span style="color:#adb5bd;">Chưa cập nhật</span>{% endif %}</td></tr>
+                <tr><td style="font-weight:600;color:#8898aa;">Giới tính</td><td>{% if profile.gender %}{% if profile.gender == 'male' %}Nam{% elif profile.gender == 'female' %}Nữ{% else %}Khác{% endif %}{% else %}<span style="color:#adb5bd;">Chưa cập nhật</span>{% endif %}</td></tr>
+                <tr><td style="font-weight:600;color:#8898aa;">Địa chỉ</td><td>{% if profile.address %}{{ profile.address }}{% else %}<span style="color:#adb5bd;">Chưa cập nhật</span>{% endif %}</td></tr>
+            </table>
+        </div>
+    </div>
+    <!-- Account Info -->
+    <div class="card">
+        <div class="card-header"><span><i class="fas fa-cog" style="color:#667eea;margin-right:8px;"></i>Thông tin tài khoản</span></div>
+        <div class="card-body">
+            <table class="admin-table">
+                <tr><td style="font-weight:600;width:35%;color:#8898aa;">ID người dùng</td><td>{{ profile.user.id }}</td></tr>
+                <tr><td style="font-weight:600;color:#8898aa;">Trạng thái</td><td>{% if profile.user.is_active %}<span class="badge badge-available">Đang hoạt động</span>{% else %}<span class="badge badge-unavailable">Đã khóa</span>{% endif %}</td></tr>
+                <tr><td style="font-weight:600;color:#8898aa;">Quyền</td><td>{% if profile.user.is_staff %}<span class="badge badge-pending">Nhân viên</span>{% else %}<span class="badge badge-category">Người dùng</span>{% endif %}</td></tr>
+                <tr><td style="font-weight:600;color:#8898aa;">Ngày tạo</td><td>{{ profile.created_at|date:"d/m/Y H:i" }}</td></tr>
+                <tr><td style="font-weight:600;color:#8898aa;">Cập nhật cuối</td><td>{{ profile.updated_at|date:"d/m/Y H:i" }}</td></tr>
+                <tr><td style="font-weight:600;color:#8898aa;">Đăng nhập cuối</td><td>{% if profile.user.last_login %}{{ profile.user.last_login|date:"d/m/Y H:i" }}{% else %}<span style="color:#adb5bd;">Chưa đăng nhập</span>{% endif %}</td></tr>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Order History -->
+<div class="card" style="margin-bottom:1.5rem;">
+    <div class="card-header">
+        <span><i class="fas fa-shopping-bag" style="color:#667eea;margin-right:8px;"></i>Lịch sử đơn hàng</span>
+        <span class="badge badge-category">{{ order_stats.total_orders }} đơn hàng</span>
+    </div>
+    <div style="overflow-x:auto;">
+        {% if recent_orders_with_items %}
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Mã đơn</th>
+                    <th>Ngày đặt</th>
+                    <th>Sản phẩm</th>
+                    <th>Trạng thái</th>
+                    <th>Tổng tiền</th>
+                    <th style="text-align:center;">Thao Tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in recent_orders_with_items %}
+                <tr>
+                    <td style="font-weight:600;color:#32325d;">#{{ item.order.id }}</td>
+                    <td style="color:#8898aa;">{{ item.order.created_at|date:"d/m/Y H:i" }}</td>
+                    <td>
+                        <span class="badge badge-category">{{ item.item_count }} SP</span>
+                        <div style="font-size:0.8rem;color:#adb5bd;margin-top:4px;">
+                            {% for order_item in item.items|slice:":2" %}{{ order_item.product.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                            {% if item.item_count > 2 %}...{% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        {% if item.order.status == 'Pending' %}<span class="badge badge-pending">Đang chờ</span>
+                        {% elif item.order.status == 'Processing' %}<span class="badge badge-processing">Đang xử lý</span>
+                        {% elif item.order.status == 'Shipped' %}<span class="badge badge-shipped">Đang giao</span>
+                        {% elif item.order.status == 'Delivered' %}<span class="badge badge-delivered">Đã giao</span>
+                        {% elif item.order.status == 'Cancelled' %}<span class="badge badge-cancelled">Đã hủy</span>
+                        {% else %}<span class="badge" style="background:#e9ecef;color:#525f7f;">{{ item.order.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td style="font-weight:600;color:#32325d;">{{ item.order.total_price|floatformat:0 }}đ</td>
+                    <td style="text-align:center;">
+                        <a href="{% url 'dashboard:orders_detail' item.order.id %}" class="btn btn-outline btn-sm btn-icon" title="Xem"><i class="fas fa-eye"></i></a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% if order_stats.total_orders > 5 %}
+        <div style="text-align:center;padding:1rem;border-top:1px solid #f0f2f5;">
+            <a href="{% url 'dashboard:orders_list' %}?user={{ profile.user.id }}" class="btn btn-outline"><i class="fas fa-list"></i> Xem tất cả {{ order_stats.total_orders }} đơn hàng</a>
+        </div>
+        {% endif %}
+        {% else %}
+        <div style="text-align:center;padding:3rem;color:#adb5bd;">
+            <i class="fas fa-shopping-cart" style="font-size:2.5rem;display:block;margin-bottom:1rem;opacity:0.3;"></i>
+            Người dùng chưa có đơn hàng nào.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Action Buttons -->
+<div style="display:flex;gap:0.5rem;">
+    <a href="{% url 'dashboard:customer_profile_edit' profile.pk %}" class="btn btn-primary"><i class="fas fa-edit"></i> Chỉnh sửa</a>
+    <a href="{% url 'dashboard:customer_profile_toggle_verification' profile.pk %}" class="btn btn-outline"><i class="fas fa-shield-alt"></i> {% if profile.is_verified %}Hủy xác thực{% else %}Xác thực{% endif %}</a>
+    <a href="{% url 'dashboard:customer_profile_delete' profile.pk %}" class="btn btn-danger"><i class="fas fa-trash"></i> Xóa</a>
+    <a href="{% url 'dashboard:customer_profile_list' %}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Quay lại</a>
+</div>
+{% endblock %}

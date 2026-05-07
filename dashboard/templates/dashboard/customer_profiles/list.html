@@ -1,0 +1,185 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block content %}
+
+<!-- Stats Row -->
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-bottom:1.5rem;">
+    <div class="stat-card grad-purple">
+        <div class="icon-bg"><i class="fas fa-users"></i></div>
+        <div class="stat-label">Tổng người dùng</div>
+        <div class="stat-value">{{ stats.total }}</div>
+    </div>
+    <div class="stat-card grad-green">
+        <div class="icon-bg"><i class="fas fa-check-circle"></i></div>
+        <div class="stat-label">Đã xác thực</div>
+        <div class="stat-value">{{ stats.verified }}</div>
+    </div>
+    <div class="stat-card grad-orange">
+        <div class="icon-bg"><i class="fas fa-crown"></i></div>
+        <div class="stat-label">VIP/Premium</div>
+        <div class="stat-value">{{ stats.vip }}</div>
+    </div>
+    <div class="stat-card grad-blue">
+        <div class="icon-bg"><i class="fas fa-user-check"></i></div>
+        <div class="stat-label">Đang hoạt động</div>
+        <div class="stat-value">{{ stats.active }}</div>
+    </div>
+    <div class="stat-card grad-teal">
+        <div class="icon-bg"><i class="fas fa-user-plus"></i></div>
+        <div class="stat-label">Mới tháng này</div>
+        <div class="stat-value">{{ stats.new_this_month }}</div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card" style="margin-bottom:1.5rem;">
+    <div class="card-header">
+        <span><i class="fas fa-filter" style="color:#667eea;margin-right:8px;"></i>Bộ lọc tìm kiếm</span>
+    </div>
+    <div class="card-body">
+        <form method="get" style="display:flex;flex-wrap:wrap;gap:0.75rem;align-items:end;">
+            <div style="flex:2;min-width:200px;">
+                <label class="form-label">Tìm kiếm</label>
+                <input type="text" name="search" value="{{ search_query }}" placeholder="Tên, email, SĐT..." class="form-control">
+            </div>
+            <div style="flex:1;min-width:140px;">
+                <label class="form-label">Xác thực</label>
+                <select name="verified" class="form-control">
+                    <option value="">Tất cả</option>
+                    <option value="verified" {% if verified_filter == 'verified' %}selected{% endif %}>Đã xác thực</option>
+                    <option value="unverified" {% if verified_filter == 'unverified' %}selected{% endif %}>Chưa xác thực</option>
+                </select>
+            </div>
+            <div style="flex:1;min-width:140px;">
+                <label class="form-label">Loại KH</label>
+                <select name="vip" class="form-control">
+                    <option value="">Tất cả</option>
+                    <option value="vip" {% if vip_filter == 'vip' %}selected{% endif %}>VIP/Premium</option>
+                    <option value="normal" {% if vip_filter == 'normal' %}selected{% endif %}>Thường</option>
+                </select>
+            </div>
+            <div style="flex:1;min-width:140px;">
+                <label class="form-label">Giới tính</label>
+                <select name="gender" class="form-control">
+                    <option value="">Tất cả</option>
+                    {% for value, label in gender_choices %}
+                    <option value="{{ value }}" {% if gender_filter == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Lọc</button>
+            <a href="{% url 'dashboard:customer_profile_list' %}" class="btn btn-secondary"><i class="fas fa-redo"></i> Đặt lại</a>
+        </form>
+    </div>
+</div>
+
+<!-- Profiles Table -->
+<div class="card">
+    <div class="card-header">
+        <span><i class="fas fa-id-card" style="color:#667eea;margin-right:8px;"></i>Danh Sách Hồ Sơ Khách Hàng</span>
+        <span style="font-size:0.8rem;color:#adb5bd;">{{ profiles.paginator.count }} hồ sơ</span>
+    </div>
+    <div style="overflow-x:auto;">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Người dùng</th>
+                    <th>Liên hệ</th>
+                    <th>Địa chỉ</th>
+                    <th>Điểm tích lũy</th>
+                    <th>Ngày tham gia</th>
+                    <th>Trạng thái</th>
+                    <th style="text-align:center;">Thao Tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for profile in profiles %}
+                <tr>
+                    <td>
+                        <div style="display:flex;align-items:center;gap:12px;">
+                            {% if profile.avatar %}
+                            <img src="{{ profile.avatar.url }}" alt="{{ profile.display_name }}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;box-shadow:0 2px 8px rgba(0,0,0,0.12);">
+                            {% else %}
+                            <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;color:white;font-size:0.9rem;">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            {% endif %}
+                            <div>
+                                <div style="font-weight:600;color:#32325d;">{{ profile.display_name }}</div>
+                                <div style="font-size:0.8rem;color:#adb5bd;">@{{ profile.user.username }}</div>
+                            </div>
+                            {% if profile.is_premium %}
+                            <span class="badge" style="background:#fff3cd;color:#856404;"><i class="fas fa-crown"></i> VIP</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        <div style="font-size:0.85rem;color:#525f7f;">
+                            <div><i class="fas fa-envelope" style="color:#adb5bd;margin-right:6px;font-size:0.75rem;"></i>{{ profile.user.email }}</div>
+                            {% if profile.phone %}
+                            <div><i class="fas fa-phone" style="color:#adb5bd;margin-right:6px;font-size:0.75rem;"></i>{{ profile.phone }}</div>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td style="color:#525f7f;max-width:180px;font-size:0.85rem;">
+                        {% if profile.address %}{{ profile.address|truncatechars:40 }}{% else %}<span style="color:#adb5bd;">Chưa cập nhật</span>{% endif %}
+                    </td>
+                    <td>
+                        <span class="badge badge-category"><i class="fas fa-coins" style="margin-right:4px;"></i>{{ profile.loyalty_points }} điểm</span>
+                    </td>
+                    <td style="color:#8898aa;font-size:0.85rem;">{{ profile.created_at|date:"d/m/Y" }}</td>
+                    <td>
+                        {% if profile.user.is_active %}
+                        <span class="badge badge-available"><i class="fas fa-check-circle"></i> Hoạt động</span>
+                        {% else %}
+                        <span class="badge badge-unavailable"><i class="fas fa-ban"></i> Đã khóa</span>
+                        {% endif %}
+                        <br>
+                        {% if profile.is_verified %}
+                        <span class="badge badge-category" style="margin-top:4px;"><i class="fas fa-shield-alt"></i> Đã xác thực</span>
+                        {% else %}
+                        <span class="badge badge-pending" style="margin-top:4px;"><i class="fas fa-clock"></i> Chưa xác thực</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align:center;">
+                        {% if profile.pk %}
+                        <a href="{% url 'dashboard:customer_profile_detail' profile.pk %}" class="btn btn-outline btn-sm btn-icon" title="Xem"><i class="fas fa-eye"></i></a>
+                        <a href="{% url 'dashboard:customer_profile_edit' profile.pk %}" class="btn btn-primary btn-sm btn-icon" title="Sửa" style="margin:0 4px;"><i class="fas fa-edit"></i></a>
+                        <a href="{% url 'dashboard:customer_profile_toggle_verification' profile.pk %}" class="btn btn-sm btn-icon" title="Xác thực" style="background:#e8edff;color:#667eea;border:none;cursor:pointer;margin:0 4px;"><i class="fas fa-shield-alt"></i></a>
+                        <a href="{% url 'dashboard:customer_profile_delete' profile.pk %}" class="btn btn-danger btn-sm btn-icon" title="Xóa"><i class="fas fa-trash"></i></a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" style="text-align:center;padding:3rem;color:#adb5bd;">
+                        <i class="fas fa-id-card" style="font-size:2.5rem;display:block;margin-bottom:1rem;opacity:0.3;"></i>
+                        Không tìm thấy hồ sơ nào.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if profiles.has_other_pages %}
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:1rem 1.5rem;border-top:1px solid #f0f2f5;">
+        <span style="font-size:0.82rem;color:#8898aa;">Trang {{ profiles.number }} / {{ profiles.paginator.num_pages }}</span>
+        <div style="display:flex;gap:6px;">
+            {% if profiles.has_previous %}
+            <a href="?page={{ profiles.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if verified_filter %}&verified={{ verified_filter }}{% endif %}{% if vip_filter %}&vip={{ vip_filter }}{% endif %}{% if gender_filter %}&gender={{ gender_filter }}{% endif %}" class="page-link">‹</a>
+            {% endif %}
+            {% for i in profiles.paginator.page_range %}
+                {% if i == profiles.number %}
+                <span class="page-link active">{{ i }}</span>
+                {% elif i > profiles.number|add:'-3' and i < profiles.number|add:'3' %}
+                <a href="?page={{ i }}{% if search_query %}&search={{ search_query }}{% endif %}{% if verified_filter %}&verified={{ verified_filter }}{% endif %}{% if vip_filter %}&vip={{ vip_filter }}{% endif %}{% if gender_filter %}&gender={{ gender_filter }}{% endif %}" class="page-link">{{ i }}</a>
+                {% endif %}
+            {% endfor %}
+            {% if profiles.has_next %}
+            <a href="?page={{ profiles.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if verified_filter %}&verified={{ verified_filter }}{% endif %}{% if vip_filter %}&vip={{ vip_filter }}{% endif %}{% if gender_filter %}&gender={{ gender_filter }}{% endif %}" class="page-link">›</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

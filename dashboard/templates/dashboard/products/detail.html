@@ -1,0 +1,115 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}{{ product.name }}{% endblock %}
+{% block content %}
+<div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;">
+    <a href="{% url 'dashboard:products_list' %}" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i> Quay lại</a>
+    <div style="margin-left:auto;display:flex;gap:0.5rem;">
+        <a href="{% url 'dashboard:warehouse_list' %}" class="btn btn-outline btn-sm"><i class="fas fa-warehouse"></i> Kho</a>
+        <a href="{% url 'dashboard:products_edit' product.pk %}" class="btn btn-primary btn-sm"><i class="fas fa-edit"></i> Chỉnh sửa</a>
+        <form method="post" action="{% url 'dashboard:products_delete' product.pk %}" style="display:inline;" onsubmit="return confirm('Xóa món này?')">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i> Xóa</button>
+        </form>
+    </div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 2fr;gap:1.5rem;">
+    <div class="card">
+        {% if product.image and product.image.name %}
+        <img src="{{ product.image.url }}" alt="{{ product.name }}" style="width:100%;border-radius:1rem 1rem 0 0;object-fit:cover;max-height:260px;" onerror="this.style.display='none';this.parentElement.querySelector('.fallback').style.display='flex';">
+        {% endif %}
+        <div class="fallback" style="height:200px;background:linear-gradient(135deg,#f6d365,#fda085);border-radius:1rem 1rem 0 0;display:{% if not product.image or not product.image.name %}flex{% else %}none{% endif %};align-items:center;justify-content:center;">
+            <i class="fas fa-bowl-food" style="font-size:4rem;color:rgba(255,255,255,0.7);"></i>
+        </div>
+        <div class="card-body" style="text-align:center;">
+            {% if product.is_active %}
+            <span class="badge badge-available" style="font-size:0.85rem;padding:0.4em 1.2em;">✓ Còn Hàng</span>
+            {% else %}
+            <span class="badge badge-unavailable" style="font-size:0.85rem;padding:0.4em 1.2em;">✗ Tạm Dừng</span>
+            {% endif %}
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header"><span><i class="fas fa-info-circle" style="color:#667eea;margin-right:8px;"></i>Thông Tin Sản phẩm</span></div>
+        <div class="card-body">
+            <h2 style="font-size:1.5rem;font-weight:700;color:#32325d;margin:0 0 0.5rem;">{{ product.name }}</h2>
+            <div style="display:flex;gap:0.5rem;align-items:center;margin-bottom:1.2rem;">
+                <span class="badge badge-category">{{ product.category.name }}</span>
+                {% if product.brand %}
+                <a href="{% url 'dashboard:brands_detail' product.brand.pk %}" style="text-decoration:none;"><span class="badge" style="background:#f3f4ff;color:#667eea;font-weight:600;">{{ product.brand.name }}</span></a>
+                {% endif %}
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.2rem;">
+                <div style="background:#f8f9ff;border-radius:10px;padding:1rem;">
+                    <div style="font-size:0.72rem;font-weight:700;color:#8898aa;text-transform:uppercase;">Giá Vốn</div>
+                    <div style="font-size:1.2rem;font-weight:700;color:#525f7f;">{{ product.cost_price|floatformat:0 }}đ</div>
+                </div>
+                <div style="background:#f0fff4;border-radius:10px;padding:1rem;">
+                    <div style="font-size:0.72rem;font-weight:700;color:#8898aa;text-transform:uppercase;">Giá Bán</div>
+                    <div style="font-size:1.2rem;font-weight:700;color:#2dce89;">{{ product.sale_price|floatformat:0 }}đ</div>
+                </div>
+                <div style="background:{% if product.stock <= product.min_stock %}#fff5f5{% else %}#f0fff4{% endif %};border-radius:10px;padding:1rem;">
+                    <div style="font-size:0.72rem;font-weight:700;color:#8898aa;text-transform:uppercase;">Tồn Kho</div>
+                    <div style="font-size:1.2rem;font-weight:700;color:{% if product.stock <= product.min_stock %}#f5365c{% else %}#2dce89{% endif %};">{{ product.stock }}</div>
+                </div>
+                <div style="background:#fff8f0;border-radius:10px;padding:1rem;">
+                    <div style="font-size:0.72rem;font-weight:700;color:#8898aa;text-transform:uppercase;">Tồn Tối Thiểu</div>
+                    <div style="font-size:1.2rem;font-weight:700;color:#fb6340;">{{ product.min_stock }}</div>
+                </div>
+            </div>
+            <div style="margin-bottom:1rem;">
+                <div style="font-size:0.72rem;font-weight:700;color:#8898aa;text-transform:uppercase;margin-bottom:0.5rem;">Mô Tả</div>
+                <p style="color:#525f7f;line-height:1.7;font-size:0.9rem;">{{ product.description|default:'Chưa có mô tả.' }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Warehouse Items for this product -->
+{% if stock_balances %}
+<div class="card" style="margin-top:1.5rem;">
+    <div class="card-header">
+        <span><i class="fas fa-warehouse" style="color:#667eea;margin-right:8px;"></i>Tồn Kho Theo Kho Hàng</span>
+        <a href="{% url 'dashboard:warehouse_list' %}" style="font-size:0.82rem;color:#667eea;font-weight:600;text-decoration:none;">Quản lý kho →</a>
+    </div>
+    <div style="overflow-x:auto;">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Kho</th>
+                    <th>Số Lượng</th>
+                    <th>Đơn Vị</th>
+                    <th>Giá Nhập</th>
+                    <th>Tồn Tối Thiểu</th>
+                    <th>Trạng Thái</th>
+                    <th style="text-align:center;">Thao Tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for wi in stock_balances %}
+                <tr>
+                    <td style="font-weight:600;color:#32325d;">{{ wi.warehouse.store.name }}</td>
+                    <td style="font-weight:700;color:#667eea;">{{ wi.quantity }}</td>
+                    <td style="color:#8898aa;">{{ wi.unit }}</td>
+                    <td style="color:#8898aa;">{{ wi.unit_price|floatformat:0 }}đ</td>
+                    <td style="color:#8898aa;">{{ wi.min_quantity }}</td>
+                    <td>
+                        {% if wi.quantity == 0 %}
+                        <span class="badge badge-unavailable">Hết hàng</span>
+                        {% elif wi.quantity <= wi.min_quantity %}
+                        <span class="badge badge-pending">Sắp hết</span>
+                        {% else %}
+                        <span class="badge badge-available">Còn hàng</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align:center;">
+                        <a href="{% url 'dashboard:warehouse_item_edit' wi.pk %}" class="btn btn-outline btn-sm btn-icon" title="Sửa"><i class="fas fa-edit"></i></a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

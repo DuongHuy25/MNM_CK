@@ -1,0 +1,111 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}Đơn Hàng{% endblock %}
+{% block content %}
+
+<!-- Status filter tabs -->
+<div style="display:flex;gap:0.5rem;margin-bottom:1.25rem;flex-wrap:wrap;">
+    <a href="{% url 'dashboard:orders_list' %}" class="btn {% if not current_status %}btn-primary{% else %}btn-outline{% endif %} btn-sm">Tất cả</a>
+    {% for val, label in status_choices %}
+    <a href="?status={{ val }}" class="btn {% if current_status == val %}btn-primary{% else %}btn-outline{% endif %} btn-sm">{{ label }}</a>
+    {% endfor %}
+</div>
+
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+    <form method="get" style="display:flex;gap:0.5rem;">
+        {% if current_status %}<input type="hidden" name="status" value="{{ current_status }}">{% endif %}
+        <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Tìm theo tên, SĐT..." class="form-control" style="width:280px;">
+        <button type="submit" class="btn btn-outline"><i class="fas fa-search"></i></button>
+        <a href="{% url 'dashboard:orders_list' %}" class="btn btn-secondary">Xóa</a>
+    </form>
+    <div style="display:flex;gap:1rem;align-items:center;">
+        <span style="font-size:0.82rem;color:#8898aa;">{{ page_obj.paginator.count }} đơn hàng</span>
+        <a href="{% url 'dashboard:orders_create' %}" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> Thêm Đơn Hàng</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <span><i class="fas fa-receipt" style="color:#ee0979;margin-right:8px;"></i>Danh Sách Đơn Hàng</span>
+    </div>
+    <div style="overflow-x:auto;">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Khách Hàng</th>
+                    <th>SĐT</th>
+                    <th>Địa Chỉ Giao</th>
+                    <th>Tổng Tiền</th>
+                    <th>Trạng Thái</th>
+                    <th>Ngày Đặt</th>
+                    <th style="text-align:center;">Thao Tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in page_obj %}
+                <tr>
+                    <td style="font-family:monospace;font-weight:700;color:#667eea;">
+                        <a href="{% url 'dashboard:orders_detail' order.pk %}" style="color:#667eea;text-decoration:none;">#{{ order.id }}</a>
+                    </td>
+                    <td>
+                        <div style="font-weight:600;color:#32325d;">{{ order.full_name }}</div>
+                        {% if order.user %}<div style="font-size:0.75rem;color:#adb5bd;">@{{ order.user.username }}</div>{% endif %}
+                    </td>
+                    <td style="color:#525f7f;">{{ order.phone }}</td>
+                    <td style="color:#8898aa;font-size:0.82rem;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ order.address }}</td>
+                    <td style="font-weight:700;color:#667eea;">{{ order.total_price|floatformat:0 }}đ</td>
+                    <td>
+                        <span class="badge
+                            {% if order.status == 'Pending' %}badge-pending
+                            {% elif order.status == 'Processing' %}badge-processing
+                            {% elif order.status == 'Shipped' %}badge-shipped
+                            {% elif order.status == 'Delivered' %}badge-delivered
+                            {% elif order.status == 'Cancelled' %}badge-cancelled
+                            {% endif %}">{{ order.get_status_display }}</span>
+                    </td>
+                    <td style="color:#8898aa;font-size:0.8rem;">{{ order.created_at|date:'d/m/Y H:i' }}</td>
+                    <td style="text-align:center;">
+                        <a href="{% url 'dashboard:orders_detail' order.pk %}" class="btn btn-outline btn-sm btn-icon" title="Xem"><i class="fas fa-eye"></i></a>
+                        <a href="{% url 'dashboard:orders_edit' order.pk %}" class="btn btn-primary btn-sm btn-icon" title="Sửa" style="margin:0 4px;"><i class="fas fa-edit"></i></a>
+                        <form method="post" action="{% url 'dashboard:orders_delete' order.pk %}" style="display:inline;" onsubmit="return confirm('Xóa đơn hàng #{{ order.id }}?')">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger btn-sm btn-icon" title="Xóa"><i class="fas fa-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" style="text-align:center;padding:3rem;color:#adb5bd;">
+                        <i class="fas fa-receipt" style="font-size:2.5rem;display:block;margin-bottom:1rem;opacity:0.3;"></i>
+                        Không có đơn hàng nào
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if paginator.count > 6 %}
+    <div style="display:flex;align-items:center;justify-content:center;gap:0.75rem;padding:1.5rem;border-top:1px solid #e3e6f0;margin-top:1rem;">
+        {% if page_obj.has_previous %}
+            <a href="?page=1{% if current_status %}&status={{ current_status }}{% endif %}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" style="padding:0.5rem 1rem;border:1px solid #e3e6f0;border-radius:4px;color:#667eea;text-decoration:none;font-weight:600;transition:all 0.3s ease;">« Trước</a>
+        {% else %}
+            <span style="padding:0.5rem 1rem;border:1px solid #e3e6f0;border-radius:4px;color:#adb5bd;font-weight:600;">« Trước</span>
+        {% endif %}
+
+        {% for num in paginator.page_range %}
+            {% if page_obj.number == num %}
+                <span style="padding:0.5rem 0.75rem;border:1px solid #667eea;border-radius:4px;background:#667eea;color:white;font-weight:700;min-width:2.5rem;text-align:center;">{{ num }}</span>
+            {% else %}
+                <a href="?page={{ num }}{% if current_status %}&status={{ current_status }}{% endif %}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" style="padding:0.5rem 0.75rem;border:1px solid #e3e6f0;border-radius:4px;color:#667eea;text-decoration:none;font-weight:600;min-width:2.5rem;text-align:center;transition:all 0.3s ease;">{{ num }}</a>
+            {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if current_status %}&status={{ current_status }}{% endif %}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" style="padding:0.5rem 1rem;border:1px solid #e3e6f0;border-radius:4px;color:#667eea;text-decoration:none;font-weight:600;transition:all 0.3s ease;">Tiếp »</a>
+        {% else %}
+            <span style="padding:0.5rem 1rem;border:1px solid #e3e6f0;border-radius:4px;color:#adb5bd;font-weight:600;">Tiếp »</span>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

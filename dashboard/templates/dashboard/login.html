@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng nhập - Dashboard</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%23667eea'/%3E%3Cstop offset='100%25' style='stop-color:%23764ba2'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='url(%23g)'/%3E%3Cpath d='M18 20h28l-20 24h22' stroke='white' stroke-width='5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        .login-card { width: 100%; max-width: 420px; background: white; border-radius: 1.5rem; box-shadow: 0 25px 60px rgba(0,0,0,0.2); padding: 2.5rem; }
+        .login-header { text-align: center; margin-bottom: 2rem; }
+        .login-icon { width: 64px; height: 64px; background: linear-gradient(135deg, #e8edff, #c5cae9); border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 1rem; }
+        .login-icon i { font-size: 1.5rem; color: #667eea; }
+        .login-title { font-size: 1.5rem; font-weight: 700; color: #32325d; }
+        .login-subtitle { font-size: 0.9rem; color: #8898aa; margin-top: 0.25rem; }
+        .form-group { margin-bottom: 1.25rem; }
+        .form-label { display: block; font-size: 0.85rem; font-weight: 600; color: #525f7f; margin-bottom: 0.5rem; }
+        .form-label i { margin-right: 4px; }
+        .form-input { width: 100%; padding: 0.75rem 1rem; border: 1px solid #dee2e6; border-radius: 0.5rem; font-size: 0.9rem; color: #32325d; transition: border-color 0.2s, box-shadow 0.2s; }
+        .form-input:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,0.15); }
+        .btn-login { width: 100%; padding: 0.75rem; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 0.5rem; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
+        .btn-login:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(102,126,234,0.4); }
+        .btn-login i { margin-right: 6px; }
+        .alert { padding: 0.75rem 1rem; border-radius: 0.5rem; font-size: 0.85rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 8px; }
+        .alert-danger { background: #fff5f5; color: #f5365c; }
+        .alert-success { background: #e6f9ee; color: #2dce89; }
+        .alert-info { background: #e8edff; color: #667eea; }
+        .login-footer { text-align: center; margin-top: 1.5rem; font-size: 0.8rem; color: #adb5bd; }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <div class="login-header">
+            <div class="login-icon"><i class="fas fa-utensils"></i></div>
+            <div class="login-title">ZenMart - Cửa Hàng Tiện Lợi</div>
+            <div class="login-subtitle">Đăng nhập vào Dashboard</div>
+        </div>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert {% if message.tags == 'error' %}alert-danger{% elif message.tags == 'success' %}alert-success{% else %}alert-info{% endif %}">
+                    <i class="fas {% if message.tags == 'error' %}fa-exclamation-circle{% elif message.tags == 'success' %}fa-check-circle{% else %}fa-info-circle{% endif %}"></i>
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="post" action="{% url 'dashboard:login' %}">
+            {% csrf_token %}
+            {% if next %}
+                <input type="hidden" name="next" value="{{ next }}">
+            {% endif %}
+
+            <div class="form-group">
+                <label for="email" class="form-label"><i class="fas fa-envelope"></i> Email</label>
+                <input type="email" id="email" name="email" class="form-input" placeholder="Nhập email..." required autofocus>
+            </div>
+
+            <div class="form-group">
+                <label for="password" class="form-label"><i class="fas fa-lock"></i> Mật khẩu</label>
+                <input type="password" id="password" name="password" class="form-input" placeholder="Nhập mật khẩu..." required>
+            </div>
+
+            <button type="submit" class="btn-login"><i class="fas fa-sign-in-alt"></i> Đăng nhập</button>
+        </form>
+
+        <div class="login-footer">&copy; 2024 ZenMart - Cửa Hàng Tiện Lợi Dashboard</div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,220 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}Bảng Điều Khiển{% endblock %}
+{% block content %}
+
+<!-- ===== STAT CARDS ===== -->
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1.25rem;margin-bottom:2rem;">
+    <div class="stat-card grad-purple">
+        <div class="stat-label">Tổng Cửa Hàng</div>
+        <div class="stat-value">{{ stats.total_stores }}</div>
+        <i class="fas fa-store icon-bg"></i>
+    </div>
+    <div class="stat-card grad-green">
+        <div class="stat-label">Tổng Món Ăn</div>
+        <div class="stat-value">{{ stats.total_products }}</div>
+        <i class="fas fa-bowl-food icon-bg"></i>
+    </div>
+    <div class="stat-card grad-orange">
+        <div class="stat-label">Đơn Chờ Xử Lý</div>
+        <div class="stat-value">{{ stats.pending_orders }}</div>
+        <i class="fas fa-clock icon-bg"></i>
+    </div>
+    <div class="stat-card grad-blue">
+        <div class="stat-label">Tổng Người Dùng</div>
+        <div class="stat-value">{{ stats.total_users }}</div>
+        <i class="fas fa-users icon-bg"></i>
+    </div>
+</div>
+
+<!-- ===== SECONDARY STATS ===== -->
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem;margin-bottom:2rem;">
+    <div style="background:white;border-radius:1rem;padding:1.2rem 1.5rem;display:flex;align-items:center;gap:1rem;box-shadow:0 0 1.5rem rgba(136,152,170,.12);">
+        <div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#f6d365,#fda085);display:flex;align-items:center;justify-content:center;color:white;font-size:1.2rem;flex-shrink:0;">
+            <i class="fas fa-fire"></i>
+        </div>
+        <div>
+            <div style="font-size:0.75rem;color:#8898aa;font-weight:700;text-transform:uppercase;">Đang Chế Biến</div>
+            <div style="font-size:1.6rem;font-weight:700;color:#32325d;">{{ stats.processing_orders }}</div>
+        </div>
+    </div>
+    <div style="background:white;border-radius:1rem;padding:1.2rem 1.5rem;display:flex;align-items:center;gap:1rem;box-shadow:0 0 1.5rem rgba(136,152,170,.12);">
+        <div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#43e97b,#38f9d7);display:flex;align-items:center;justify-content:center;color:white;font-size:1.2rem;flex-shrink:0;">
+            <i class="fas fa-check-circle"></i>
+        </div>
+        <div>
+            <div style="font-size:0.75rem;color:#8898aa;font-weight:700;text-transform:uppercase;">Đã Giao Hàng</div>
+            <div style="font-size:1.6rem;font-weight:700;color:#32325d;">{{ stats.delivered_orders }}</div>
+        </div>
+    </div>
+    <div style="background:white;border-radius:1rem;padding:1.2rem 1.5rem;display:flex;align-items:center;gap:1rem;box-shadow:0 0 1.5rem rgba(136,152,170,.12);">
+        <div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#a18cd1,#fbc2eb);display:flex;align-items:center;justify-content:center;color:white;font-size:1.2rem;flex-shrink:0;">
+            <i class="fas fa-tags"></i>
+        </div>
+        <div>
+            <div style="font-size:0.75rem;color:#8898aa;font-weight:700;text-transform:uppercase;">Danh Mục</div>
+            <div style="font-size:1.6rem;font-weight:700;color:#32325d;">{{ stats.total_categories }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== TABLES ROW ===== -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
+
+    <!-- Đơn hàng mới nhất -->
+    <div class="card">
+        <div class="card-header">
+            <span><i class="fas fa-receipt" style="color:#ee0979;margin-right:8px;"></i>Đơn Hàng Mới Nhất</span>
+            <a href="{% url 'dashboard:orders_list' %}" style="font-size:0.82rem;color:#667eea;font-weight:600;text-decoration:none;">Xem tất cả →</a>
+        </div>
+        <div style="overflow:hidden;border-radius:0 0 1rem 1rem;">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Khách Hàng</th>
+                        <th>Tổng Tiền</th>
+                        <th>Trạng Thái</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in recent_orders %}
+                    <tr>
+                        <td><a href="{% url 'dashboard:orders_detail' order.pk %}" style="color:#667eea;font-weight:600;font-family:monospace;">#{{ order.id }}</a></td>
+                        <td>
+                            <div style="font-weight:600;color:#32325d;">{{ order.full_name }}</div>
+                            <div style="font-size:0.75rem;color:#adb5bd;">{{ order.created_at|date:'d/m/Y H:i' }}</div>
+                        </td>
+                        <td style="font-weight:700;color:#667eea;">{{ order.total_price|floatformat:0 }}đ</td>
+                        <td>
+                            <span class="badge
+                                {% if order.status == 'Pending' %}badge-pending
+                                {% elif order.status == 'Processing' %}badge-processing
+                                {% elif order.status == 'Shipped' %}badge-shipped
+                                {% elif order.status == 'Delivered' %}badge-delivered
+                                {% elif order.status == 'Cancelled' %}badge-cancelled
+                                {% endif %}">{{ order.get_status_display }}</span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4" style="text-align:center;padding:2rem;color:#adb5bd;">Chưa có đơn hàng</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Món ăn mới nhất -->
+    <div class="card">
+        <div class="card-header">
+            <span><i class="fas fa-bowl-food" style="color:#2dce89;margin-right:8px;"></i>Món Ăn Mới Thêm</span>
+            <a href="{% url 'dashboard:products_list' %}" style="font-size:0.82rem;color:#667eea;font-weight:600;text-decoration:none;">Xem tất cả →</a>
+        </div>
+        <div style="overflow:hidden;border-radius:0 0 1rem 1rem;">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Món Ăn</th>
+                        <th>Danh Mục</th>
+                        <th>Giá</th>
+                        <th>Tình Trạng</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in recent_products %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'dashboard:products_detail' product.pk %}" style="font-weight:600;color:#32325d;text-decoration:none;">{{ product.name }}</a>
+                        </td>
+                        <td><span class="badge badge-category">{{ product.category.name }}</span></td>
+                        <td style="font-weight:700;color:#667eea;">{{ product.sale_price|floatformat:0 }}đ</td>
+                        <td>
+                            {% if product.is_active %}
+                            <span class="badge badge-available">Còn hàng</span>
+                            {% else %}
+                            <span class="badge badge-unavailable">Hết hàng</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4" style="text-align:center;padding:2rem;color:#adb5bd;">Chưa có món ăn</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ===== QUICK ACTIONS ===== -->
+<div class="card" style="margin-top:1.5rem;">
+    <div class="card-header">
+        <span><i class="fas fa-bolt" style="color:#667eea;margin-right:8px;"></i>Hành Động Nhanh</span>
+    </div>
+    <div class="card-body" style="display:grid;grid-template-columns:repeat(6,1fr);gap:1rem;">
+        <a href="{% url 'dashboard:stores_create' %}" style="display:flex;flex-direction:column;align-items:center;padding:1.2rem;border:2px dashed #c5cae9;border-radius:12px;text-decoration:none;transition:all 0.2s;" onmouseover="this.style.background='#f3f4ff'" onmouseout="this.style.background='transparent'">
+            <i class="fas fa-store" style="font-size:1.6rem;color:#667eea;margin-bottom:8px;"></i>
+            <span style="font-size:0.8rem;font-weight:600;color:#525f7f;">Thêm Cửa Hàng</span>
+        </a>
+        <a href="{% url 'dashboard:categories_create' %}" style="display:flex;flex-direction:column;align-items:center;padding:1.2rem;border:2px dashed #b2dfdb;border-radius:12px;text-decoration:none;transition:all 0.2s;" onmouseover="this.style.background='#f0faf9'" onmouseout="this.style.background='transparent'">
+            <i class="fas fa-tags" style="font-size:1.6rem;color:#11998e;margin-bottom:8px;"></i>
+            <span style="font-size:0.8rem;font-weight:600;color:#525f7f;">Thêm Danh Mục</span>
+        </a>
+        <a href="{% url 'dashboard:products_create' %}" style="display:flex;flex-direction:column;align-items:center;padding:1.2rem;border:2px dashed #ffccbc;border-radius:12px;text-decoration:none;transition:all 0.2s;" onmouseover="this.style.background='#fff8f5'" onmouseout="this.style.background='transparent'">
+            <i class="fas fa-plus" style="font-size:1.6rem;color:#ee0979;margin-bottom:8px;"></i>
+            <span style="font-size:0.8rem;font-weight:600;color:#525f7f;">Thêm Sản Phẩm</span>
+        </a>
+        <a href="{% url 'dashboard:orders_list' %}" style="display:flex;flex-direction:column;align-items:center;padding:1.2rem;border:2px dashed #d1c4e9;border-radius:12px;text-decoration:none;transition:all 0.2s;" onmouseover="this.style.background='#f8f5ff'" onmouseout="this.style.background='transparent'">
+            <i class="fas fa-receipt" style="font-size:1.6rem;color:#764ba2;margin-bottom:8px;"></i>
+            <span style="font-size:0.8rem;font-weight:600;color:#525f7f;">Xem Đơn Hàng</span>
+        </a>
+        <a href="{% url 'dashboard:manage_stores' %}" style="display:flex;flex-direction:column;align-items:center;padding:1.2rem;border:2px dashed #b3e5fc;border-radius:12px;text-decoration:none;transition:all 0.2s;" onmouseover="this.style.background='#f0f9ff'" onmouseout="this.style.background='transparent'">
+            <i class="fas fa-map-location-dot" style="font-size:1.6rem;color:#0052D4;margin-bottom:8px;"></i>
+            <span style="font-size:0.8rem;font-weight:600;color:#525f7f;">Quản Lý & Bản Đồ</span>
+        </a>
+        <a href="{% url 'eshop:home' %}" style="display:flex;flex-direction:column;align-items:center;padding:1.2rem;border:2px dashed #fce4ec;border-radius:12px;text-decoration:none;transition:all 0.2s;" onmouseover="this.style.background='#fff0f5'" onmouseout="this.style.background='transparent'">
+            <i class="fas fa-shopping-bag" style="font-size:1.6rem;color:#e91e63;margin-bottom:8px;"></i>
+            <span style="font-size:0.8rem;font-weight:600;color:#525f7f;">Cửa Hàng Online</span>
+        </a>
+    </div>
+</div>
+
+<!-- ===== STORE MAP ===== -->
+<div class="card" style="margin-top:1.5rem;">
+    <div class="card-header">
+        <span><i class="fas fa-map-location-dot" style="color:#0052D4;margin-right:8px;"></i>Chi Nhánh Cửa Hàng</span>
+        <span style="font-size:0.82rem;color:#8898aa;">{{ stores|length }} chi nhánh</span>
+    </div>
+    <div id="storesMap" style="height:400px;border-radius:0 0 8px 8px;"></div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const storesData = {{ stores|safe }};
+    const map = L.map('storesMap').setView([10.7769, 106.7009], 11);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png', {
+        attribution: '© OpenStreetMap, © CartoDB', maxZoom: 20
+    }).addTo(map);
+
+    const markers = [];
+    storesData.forEach(function(s) {
+        if (s.latitude && s.longitude) {
+            const tooltipHtml = '<b>' + s.name + '</b>' + (s.address ? '<br><small>' + s.address + '</small>' : '');
+            const marker = L.marker([s.latitude, s.longitude]).addTo(map);
+            marker.bindTooltip(tooltipHtml, { direction: 'top', offset: [0, -10], opacity: 1, sticky: false });
+            marker.on('mouseover', function() { this.openTooltip(); });
+            marker.on('mouseout', function() { this.closeTooltip(); });
+            markers.push(marker);
+        }
+    });
+
+    if (markers.length) {
+        const group = L.featureGroup(markers);
+        map.fitBounds(group.getBounds().pad(0.15));
+    }
+});
+</script>
+{% endblock %}

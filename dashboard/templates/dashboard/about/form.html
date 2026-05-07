@@ -1,0 +1,145 @@
+{% extends "dashboard/base.html" %}
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+<style>
+    .ql-container { min-height: 300px; }
+    .ql-editor { min-height: 300px; }
+    .image-preview { max-width:200px; max-height:200px; margin-top:10px; border-radius:8px; border:1px solid #dee2e6; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Header -->
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+    <div style="font-size:0.9rem;color:#8898aa;">
+        {% if action == 'create' %}Tạo bài viết giới thiệu mới{% else %}Chỉnh sửa bài viết giới thiệu{% endif %}
+    </div>
+    <a href="{% url 'dashboard:about_list' %}" class="btn btn-outline"><i class="fas fa-arrow-left"></i> Quay lại</a>
+</div>
+
+<!-- Form -->
+<div class="card">
+    <div class="card-header">
+        <span><i class="fas fa-edit" style="color:#667eea;margin-right:8px;"></i>{{ page_title }}</span>
+    </div>
+    <div class="card-body">
+        <form method="POST" enctype="multipart/form-data" id="about-form">
+            {% csrf_token %}
+            <div style="display:grid;grid-template-columns:2fr 1fr;gap:2rem;">
+                <!-- Main Content -->
+                <div>
+                    <div style="margin-bottom:1.5rem;">
+                        <label class="form-label">Tiêu đề <span style="color:#f5365c;">*</span></label>
+                        {{ form.title }}
+                        {% if form.title.errors %}<div style="color:#f5365c;font-size:0.8rem;margin-top:4px;">{% for e in form.title.errors %}{{ e }}{% endfor %}</div>{% endif %}
+                    </div>
+                    <div style="margin-bottom:1.5rem;">
+                        <label class="form-label">Slug <span style="color:#f5365c;">*</span></label>
+                        {{ form.slug }}
+                        <div style="font-size:0.8rem;color:#adb5bd;margin-top:4px;">Ví dụ: gioi-thieu-ve-cong-ty</div>
+                        {% if form.slug.errors %}<div style="color:#f5365c;font-size:0.8rem;margin-top:4px;">{% for e in form.slug.errors %}{{ e }}{% endfor %}</div>{% endif %}
+                    </div>
+                    <div style="margin-bottom:1.5rem;">
+                        <label class="form-label">Tóm tắt</label>
+                        {{ form.summary }}
+                        <div style="font-size:0.8rem;color:#adb5bd;margin-top:4px;">Tóm tắt ngắn gọn (tối đa 300 ký tự)</div>
+                        {% if form.summary.errors %}<div style="color:#f5365c;font-size:0.8rem;margin-top:4px;">{% for e in form.summary.errors %}{{ e }}{% endfor %}</div>{% endif %}
+                    </div>
+                    <div style="margin-bottom:1.5rem;">
+                        <label class="form-label">Nội dung <span style="color:#f5365c;">*</span></label>
+                        <div id="editor-container" style="height:400px;">
+                            <div id="editor">{{ form.content.value|safe }}</div>
+                        </div>
+                        {{ form.content }}
+                        {% if form.content.errors %}<div style="color:#f5365c;font-size:0.8rem;margin-top:4px;">{% for e in form.content.errors %}{{ e }}{% endfor %}</div>{% endif %}
+                    </div>
+                </div>
+                <!-- Sidebar -->
+                <div>
+                    <div style="margin-bottom:1.5rem;">
+                        <label class="form-label">Hình ảnh</label>
+                        {{ form.image }}
+                        {% if form.image.value %}<img src="{{ form.image.value.url }}" alt="Image" class="image-preview">{% endif %}
+                        <div style="font-size:0.8rem;color:#adb5bd;margin-top:4px;">Đề xuất: 1200x630px</div>
+                        {% if form.image.errors %}<div style="color:#f5365c;font-size:0.8rem;margin-top:4px;">{% for e in form.image.errors %}{{ e }}{% endfor %}</div>{% endif %}
+                    </div>
+                    <div style="margin-bottom:1.5rem;">
+                        <label class="form-label">Trạng thái</label>
+                        {{ form.status }}
+                        {% if form.status.errors %}<div style="color:#f5365c;font-size:0.8rem;margin-top:4px;">{% for e in form.status.errors %}{{ e }}{% endfor %}</div>{% endif %}
+                    </div>
+                    <div style="margin-bottom:1.5rem;">
+                        <label class="form-label">Thứ tự hiển thị</label>
+                        {{ form.order }}
+                        <div style="font-size:0.8rem;color:#adb5bd;margin-top:4px;">Số nhỏ = hiển thị trước</div>
+                        {% if form.order.errors %}<div style="color:#f5365c;font-size:0.8rem;margin-top:4px;">{% for e in form.order.errors %}{{ e }}{% endfor %}</div>{% endif %}
+                    </div>
+                    <div style="margin-bottom:1.5rem;">
+                        <label class="form-label">Liên kết ngoài</label>
+                        {{ form.external_link }}
+                        {% if form.external_link.errors %}<div style="color:#f5365c;font-size:0.8rem;margin-top:4px;">{% for e in form.external_link.errors %}{{ e }}{% endfor %}</div>{% endif %}
+                    </div>
+                    <div style="margin-bottom:1.5rem;">
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.9rem;color:#525f7f;">
+                            {{ form.is_active }} Kích hoạt bài viết
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <!-- Actions -->
+            <div style="display:flex;justify-content:space-between;align-items:center;padding-top:1.5rem;border-top:1px solid #f0f2f5;margin-top:1rem;">
+                <a href="{% url 'dashboard:about_list' %}" class="btn btn-outline"><i class="fas fa-arrow-left"></i> Quay lại</a>
+                <div style="display:flex;gap:0.5rem;">
+                    <button type="submit" name="action" value="save_draft" class="btn btn-secondary"><i class="fas fa-save"></i> Lưu nháp</button>
+                    <button type="submit" name="action" value="publish" class="btn btn-success"><i class="fas fa-check"></i> Xuất bản</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+<script>
+    var quill = new Quill('#editor', {
+        theme: 'snow',
+        placeholder: 'Nhập nội dung bài viết...',
+        modules: {
+            toolbar: [
+                [{ 'header': [1, 2, 3, false] }],
+                ['bold', 'italic', 'underline', 'strike'],
+                ['blockquote'],
+                [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                [{ 'color': [] }, { 'background': [] }],
+                [{ 'align': [] }],
+                ['link', 'image'],
+                ['clean']
+            ]
+        }
+    });
+    document.getElementById('about-form').addEventListener('submit', function() {
+        document.querySelector('textarea[name="content"]').value = quill.root.innerHTML;
+    });
+    document.querySelector('input[name="title"]').addEventListener('input', function(e) {
+        var slugField = document.querySelector('input[name="slug"]');
+        if (!slugField.value) {
+            slugField.value = e.target.value.toLowerCase().replace(/[^a-z0-9\s-]/g,'').replace(/\s+/g,'-').replace(/-+/g,'-').trim('-');
+        }
+    });
+    document.querySelector('input[name="image"]').addEventListener('change', function(e) {
+        var file = e.target.files[0];
+        if (file) {
+            var reader = new FileReader();
+            reader.onload = function(ev) {
+                var preview = document.querySelector('.image-preview');
+                if (preview) preview.src = ev.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+</script>
+{% endblock %}

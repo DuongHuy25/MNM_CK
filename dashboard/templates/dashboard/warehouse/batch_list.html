@@ -1,0 +1,101 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block content %}
+
+<!-- Header -->
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+    <a href="{% url 'dashboard:warehouse_list' %}" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i> Quay lại</a>
+    <a href="{% url 'dashboard:warehouse_batch_create' %}" class="btn btn-primary"><i class="fas fa-plus"></i> Tạo Phiếu Mới</a>
+</div>
+
+<!-- Filter -->
+<div style="margin-bottom:1.5rem;">
+    <form method="get" style="display:flex;gap:0.5rem;align-items:center;">
+        <select name="batch_type" class="form-control" style="width:auto;">
+            <option value="">Tất cả loại phiếu</option>
+            <option value="import" {% if request.GET.batch_type == 'import' %}selected{% endif %}>📥 Nhập Hàng</option>
+            <option value="export" {% if request.GET.batch_type == 'export' %}selected{% endif %}>📤 Xuất Hàng</option>
+        </select>
+        <button type="submit" class="btn btn-outline"><i class="fas fa-filter"></i> Lọc</button>
+        {% if request.GET.batch_type %}
+        <a href="{% url 'dashboard:warehouse_batch_list' %}" class="btn btn-secondary">Xóa lọc</a>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Table -->
+<div class="card">
+    <div class="card-header">
+        <span><i class="fas fa-file-invoice" style="color:#667eea;margin-right:8px;"></i>Phiếu Nhập/Xuất Kho</span>
+    </div>
+    <div style="overflow-x:auto;">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Số Phiếu</th>
+                    <th>Loại</th>
+                    <th>Kho Hàng</th>
+                    <th>Nhà Cung Cấp</th>
+                    <th>Tổng Tiền</th>
+                    <th>Ngày Tạo</th>
+                    <th style="text-align:center;">Thao Tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for batch in page_obj %}
+                <tr>
+                    <td style="font-weight:600;color:#667eea;">{{ batch.batch_number }}</td>
+                    <td>
+                        {% if batch.batch_type == 'import' %}
+                        <span class="badge badge-available"><i class="fas fa-arrow-down"></i> Nhập</span>
+                        {% else %}
+                        <span class="badge badge-unavailable"><i class="fas fa-arrow-up"></i> Xuất</span>
+                        {% endif %}
+                    </td>
+                    <td style="color:#32325d;">{{ batch.warehouse.store.name }}</td>
+                    <td style="color:#8898aa;">{{ batch.supplier|default:"—" }}</td>
+                    <td style="font-weight:700;color:#667eea;">{{ batch.total_amount|floatformat:0 }}đ</td>
+                    <td style="color:#8898aa;font-size:0.85rem;">{{ batch.created_at|date:"d/m/Y H:i" }}</td>
+                    <td style="text-align:center;">
+                        <a href="{% url 'dashboard:warehouse_batch_detail' batch.id %}" class="btn btn-outline btn-sm btn-icon" title="Chi Tiết"><i class="fas fa-eye"></i></a>
+                        <a href="{% url 'dashboard:warehouse_batch_print' batch.id %}" class="btn btn-outline btn-sm btn-icon" title="In PDF"><i class="fas fa-print"></i></a>
+                        <a href="{% url 'dashboard:warehouse_batch_export_excel' batch.id %}" class="btn btn-outline btn-sm btn-icon" title="Xuất Excel"><i class="fas fa-file-excel"></i></a>
+                        <form method="post" action="{% url 'dashboard:warehouse_batch_delete' batch.id %}" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger btn-sm btn-icon" title="Xóa" onclick="return confirm('Chắc chắn xóa phiếu này?')"><i class="fas fa-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" style="text-align:center;padding:2rem;color:#adb5bd;">
+                        <i class="fas fa-inbox" style="font-size:2rem;display:block;margin-bottom:0.5rem;opacity:0.3;"></i>
+                        Không có phiếu nào
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if page_obj.has_other_pages %}
+    <div style="display:flex;justify-content:center;gap:0.5rem;padding:1rem;border-top:1px solid #f0f2f5;">
+        {% if page_obj.has_previous %}
+        <a href="?page=1" class="btn btn-outline btn-sm">&laquo;</a>
+        <a href="?page={{ page_obj.previous_page_number }}" class="btn btn-outline btn-sm">Trước</a>
+        {% endif %}
+        {% for num in paginator.page_range %}
+            {% if page_obj.number == num %}
+            <span class="btn btn-primary btn-sm">{{ num }}</span>
+            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+            <a href="?page={{ num }}" class="btn btn-outline btn-sm">{{ num }}</a>
+            {% endif %}
+        {% endfor %}
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}" class="btn btn-outline btn-sm">Tiếp</a>
+        <a href="?page={{ paginator.num_pages }}" class="btn btn-outline btn-sm">&raquo;</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

@@ -1,0 +1,119 @@
+{% extends 'dashboard/base.html' %}
+{% load dashboard_tags %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block content %}
+
+<div style="margin-bottom:1.5rem;">
+    <a href="{% url 'dashboard:warehouse_batch_list' %}" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i> Quay lại</a>
+</div>
+
+<!-- Header -->
+<div class="card" style="margin-bottom:1.5rem;">
+    <div style="background:linear-gradient(135deg,{% if batch.batch_type == 'import' %}#2dce89,#a0e9b0{% else %}#f5365c,#ff6b6b{% endif %});padding:1.5rem;border-radius:1rem 1rem 0 0;color:white;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+            <div style="font-size:1.3rem;font-weight:700;">{{ batch.batch_number }}</div>
+            <div style="font-size:0.85rem;opacity:0.8;margin-top:4px;">
+                {{ batch.get_batch_type_display }} · {{ batch.warehouse.store.name }}
+                {% if batch.supplier %} · {{ batch.supplier }}{% endif %}
+            </div>
+        </div>
+        <div>
+            {% if batch.batch_type == 'import' %}
+            <span style="background:rgba(255,255,255,0.2);padding:0.5rem 1rem;border-radius:2rem;font-weight:700;"><i class="fas fa-arrow-down"></i> Nhập Kho</span>
+            {% else %}
+            <span style="background:rgba(255,255,255,0.2);padding:0.5rem 1rem;border-radius:2rem;font-weight:700;"><i class="fas fa-arrow-up"></i> Xuất Kho</span>
+            {% endif %}
+        </div>
+    </div>
+    <div class="card-body" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;">
+        <div>
+            <div style="color:#8898aa;font-size:0.72rem;font-weight:700;text-transform:uppercase;">Ngày Tạo</div>
+            <div style="color:#32325d;font-weight:600;margin-top:0.25rem;">{{ batch.created_at|date:"d/m/Y H:i" }}</div>
+        </div>
+        <div>
+            <div style="color:#8898aa;font-size:0.72rem;font-weight:700;text-transform:uppercase;">Người Tạo</div>
+            <div style="color:#32325d;font-weight:600;margin-top:0.25rem;">{{ batch.created_by.get_full_name|default:batch.created_by.username|default:"—" }}</div>
+        </div>
+        <div>
+            <div style="color:#8898aa;font-size:0.72rem;font-weight:700;text-transform:uppercase;">Tổng Tiền</div>
+            <div style="color:#667eea;font-weight:700;font-size:1.2rem;margin-top:0.25rem;">{{ batch.total_amount|floatformat:0 }}đ</div>
+        </div>
+    </div>
+</div>
+
+<!-- Description -->
+{% if batch.description %}
+<div style="background:#f8f9ff;border-left:4px solid #667eea;border-radius:0 8px 8px 0;padding:1rem;margin-bottom:1.5rem;">
+    <strong style="color:#32325d;">Mô tả:</strong> <span style="color:#525f7f;">{{ batch.description }}</span>
+</div>
+{% endif %}
+
+<!-- Actions -->
+<div style="display:flex;gap:0.75rem;margin-bottom:1.5rem;flex-wrap:wrap;">
+    <a href="{% url 'dashboard:warehouse_batch_add_items' batch.id %}" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Thêm/Xóa Sản Phẩm
+    </a>
+    <a href="{% url 'dashboard:warehouse_batch_print' batch.id %}" class="btn btn-success">
+        <i class="fas fa-print"></i> In Phiếu (PDF)
+    </a>
+    <a href="{% url 'dashboard:warehouse_batch_export_excel' batch.id %}" class="btn btn-outline">
+        <i class="fas fa-file-excel"></i> Xuất Excel
+    </a>
+</div>
+
+<!-- Items Table -->
+<div class="card">
+    <div class="card-header">
+        <span><i class="fas fa-list" style="color:#667eea;margin-right:8px;"></i>Chi Tiết Phiếu</span>
+    </div>
+    <div style="overflow-x:auto;">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>STT</th>
+                    <th>Sản Phẩm</th>
+                    <th style="text-align:center;">Số Lượng</th>
+                    <th style="text-align:center;">Đơn Giá</th>
+                    <th style="text-align:center;">Thành Tiền</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in batch.items.all %}
+                <tr>
+                    <td style="color:#8898aa;">{{ forloop.counter }}</td>
+                    <td style="font-weight:600;color:#32325d;">{{ item.product.name }}</td>
+                    <td style="text-align:center;font-weight:600;">{{ item.quantity }}</td>
+                    <td style="text-align:center;color:#8898aa;">{{ item.unit_price|floatformat:0 }}đ</td>
+                    <td style="text-align:center;font-weight:700;color:#667eea;">{{ item.quantity|multiply:item.unit_price|floatformat:0 }}đ</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" style="text-align:center;padding:2rem;color:#adb5bd;">
+                        <i class="fas fa-inbox" style="font-size:2rem;display:block;margin-bottom:0.5rem;opacity:0.3;"></i>
+                        Phiếu trống — <a href="{% url 'dashboard:warehouse_batch_add_items' batch.id %}" style="color:#667eea;">Thêm sản phẩm</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            {% if batch.items.all %}
+            <tfoot style="background:#f0f2f5;">
+                <tr>
+                    <td colspan="4" style="text-align:right;padding:1rem;font-weight:700;color:#32325d;">Tổng Cộng:</td>
+                    <td style="text-align:center;padding:1rem;font-weight:700;color:#667eea;font-size:1.1rem;">{{ batch.total_amount|floatformat:0 }}đ</td>
+                </tr>
+            </tfoot>
+            {% endif %}
+        </table>
+    </div>
+</div>
+
+<!-- Bottom Actions -->
+<div style="display:flex;gap:0.75rem;margin-top:1.5rem;">
+    <a href="{% url 'dashboard:warehouse_batch_list' %}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Quay Lại</a>
+    <form method="post" action="{% url 'dashboard:warehouse_batch_delete' batch.id %}" style="display:inline;">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger" onclick="return confirm('Chắc chắn xóa phiếu này?')"><i class="fas fa-trash"></i> Xóa Phiếu</button>
+    </form>
+</div>
+
+{% endblock %}

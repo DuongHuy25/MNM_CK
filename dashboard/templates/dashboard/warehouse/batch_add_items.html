@@ -1,0 +1,117 @@
+{% extends 'dashboard/base.html' %}
+{% load dashboard_tags %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block content %}
+
+<div style="margin-bottom:1.5rem;">
+    <a href="{% url 'dashboard:warehouse_batch_detail' batch.id %}" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i> Quay lại</a>
+</div>
+
+<!-- Batch Info -->
+<div style="background:linear-gradient(135deg,{% if batch.batch_type == 'import' %}#2dce89,#a0e9b0{% else %}#f5365c,#ff6b6b{% endif %});padding:1.25rem;border-radius:1rem;color:white;margin-bottom:1.5rem;display:flex;justify-content:space-between;align-items:center;">
+    <div>
+        <div style="font-size:1.1rem;font-weight:700;">{{ batch.batch_number }}</div>
+        <div style="font-size:0.85rem;opacity:0.85;margin-top:4px;">
+            {{ batch.get_batch_type_display }} · {{ batch.warehouse.store.name }}
+            {% if batch.supplier %} · {{ batch.supplier }}{% endif %}
+        </div>
+    </div>
+    <span style="background:rgba(255,255,255,0.2);padding:0.4rem 1rem;border-radius:2rem;font-weight:700;">
+        {% if batch.batch_type == 'import' %}<i class="fas fa-arrow-down"></i> Nhập{% else %}<i class="fas fa-arrow-up"></i> Xuất{% endif %}
+    </span>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 2fr;gap:1.5rem;">
+    <!-- Form Thêm Sản Phẩm -->
+    <div class="card">
+        <div class="card-header">
+            <span><i class="fas fa-plus" style="color:#667eea;margin-right:8px;"></i>Thêm Sản Phẩm</span>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                {% for field in form %}
+                <div style="margin-bottom:1rem;">
+                    <label class="form-label" style="font-weight:700;color:#32325d;margin-bottom:0.5rem;display:block;">
+                        {{ field.label }}{% if field.field.required %}<span style="color:#f5365c;"> *</span>{% endif %}
+                    </label>
+                    {{ field }}
+                    {% if field.errors %}
+                    <div style="color:#f5365c;font-size:0.78rem;margin-top:0.5rem;">
+                        {% for error in field.errors %}<div><i class="fas fa-exclamation-circle"></i> {{ error }}</div>{% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                <button type="submit" class="btn btn-primary" style="width:100%;">
+                    <i class="fas fa-plus"></i> Thêm Sản Phẩm
+                </button>
+                <small style="color:#8898aa;display:block;text-align:center;margin-top:0.5rem;">Lặp lại để thêm nhiều sản phẩm</small>
+            </form>
+        </div>
+    </div>
+
+    <!-- Danh sách Sản phẩm -->
+    <div class="card">
+        <div class="card-header">
+            <span><i class="fas fa-list" style="color:#667eea;margin-right:8px;"></i>Chi Tiết Phiếu</span>
+        </div>
+        <div class="card-body" style="padding:0;">
+            {% if batch.items.all %}
+            <div style="overflow-x:auto;">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Sản Phẩm</th>
+                            <th style="text-align:center;">SL</th>
+                            <th style="text-align:center;">Đơn Giá</th>
+                            <th style="text-align:center;">Thành Tiền</th>
+                            <th style="text-align:center;">Xóa</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in batch.items.all %}
+                        <tr>
+                            <td style="font-weight:600;color:#32325d;">{{ item.product.name }}</td>
+                            <td style="text-align:center;">{{ item.quantity }}</td>
+                            <td style="text-align:center;color:#8898aa;">{{ item.unit_price|floatformat:0 }}đ</td>
+                            <td style="text-align:center;color:#667eea;font-weight:700;">{{ item.quantity|multiply:item.unit_price|floatformat:0 }}đ</td>
+                            <td style="text-align:center;">
+                                <form method="post" action="{% url 'dashboard:warehouse_batch_item_delete' item.id %}" style="display:inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-danger btn-sm btn-icon" onclick="return confirm('Xóa sản phẩm này?')"><i class="fas fa-trash"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot style="background:#f0f2f5;font-weight:700;">
+                        <tr>
+                            <td colspan="3" style="text-align:right;padding:1rem;">Tổng Cộng:</td>
+                            <td style="text-align:center;padding:1rem;color:#667eea;" id="total-amount">{{ batch.total_amount|floatformat:0 }}đ</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <div style="padding:1.5rem;display:flex;gap:0.75rem;border-top:1px solid #f0f2f5;">
+                <a href="{% url 'dashboard:warehouse_batch_detail' batch.id %}" class="btn btn-success" style="flex:1;text-align:center;">
+                    <i class="fas fa-check"></i> Hoàn Thành
+                </a>
+                <a href="{% url 'dashboard:warehouse_batch_list' %}" class="btn btn-secondary" style="flex:1;text-align:center;">
+                    Hủy
+                </a>
+            </div>
+            {% else %}
+            <div style="text-align:center;padding:3rem 1.5rem;color:#adb5bd;">
+                <i class="fas fa-inbox" style="font-size:3rem;margin-bottom:1rem;display:block;opacity:0.3;"></i>
+                <p style="margin:0;font-size:1rem;">Chưa có sản phẩm nào trong phiếu</p>
+                <small>Hãy chọn sản phẩm từ bên trái</small>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}

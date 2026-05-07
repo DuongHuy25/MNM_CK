@@ -1,0 +1,107 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block content %}
+
+<!-- Header -->
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+    <div style="font-size:0.9rem;color:#8898aa;">
+        {% if news %}Chỉnh sửa thông tin tin tức{% else %}Tạo bài viết tin tức mới{% endif %}
+    </div>
+    <a href="{% url 'dashboard:news_list' %}" class="btn btn-outline"><i class="fas fa-arrow-left"></i> Quay lại</a>
+</div>
+
+<!-- Form -->
+<div class="card">
+    <div class="card-header">
+        <span><i class="fas fa-newspaper" style="color:#667eea;margin-right:8px;"></i>{{ page_title }}</span>
+    </div>
+    <div class="card-body">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger" style="margin-bottom:1.5rem;">
+                {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+            </div>
+            {% endif %}
+            <div style="display:grid;grid-template-columns:2fr 1fr;gap:2rem;">
+                <!-- Main Content -->
+                <div>
+                    <div style="margin-bottom:1.5rem;">
+                        <label class="form-label">Tiêu đề <span style="color:#f5365c;">*</span></label>
+                        {{ form.title }}
+                        {% if form.title.errors %}<div style="color:#f5365c;font-size:0.8rem;margin-top:4px;">{{ form.title.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div style="margin-bottom:1.5rem;">
+                        <label class="form-label">Slug <span style="color:#f5365c;">*</span></label>
+                        {{ form.slug }}
+                        {% if form.slug.errors %}<div style="color:#f5365c;font-size:0.8rem;margin-top:4px;">{{ form.slug.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div style="margin-bottom:1.5rem;">
+                        <label class="form-label">Tóm tắt</label>
+                        {{ form.summary }}
+                        <div style="font-size:0.8rem;color:#adb5bd;margin-top:4px;">Hiển thị ở danh sách tin tức</div>
+                        {% if form.summary.errors %}<div style="color:#f5365c;font-size:0.8rem;margin-top:4px;">{{ form.summary.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div style="margin-bottom:1.5rem;">
+                        <label class="form-label">Nội dung <span style="color:#f5365c;">*</span></label>
+                        {{ form.content }}
+                        {% if form.content.errors %}<div style="color:#f5365c;font-size:0.8rem;margin-top:4px;">{{ form.content.errors.0 }}</div>{% endif %}
+                    </div>
+                </div>
+                <!-- Sidebar -->
+                <div>
+                    <div style="margin-bottom:1.5rem;">
+                        <label class="form-label">Hình ảnh</label>
+                        {% if news and news.image %}
+                        <div style="margin-bottom:0.75rem;"><img src="{{ news.image.url }}" alt="Image" style="width:100%;height:120px;object-fit:cover;border-radius:8px;"></div>
+                        {% endif %}
+                        {{ form.image }}
+                        {% if form.image.errors %}<div style="color:#f5365c;font-size:0.8rem;margin-top:4px;">{{ form.image.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div style="margin-bottom:1.5rem;">
+                        <label class="form-label">Danh mục <span style="color:#f5365c;">*</span></label>
+                        {{ form.category }}
+                        {% if form.category.errors %}<div style="color:#f5365c;font-size:0.8rem;margin-top:4px;">{{ form.category.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div style="margin-bottom:1.5rem;">
+                        <label class="form-label">Trạng thái <span style="color:#f5365c;">*</span></label>
+                        {{ form.status }}
+                        {% if form.status.errors %}<div style="color:#f5365c;font-size:0.8rem;margin-top:4px;">{{ form.status.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div style="margin-bottom:1.5rem;">
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.9rem;color:#525f7f;">
+                            {{ form.is_featured }} Tin nổi bật
+                        </label>
+                    </div>
+                    <div style="margin-bottom:1.5rem;">
+                        <label class="form-label">Ngày xuất bản</label>
+                        {{ form.published_at }}
+                        {% if form.published_at.errors %}<div style="color:#f5365c;font-size:0.8rem;margin-top:4px;">{{ form.published_at.errors.0 }}</div>{% endif %}
+                    </div>
+                    <!-- SEO -->
+                    <div style="border-top:1px solid #f0f2f5;padding-top:1.5rem;">
+                        <div style="font-weight:600;color:#32325d;margin-bottom:1rem;">SEO Meta</div>
+                        <div style="margin-bottom:1rem;">
+                            <label class="form-label">Meta Description</label>
+                            {{ form.meta_description }}
+                            {% if form.meta_description.errors %}<div style="color:#f5365c;font-size:0.8rem;margin-top:4px;">{{ form.meta_description.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div>
+                            <label class="form-label">Meta Keywords</label>
+                            {{ form.meta_keywords }}
+                            {% if form.meta_keywords.errors %}<div style="color:#f5365c;font-size:0.8rem;margin-top:4px;">{{ form.meta_keywords.errors.0 }}</div>{% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Actions -->
+            <div style="display:flex;justify-content:flex-end;gap:0.5rem;padding-top:1.5rem;border-top:1px solid #f0f2f5;margin-top:1rem;">
+                <a href="{% url 'dashboard:news_list' %}" class="btn btn-secondary">Hủy</a>
+                <button type="submit" class="btn btn-primary">
+                    {% if news %}Cập nhật{% else %}Tạo tin tức{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

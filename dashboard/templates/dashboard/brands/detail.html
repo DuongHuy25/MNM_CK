@@ -1,0 +1,122 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block content %}
+
+<div style="margin-bottom:1.5rem;">
+    <a href="{% url 'dashboard:brands_list' %}" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i> Quay lại</a>
+</div>
+
+<!-- Brand Header -->
+<div class="card" style="margin-bottom:1.5rem;">
+    <div style="background:linear-gradient(135deg,#667eea,#764ba2);padding:1.5rem;border-radius:1rem 1rem 0 0;color:white;display:flex;justify-content:space-between;align-items:center;">
+        <div style="display:flex;align-items:center;gap:1rem;">
+            <div style="width:56px;height:56px;border-radius:14px;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:1.5rem;">
+                <i class="fas fa-tag"></i>
+            </div>
+            <div>
+                <div style="font-size:1.3rem;font-weight:700;">{{ brand.name }}</div>
+                <div style="font-size:0.85rem;opacity:0.8;margin-top:4px;">
+                    {% if brand.is_active %}Đang hoạt động{% else %}Tạm dừng{% endif %} · {{ page_obj.paginator.count }} sản phẩm
+                </div>
+            </div>
+        </div>
+        <div style="display:flex;gap:0.5rem;">
+            <a href="{% url 'dashboard:brands_edit' brand.pk %}" class="btn btn-outline btn-sm" style="background:rgba(255,255,255,0.2);color:white;border-color:rgba(255,255,255,0.3);">
+                <i class="fas fa-edit"></i> Sửa
+            </a>
+        </div>
+    </div>
+    {% if brand.description %}
+    <div class="card-body">
+        <div style="color:#8898aa;font-size:0.72rem;font-weight:700;text-transform:uppercase;margin-bottom:0.5rem;">Mô Tả</div>
+        <p style="color:#525f7f;line-height:1.7;font-size:0.9rem;margin:0;">{{ brand.description }}</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Products Table -->
+<div class="card">
+    <div class="card-header">
+        <span><i class="fas fa-box" style="color:#667eea;margin-right:8px;"></i>Sản Phẩm Thuộc Nhãn Hiệu</span>
+    </div>
+    <div style="overflow-x:auto;">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Hình</th>
+                    <th>Tên Sản Phẩm</th>
+                    <th>Danh Mục</th>
+                    <th>Giá Bán</th>
+                    <th>Tồn Kho</th>
+                    <th>Trạng Thái</th>
+                    <th style="text-align:center;">Thao Tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for product in page_obj %}
+                <tr>
+                    <td>
+                        {% if product.image %}
+                        <img src="{{ product.image.url }}" style="width:44px;height:44px;border-radius:10px;object-fit:cover;" alt="{{ product.name }}">
+                        {% else %}
+                        <div style="width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,#f6d365,#fda085);display:flex;align-items:center;justify-content:center;color:white;">
+                            <i class="fas fa-bowl-food"></i>
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'dashboard:products_detail' product.pk %}" style="font-weight:700;color:#32325d;text-decoration:none;">{{ product.name }}</a>
+                        <div style="font-size:0.75rem;color:#adb5bd;margin-top:2px;">{{ product.description|truncatechars:45 }}</div>
+                    </td>
+                    <td><span class="badge badge-category">{{ product.category.name }}</span></td>
+                    <td style="font-weight:700;color:#667eea;font-size:0.95rem;">{{ product.sale_price|floatformat:0 }}đ</td>
+                    <td style="text-align:center;">
+                        {% if product.stock <= product.min_stock %}
+                        <span style="color:#f5365c;font-weight:700;">{{ product.stock }}</span>
+                        {% else %}
+                        <span style="color:#2dce89;font-weight:600;">{{ product.stock }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if product.is_active %}
+                        <span class="badge badge-available">✓ Có sẵn</span>
+                        {% else %}
+                        <span class="badge badge-unavailable">✗ Tạm dừng</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align:center;">
+                        <a href="{% url 'dashboard:products_detail' product.pk %}" class="btn btn-outline btn-sm btn-icon" title="Xem"><i class="fas fa-eye"></i></a>
+                        <a href="{% url 'dashboard:products_edit' product.pk %}" class="btn btn-primary btn-sm btn-icon" title="Sửa" style="margin:0 4px;"><i class="fas fa-edit"></i></a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" style="text-align:center;padding:3rem;color:#adb5bd;">
+                        <i class="fas fa-box-open" style="font-size:2.5rem;display:block;margin-bottom:1rem;opacity:0.3;"></i>
+                        Chưa có sản phẩm nào thuộc nhãn hiệu này<br>
+                        <a href="{% url 'dashboard:products_create' %}" style="color:#667eea;font-weight:600;">Thêm sản phẩm</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if page_obj.has_other_pages %}
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:1rem 1.5rem;border-top:1px solid #f0f2f5;">
+        <span style="font-size:0.82rem;color:#8898aa;">Trang {{ page_obj.number }} / {{ paginator.num_pages }}</span>
+        <div style="display:flex;gap:6px;">
+            {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}" class="page-link">‹</a>
+            {% endif %}
+            {% for i in paginator.page_range %}
+            <a href="?page={{ i }}" class="page-link {% if i == page_obj.number %}active{% endif %}">{{ i }}</a>
+            {% endfor %}
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}" class="page-link">›</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

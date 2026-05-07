@@ -1,0 +1,91 @@
+{% extends "dashboard/base.html" %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block content %}
+
+<!-- Header -->
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+    <div></div>
+    <div style="display:flex;gap:0.5rem;">
+        <a href="{% url 'dashboard:about_edit' article.pk %}" class="btn btn-primary"><i class="fas fa-edit"></i> Chỉnh sửa</a>
+        <a href="{% url 'dashboard:about_delete' article.pk %}" class="btn btn-danger"><i class="fas fa-trash"></i> Xóa</a>
+        <a href="{% url 'dashboard:about_list' %}" class="btn btn-outline"><i class="fas fa-arrow-left"></i> Quay lại</a>
+    </div>
+</div>
+
+<!-- Article Content -->
+<div class="card" style="margin-bottom:1.5rem;">
+    {% if article.image %}
+    <div style="width:100%;height:200px;overflow:hidden;border-radius:1rem 1rem 0 0;">
+        <img src="{{ article.image.url }}" alt="{{ article.title }}" style="width:100%;height:100%;object-fit:cover;">
+    </div>
+    {% endif %}
+    <div class="card-body">
+        <!-- Title & Meta -->
+        <div style="font-size:1.5rem;font-weight:700;color:#32325d;margin-bottom:1rem;">{{ article.title }}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:1rem;font-size:0.85rem;color:#8898aa;margin-bottom:1rem;">
+            <span><i class="fas fa-user" style="margin-right:6px;"></i>{{ article.author.username|default:"Không có tác giả" }}</span>
+            <span><i class="fas fa-calendar" style="margin-right:6px;"></i>{{ article.created_at|date:"d/m/Y H:i" }}</span>
+            <span><i class="fas fa-clock" style="margin-right:6px;"></i>Cập nhật: {{ article.updated_at|date:"d/m/Y H:i" }}</span>
+            <span><i class="fas fa-sort-numeric-up" style="margin-right:6px;"></i>Thứ tự: {{ article.order }}</span>
+        </div>
+
+        <!-- Status badges -->
+        <div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:1rem;">
+            {% if article.status == 'published' %}
+            <span class="badge badge-available"><i class="fas fa-check-circle"></i> Đã xuất bản</span>
+            {% elif article.status == 'draft' %}
+            <span class="badge badge-pending"><i class="fas fa-edit"></i> Bản nháp</span>
+            {% else %}
+            <span class="badge" style="background:#e9ecef;color:#525f7f;">Lưu trữ</span>
+            {% endif %}
+            {% if article.is_active %}
+            <span class="badge badge-available"><i class="fas fa-check-circle"></i> Kích hoạt</span>
+            {% else %}
+            <span class="badge badge-unavailable"><i class="fas fa-times-circle"></i> Vô hiệu</span>
+            {% endif %}
+        </div>
+
+        <!-- Summary -->
+        {% if article.summary %}
+        <div style="background:#f8f9fe;border-left:4px solid #667eea;padding:1rem;border-radius:0 8px 8px 0;margin-bottom:1.5rem;font-style:italic;color:#525f7f;">
+            {{ article.summary }}
+        </div>
+        {% endif %}
+
+        <!-- Content -->
+        {% if article.content %}
+        <div style="margin-bottom:1.5rem;">
+            <div style="font-weight:600;color:#32325d;margin-bottom:0.75rem;">Nội dung bài viết:</div>
+            <div style="background:#f8f9fe;border-radius:8px;padding:1.5rem;color:#525f7f;line-height:1.8;">
+                {{ article.content|safe }}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- External Link -->
+        {% if article.external_link %}
+        <div style="margin-bottom:1rem;">
+            <div style="font-weight:600;color:#32325d;margin-bottom:0.5rem;">Liên kết gốc:</div>
+            <a href="{{ article.external_link }}" target="_blank" rel="noopener noreferrer" style="color:#667eea;text-decoration:underline;">
+                <i class="fas fa-external-link-alt" style="margin-right:6px;"></i>{{ article.external_link }}
+            </a>
+        </div>
+        {% endif %}
+
+        <!-- Slug -->
+        <div>
+            <div style="font-weight:600;color:#32325d;margin-bottom:0.5rem;">Slug (URL):</div>
+            <div style="background:#f0f2f5;border-radius:6px;padding:0.5rem 0.75rem;font-family:monospace;font-size:0.85rem;color:#8898aa;">
+                {{ article.slug }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Actions -->
+<div style="display:flex;gap:0.5rem;">
+    <a href="{% url 'dashboard:about_edit' article.pk %}" class="btn btn-primary"><i class="fas fa-edit"></i> Chỉnh sửa</a>
+    <a href="{% url 'dashboard:about_delete' article.pk %}" class="btn btn-danger"><i class="fas fa-trash"></i> Xóa</a>
+    <a href="{% url 'dashboard:about_list' %}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Quay lại danh sách</a>
+</div>
+{% endblock %}

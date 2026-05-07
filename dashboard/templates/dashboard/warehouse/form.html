@@ -1,0 +1,121 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}{% if is_create %}Thêm{% else %}Chỉnh Sửa{% endif %}{% endblock %}
+{% block content %}
+
+<div style="margin-bottom:1.5rem;">
+    <a href="{% url 'dashboard:warehouse_list' %}" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i> Quay lại</a>
+</div>
+
+{% if is_item and is_edit and product %}
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
+{% endif %}
+
+<div class="card">
+    <div class="card-header">
+        <span>
+            <i class="fas fa-{% if is_create %}plus{% else %}edit{% endif %}" style="color:#667eea;margin-right:8px;"></i>
+            {{ page_title }}
+        </span>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem;">
+            {% for field in form %}
+                <div style="{% if field.name == 'info' or field.name == 'note' or field.name == 'description' %}grid-column:span 2;{% endif %}">
+                    <label class="form-label" style="font-weight:700;color:#32325d;margin-bottom:8px;display:block;">
+                        {{ field.label }}{% if field.field.required %}<span style="color:#f5365c;"> *</span>{% endif %}
+                    </label>
+
+                    {% if field.name == 'info' or field.name == 'note' %}
+                        <textarea name="{{ field.html_name }}" id="id_{{ field.html_name }}" class="form-control" rows="5" {% if field.field.required %}required{% endif %} placeholder="{{ field.field.widget.attrs.placeholder|default:'' }}">{{ field.value|default:'' }}</textarea>
+                    {% else %}
+                        {{ field }}
+                    {% endif %}
+
+                    {% if field.errors %}
+                        <div style="color:#f5365c;font-size:0.78rem;margin-top:0.5rem;">
+                            {% for error in field.errors %}
+                                <div><i class="fas fa-exclamation-circle"></i> {{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+            </div>
+
+            <div style="display:flex;gap:0.75rem;margin-top:2rem;padding-top:1.5rem;border-top:1px solid #f0f2f5;">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-{% if is_create %}plus{% else %}save{% endif %}"></i>
+                    {% if is_create %}Thêm{% else %}Lưu Thay Đổi{% endif %}
+                </button>
+                <a href="{% url 'dashboard:warehouse_list' %}" class="btn btn-secondary">Hủy</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if is_item and is_edit and product %}
+<!-- Product Info Panel -->
+<div class="card">
+    <div class="card-header">
+        <span><i class="fas fa-box" style="color:#2dce89;margin-right:8px;"></i>Thông Tin Sản Phẩm</span>
+    </div>
+    <div class="card-body">
+        <div style="margin-bottom:1rem;">
+            <label class="form-label" style="font-weight:700;color:#32325d;margin-bottom:8px;display:block;">
+                Tên sản phẩm <span style="color:#f5365c;"> *</span>
+            </label>
+            <input type="text" name="product_name" value="{{ product.name }}" class="form-control" required>
+        </div>
+
+        {% if product.brand %}
+        <div style="margin-bottom:1rem;">
+            <label class="form-label" style="font-weight:700;color:#32325d;margin-bottom:8px;display:block;">Nhãn hiệu</label>
+            <div style="padding:0.6rem 1rem;background:#f8f9ff;border-radius:6px;color:#667eea;font-weight:600;">
+                <a href="{% url 'dashboard:brands_detail' product.brand.pk %}" style="color:#667eea;text-decoration:none;">{{ product.brand.name }}</a>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if product.category %}
+        <div style="margin-bottom:1rem;">
+            <label class="form-label" style="font-weight:700;color:#32325d;margin-bottom:8px;display:block;">Danh mục</label>
+            <div style="padding:0.6rem 1rem;background:#f8f9ff;border-radius:6px;">
+                <span class="badge badge-category">{{ product.category.name }}</span>
+            </div>
+        </div>
+        {% endif %}
+
+        <div style="margin-bottom:1rem;">
+            <label class="form-label" style="font-weight:700;color:#32325d;margin-bottom:8px;display:block;">
+                Giá vốn
+            </label>
+            <input type="number" name="product_cost_price" value="{{ product.cost_price }}" class="form-control" step="0.01">
+        </div>
+
+        <div style="margin-bottom:1rem;">
+            <label class="form-label" style="font-weight:700;color:#32325d;margin-bottom:8px;display:block;">
+                Giá bán
+            </label>
+            <input type="number" name="product_sale_price" value="{{ product.sale_price }}" class="form-control" step="0.01">
+        </div>
+
+        <div style="margin-bottom:1rem;">
+            <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
+                <input type="checkbox" name="product_is_active" {% if product.is_active %}checked{% endif %} style="width:18px;height:18px;">
+                <span style="font-weight:700;color:#32325d;">Sản phẩm đang hoạt động</span>
+            </label>
+        </div>
+
+        <div style="border-top:1px solid #f0f2f5;padding-top:1rem;margin-top:1rem;">
+            <a href="{% url 'dashboard:products_edit' product.pk %}" class="btn btn-outline btn-sm" style="width:100%;text-align:center;">
+                <i class="fas fa-external-link-alt"></i> Chỉnh sửa đầy đủ sản phẩm
+            </a>
+        </div>
+    </div>
+</div>
+</div>
+{% endif %}
+
+{% endblock %}

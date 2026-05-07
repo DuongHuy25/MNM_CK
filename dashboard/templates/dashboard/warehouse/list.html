@@ -1,0 +1,202 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}Quản Lý Kho{% endblock %}
+{% block content %}
+
+<!-- Stats -->
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1.25rem;margin-bottom:1.5rem;">
+    <div class="stat-card grad-purple">
+        <div class="stat-label">Tổng Kho</div>
+        <div class="stat-value">{{ stats.total_warehouses }}</div>
+        <i class="fas fa-warehouse icon-bg"></i>
+    </div>
+    <div class="stat-card grad-green">
+        <div class="stat-label">Sản Phẩm Trong Kho</div>
+        <div class="stat-value">{{ stats.total_items }}</div>
+        <i class="fas fa-boxes icon-bg"></i>
+    </div>
+    <div class="stat-card grad-orange">
+        <div class="stat-label">Sắp Hết Hàng</div>
+        <div class="stat-value">{{ stats.low_stock_count }}</div>
+        <i class="fas fa-exclamation-triangle icon-bg"></i>
+    </div>
+    <div class="stat-card grad-blue">
+        <div class="stat-label">Tổng Giá Trị</div>
+        <div class="stat-value">{{ stats.total_value|floatformat:0 }}đ</div>
+        <i class="fas fa-coins icon-bg"></i>
+    </div>
+</div>
+
+<!-- Low Stock Alert -->
+{% if low_stock_items %}
+<div style="background:#fff3cd;border-radius:1rem;padding:1.25rem;margin-bottom:1.5rem;border-left:4px solid #ff9800;display:flex;align-items:flex-start;gap:1rem;">
+    <i class="fas fa-exclamation-triangle" style="font-size:1.5rem;color:#ff6f00;flex-shrink:0;margin-top:0.2rem;"></i>
+    <div>
+        <div style="font-weight:700;color:#333;font-size:1rem;margin-bottom:0.5rem;">Cảnh báo tồn kho thấp!</div>
+        <div style="display:flex;flex-wrap:wrap;gap:0.5rem;">
+            {% for item in low_stock_items %}
+            <span class="badge badge-unavailable" style="font-size:0.8rem;">{{ item.product.name }}: {{ item.quantity }}/{{ item.min_quantity }} {{ item.unit }}</span>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Action Buttons -->
+<div style="display:flex;gap:0.75rem;margin-bottom:1.5rem;flex-wrap:wrap;">
+    <a href="{% url 'dashboard:warehouse_batch_create' %}" class="btn btn-success">
+        <i class="fas fa-plus"></i> Tạo Phiếu Nhập/Xuất Kho
+    </a>
+    <a href="{% url 'dashboard:warehouse_batch_list' %}" class="btn btn-primary">
+        <i class="fas fa-list"></i> Danh Sách Phiếu
+    </a>
+    <a href="{% url 'dashboard:warehouse_item_create' %}" class="btn btn-outline">
+        <i class="fas fa-plus"></i> Thêm Sản Phẩm Vào Kho
+    </a>
+    <a href="{% url 'dashboard:warehouse_create' %}" class="btn btn-outline">
+        <i class="fas fa-warehouse"></i> Thêm Kho
+    </a>
+</div>
+
+<!-- Recent Batches -->
+<div class="card" style="margin-bottom:1.5rem;">
+    <div class="card-header">
+        <span><i class="fas fa-file-invoice" style="color:#667eea;margin-right:8px;"></i>Phiếu Gần Đây</span>
+        <a href="{% url 'dashboard:warehouse_batch_list' %}" style="font-size:0.82rem;color:#667eea;font-weight:600;text-decoration:none;">Xem tất cả →</a>
+    </div>
+    <div style="overflow-x:auto;">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Số Phiếu</th>
+                    <th>Loại</th>
+                    <th>Kho</th>
+                    <th>Nhà Cung Cấp</th>
+                    <th>Tổng Tiền</th>
+                    <th>Ngày Tạo</th>
+                    <th style="text-align:center;">Thao Tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for batch in recent_batches %}
+                <tr>
+                    <td style="font-weight:600;color:#667eea;">{{ batch.batch_number }}</td>
+                    <td>
+                        {% if batch.batch_type == 'import' %}
+                        <span class="badge badge-available"><i class="fas fa-arrow-down"></i> Nhập</span>
+                        {% else %}
+                        <span class="badge badge-unavailable"><i class="fas fa-arrow-up"></i> Xuất</span>
+                        {% endif %}
+                    </td>
+                    <td style="color:#32325d;">{{ batch.warehouse.store.name }}</td>
+                    <td style="color:#8898aa;">{{ batch.supplier|default:"—" }}</td>
+                    <td style="font-weight:700;color:#667eea;">{{ batch.total_amount|floatformat:0 }}đ</td>
+                    <td style="color:#8898aa;font-size:0.85rem;">{{ batch.created_at|date:"d/m/Y H:i" }}</td>
+                    <td style="text-align:center;">
+                        <a href="{% url 'dashboard:warehouse_batch_detail' batch.id %}" class="btn btn-outline btn-sm btn-icon" title="Xem"><i class="fas fa-eye"></i></a>
+                        <a href="{% url 'dashboard:warehouse_batch_export_excel' batch.id %}" class="btn btn-outline btn-sm btn-icon" title="Xuất Excel"><i class="fas fa-file-excel"></i></a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" style="text-align:center;padding:2rem;color:#adb5bd;">
+                        <i class="fas fa-inbox" style="font-size:2rem;display:block;margin-bottom:0.5rem;opacity:0.3;"></i>
+                        Chưa có phiếu nào
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Warehouse Items -->
+<div class="card">
+    <div class="card-header">
+        <span><i class="fas fa-boxes" style="color:#667eea;margin-right:8px;"></i>Sản Phẩm Trong Kho</span>
+        <a href="{% url 'dashboard:warehouse_item_create' %}" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> Thêm</a>
+    </div>
+    <div style="overflow-x:auto;">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Sản Phẩm</th>
+                    <th>Nhãn Hiệu</th>
+                    <th>Kho</th>
+                    <th>Số Lượng</th>
+                    <th>Giá Nhập</th>
+                    <th>Giá Bán</th>
+                    <th>Trạng Thái</th>
+                    <th style="text-align:center;">Thao Tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in page_obj %}
+                <tr>
+                    <td>
+                        <a href="{% url 'dashboard:products_detail' item.product.pk %}" style="font-weight:600;color:#32325d;text-decoration:none;">{{ item.product.name }}</a>
+                        {% if item.product.category %}
+                        <div style="font-size:0.72rem;margin-top:2px;"><span class="badge badge-category">{{ item.product.category.name }}</span></div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if item.product.brand %}
+                        <a href="{% url 'dashboard:brands_detail' item.product.brand.pk %}" style="color:#667eea;text-decoration:none;font-weight:600;font-size:0.85rem;">{{ item.product.brand.name }}</a>
+                        {% else %}
+                        <span style="color:#adb5bd;">—</span>
+                        {% endif %}
+                    </td>
+                    <td style="color:#8898aa;font-size:0.85rem;">{{ item.warehouse.store.name }}</td>
+                    <td style="font-weight:700;color:#667eea;">{{ item.quantity }} {{ item.unit }}</td>
+                    <td style="color:#8898aa;">{{ item.unit_price|floatformat:0 }}đ</td>
+                    <td style="color:#2dce89;font-weight:600;">{{ item.product.sale_price|floatformat:0 }}đ</td>
+                    <td>
+                        {% if item.quantity == 0 %}
+                        <span class="badge badge-unavailable"><i class="fas fa-times-circle"></i> Hết hàng</span>
+                        {% elif item.quantity <= item.min_quantity %}
+                        <span class="badge badge-pending"><i class="fas fa-exclamation-circle"></i> Sắp hết</span>
+                        {% else %}
+                        <span class="badge badge-available"><i class="fas fa-check-circle"></i> Còn hàng</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align:center;">
+                        <a href="{% url 'dashboard:warehouse_item_edit' item.pk %}" class="btn btn-outline btn-sm btn-icon" title="Sửa"><i class="fas fa-edit"></i></a>
+                        <a href="{% url 'dashboard:products_edit' item.product.pk %}" class="btn btn-primary btn-sm btn-icon" title="Sửa sản phẩm" style="margin:0 2px;"><i class="fas fa-box"></i></a>
+                        <form method="post" action="{% url 'dashboard:warehouse_item_delete' item.pk %}" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger btn-sm btn-icon" title="Xóa" onclick="return confirm('Xóa sản phẩm này?')"><i class="fas fa-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" style="text-align:center;padding:2rem;color:#adb5bd;">
+                        <i class="fas fa-boxes" style="font-size:2rem;display:block;margin-bottom:0.5rem;opacity:0.3;"></i>
+                        Chưa có sản phẩm trong kho
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if page_obj.has_other_pages %}
+    <div style="display:flex;justify-content:center;gap:0.5rem;padding:1rem;border-top:1px solid #f0f2f5;">
+        {% if page_obj.has_previous %}
+        <a href="?page=1" class="btn btn-outline btn-sm">&laquo;</a>
+        <a href="?page={{ page_obj.previous_page_number }}" class="btn btn-outline btn-sm">Trước</a>
+        {% endif %}
+        {% for num in paginator.page_range %}
+            {% if page_obj.number == num %}
+            <span class="btn btn-primary btn-sm">{{ num }}</span>
+            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+            <a href="?page={{ num }}" class="btn btn-outline btn-sm">{{ num }}</a>
+            {% endif %}
+        {% endfor %}
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}" class="btn btn-outline btn-sm">Tiếp</a>
+        <a href="?page={{ paginator.num_pages }}" class="btn btn-outline btn-sm">&raquo;</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}
