@@ -99,6 +99,79 @@ def cart_update(request, product_id):
 
 # ==================== CHECKOUT ====================
 
+def _geocode_address(address):
+    """Geocode address using Nominatim, return (lat, lng) or None."""
+    import urllib.request, json
+    try:
+        url = f"https://nominatim.openstreetmap.org/search?format=json&q={urllib.parse.quote(address)}&countrycodes=vn&limit=1"
+        req = urllib.request.Request(url, headers={'User-Agent': 'ZenMart/1.0'})
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json.loads(resp.read().decode())
+        if data and data[0]:
+            return float(data[0]['lat']), float(data[0]['lon'])
+    except Exception:
+        pass
+    return None
+
+
+def _find_nearest_store(lat, lng):
+    """Find the nearest active store to given coordinates."""
+    from dashboard.utils import calculate_distance
+    stores = Store.objects.filter(is_active=True)
+    best, min_dist = None, float('inf')
+    for s in stores:
+        d = calculate_distance(lat, lng, s.latitude, s.longitude)
+        if d < min_dist:
+            min_dist, best = d, s
+    return best, min_dist
+
+
+def _update_warehouse_inventory(order, store):
+    """Create export batch and reduce warehouse items for an order."""
+    from dashboard.models import Warehouse, WarehouseBatch, WarehouseBatchItem, WarehouseItem, WarehouseTransaction
+    try:
+        warehouse = Warehouse.objects.get(store=store)
+    except Warehouse.DoesNotExist:
+        return
+
+    batch_number = f"XUAT-{order.order_id}"
+    batch = WarehouseBatch.objects.create(
+        warehouse=warehouse,
+        batch_type='export',
+        batch_number=batch_number,
+        supplier=order.full_name or 'Khách online',
+        description=f'Xuất kho cho đơn hàng {order.order_id}',
+        total_amount=order.total_amount,
+    )
+
+    for item in order.items.all():
+        # Create batch item
+        WarehouseBatchItem.objects.create(
+            batch=batch,
+            product=item.product,
+            quantity=item.quantity,
+            unit_price=item.unit_price,
+        )
+        # Reduce warehouse item quantity
+        try:
+            wi = WarehouseItem.objects.get(warehouse=warehouse, product=item.product)
+            wi.quantity = max(0, wi.quantity - item.quantity)
+            wi.save()  # save() auto-calls sync_product_stock
+            # Create transaction record
+            WarehouseTransaction.objects.create(
+                warehouse_item=wi,
+                transaction_type='export',
+                quantity=item.quantity,
+                unit_price=item.unit_price,
+                note=f'Xuất cho đơn hàng {order.order_id}',
+            )
+        except WarehouseItem.DoesNotExist:
+            pass
+
+    batch.calculate_total()
+    batch.save()
+
+
 def checkout(request):
     cart = Cart(request)
     if len(cart) == 0:
@@ -119,7 +192,25 @@ def checkout(request):
             )
             if request.user.is_authenticated:
                 order_data['user'] = request.user
+
+            # Geocode shipping address
+            geo = _geocode_address(form.cleaned_data['shipping_address'])
+            if geo:
+                order_data['lat'], order_data['lng'] = geo
+            elif request.user.is_authenticated and request.user.lat and request.user.lng:
+                # Fallback: use saved location from user profile
+                order_data['lat'] = request.user.lat
+                order_data['lng'] = request.user.lng
+
             order = Order.objects.create(**order_data)
+
+            # Find nearest store and assign to order
+            nearest_store, dist = None, None
+            if order.lat and order.lng:
+                nearest_store, dist = _find_nearest_store(order.lat, order.lng)
+                if nearest_store:
+                    order.store = nearest_store
+                    order.save(update_fields=['store'])
 
             # Create order items
             for item in cart:
@@ -132,6 +223,10 @@ def checkout(request):
                 )
                 # Reduce product stock
                 item['product'].reduce_stock(item['quantity'])
+
+            # Update warehouse inventory if store assigned
+            if nearest_store:
+                _update_warehouse_inventory(order, nearest_store)
 
             # Create payment record
             payment_method = form.cleaned_data['payment_method']
@@ -178,7 +273,29 @@ def checkout(request):
 
 def order_success(request, order_id):
     order = get_object_or_404(Order, order_id=order_id)
-    return render(request, 'eshop/order_success.html', {'order': order})
+    nearest_store = None
+    distance_km = None
+    est_minutes = None
+    if order.store:
+        nearest_store = order.store
+        if order.lat and order.lng:
+            from dashboard.utils import calculate_distance
+            distance_km = calculate_distance(order.lat, order.lng, nearest_store.latitude, nearest_store.longitude)
+    elif order.lat and order.lng:
+        nearest_store, distance_km = _find_nearest_store(order.lat, order.lng)
+    if distance_km:
+        # Estimate: ~30km/h average delivery speed in city
+        est_minutes = int(distance_km / 30 * 60) + 10  # +10 min prep time
+        if est_minutes < 15:
+            est_minutes = 15
+    stores = Store.objects.filter(is_active=True)
+    return render(request, 'eshop/order_success.html', {
+        'order': order,
+        'nearest_store': nearest_store,
+        'distance_km': distance_km,
+        'est_minutes': est_minutes,
+        'stores': stores,
+    })
 
 
 def order_tracking(request):
@@ -259,6 +376,8 @@ def profile_view(request):
             user.last_name = parts[1] if len(parts) > 1 else ''
             user.phone = form.cleaned_data.get('phone', '')
             user.address = form.cleaned_data.get('address', '')
+            user.lat = form.cleaned_data.get('lat') or None
+            user.lng = form.cleaned_data.get('lng') or None
             if form.cleaned_data.get('avatar'):
                 user.avatar = form.cleaned_data['avatar']
             user.save()
@@ -269,6 +388,8 @@ def profile_view(request):
             'full_name': f'{request.user.first_name} {request.user.last_name}'.strip(),
             'phone': request.user.phone,
             'address': request.user.address,
+            'lat': request.user.lat,
+            'lng': request.user.lng,
         })
 
     return render(request, 'eshop/auth/profile.html', {

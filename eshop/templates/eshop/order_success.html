@@ -1,95 +1,278 @@
 {% extends 'eshop/base.html' %}
 {% block title %}Đặt Hàng Thành Công{% endblock %}
 {% block content %}
-<div class="container">
-    <div style="text-align:center;padding:4rem 2rem;max-width:600px;margin:0 auto;">
-        <div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#2dce89,#38f9d7);display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem;">
-            <i class="fas fa-check" style="font-size:2.5rem;color:white;"></i>
-        </div>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+.os-wrap{max-width:900px;margin:0 auto;padding:2rem 1rem}
+.os-success{text-align:center;margin-bottom:2rem}
+.os-success-icon{width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#2dce89,#38f9d7);display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem}
+.os-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem}
+@media(max-width:768px){.os-grid{grid-template-columns:1fr}}
+.os-card{background:white;border-radius:16px;padding:1.5rem;box-shadow:0 2px 15px rgba(0,0,0,.06)}
+.os-card h3{font-size:1.1rem;font-weight:800;margin-bottom:1rem;display:flex;align-items:center;gap:8px}
+.os-card h3 i{color:#667eea}
+.os-row{display:flex;justify-content:space-between;padding:8px 0;font-size:.9rem;color:#636e72;border-bottom:1px solid #f0f2f5}
+.os-row:last-child{border-bottom:none}
+.os-row span:last-child{font-weight:600;color:#2d3436;text-align:right;max-width:60%}
+.os-row.total{border-top:2px solid #f0f2f5;margin-top:8px;padding-top:12px;font-size:1.2rem;font-weight:800;color:#2d3436}
+.os-row.total span:last-child{color:#667eea}
+/* Timeline */
+.os-timeline{position:relative;padding-left:30px}
+.os-timeline::before{content:'';position:absolute;left:10px;top:0;bottom:0;width:3px;background:#e8ecf1;border-radius:3px}
+.os-step{position:relative;padding-bottom:1.5rem}
+.os-step:last-child{padding-bottom:0}
+.os-step-dot{position:absolute;left:-25px;top:2px;width:17px;height:17px;border-radius:50%;background:#e8ecf1;border:3px solid white;box-shadow:0 0 0 2px #e8ecf1;z-index:1}
+.os-step.done .os-step-dot{background:#2dce89;box-shadow:0 0 0 2px #2dce89}
+.os-step.current .os-step-dot{background:#667eea;box-shadow:0 0 0 2px #667eea;animation:pulse 1.5s infinite}
+.os-step-title{font-weight:700;font-size:.9rem;color:#2d3436}
+.os-step.current .os-step-title{color:#667eea}
+.os-step-desc{font-size:.78rem;color:#b2bec3;margin-top:2px}
+.os-step.done .os-step-desc{color:#2dce89}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 2px #667eea}50%{box-shadow:0 0 0 6px rgba(102,126,234,.3)}}
+/* Map */
+.os-map-wrap{overflow:hidden;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.08);border:2px solid #e8ecf1}
+#delivery-map{height:320px;width:100%;z-index:1}
+.leaflet-routing-container{display:none!important}
+.os-store-badge{display:inline-flex;align-items:center;gap:6px;background:#f3f4ff;border:1px solid #e0e3ff;border-radius:8px;padding:6px 12px;font-size:.82rem;font-weight:600;color:#667eea;margin-top:8px}
+.os-store-badge i{font-size:.9rem}
+.os-dist{font-weight:800;color:#2dce89}
+</style>
+
+<div class="os-wrap">
+    <div class="os-success">
+        <div class="os-success-icon"><i class="fas fa-check" style="font-size:2.5rem;color:white;"></i></div>
         <h1 style="font-size:2rem;font-weight:800;color:#2d3436;margin-bottom:.5rem;">Đặt Hàng Thành Công!</h1>
-        <p style="color:#636e72;font-size:1rem;margin-bottom:2rem;">Cảm ơn bạn đã đặt hàng. Chúng tôi sẽ xử lý đơn hàng sớm nhất.</p>
+        <p style="color:#636e72;font-size:1rem;">Cảm ơn bạn đã đặt hàng. Chúng tôi sẽ xử lý đơn hàng sớm nhất.</p>
+    </div>
 
-        <div class="summary-card" style="text-align:left;margin-bottom:2rem;">
-            <h3>Thông Tin Đơn Hàng</h3>
-            <div class="summary-row">
-                <span>Mã đơn hàng</span>
-                <span style="font-weight:700;color:#667eea;font-family:monospace;">{{ order.order_id }}</span>
-            </div>
-            <div class="summary-row">
-                <span>Người nhận</span>
-                <span>{{ order.full_name }}</span>
-            </div>
-            <div class="summary-row">
-                <span>Số điện thoại</span>
-                <span>{{ order.phone_number }}</span>
-            </div>
-            <div class="summary-row">
-                <span>Địa chỉ giao hàng</span>
-                <span style="max-width:250px;text-align:right;">{{ order.shipping_address }}</span>
-            </div>
-            <div class="summary-row">
-                <span>Trạng thái</span>
-                <span class="status-badge status-{{ order.status }}">{{ order.get_status_display }}</span>
-            </div>
-
-            <!-- Payment Info -->
-            {% with payment=order.payments.first %}
-            {% if payment %}
-            <div style="border-top:1px solid #f0f2f5;margin-top:.5rem;padding-top:.5rem;">
-                <div class="summary-row">
-                    <span>Thanh toán</span>
-                    <span style="font-weight:600;">{{ payment.payment_method.name }}</span>
+    <div class="os-grid">
+        <!-- LEFT: Order Info + Timeline -->
+        <div>
+            <div class="os-card" style="margin-bottom:1.5rem">
+                <h3><i class="fas fa-receipt"></i> Thông Tin Đơn Hàng</h3>
+                <div class="os-row"><span>Mã đơn hàng</span><span style="color:#667eea;font-family:monospace;">{{ order.order_id }}</span></div>
+                <div class="os-row"><span>Người nhận</span><span>{{ order.full_name }}</span></div>
+                <div class="os-row"><span>Số điện thoại</span><span>{{ order.phone_number }}</span></div>
+                <div class="os-row"><span>Địa chỉ giao</span><span>{{ order.shipping_address }}</span></div>
+                <div class="os-row">
+                    <span>Trạng thái</span>
+                    <span class="status-badge status-{{ order.status }}">{{ order.get_status_display }}</span>
                 </div>
-                <div class="summary-row">
+                {% with payment=order.payments.first %}
+                {% if payment %}
+                <div class="os-row"><span>Thanh toán</span><span>{{ payment.payment_method.name }}</span></div>
+                <div class="os-row">
                     <span>Trạng thái TT</span>
                     {% if payment.status == 'completed' %}
                     <span style="color:#2dce89;font-weight:700;"><i class="fas fa-check-circle"></i> Đã thanh toán</span>
                     {% elif payment.status == 'pending' %}
                     <span style="color:#fb6340;font-weight:700;"><i class="fas fa-clock"></i> Chưa thanh toán</span>
                     {% else %}
-                    <span style="color:#636e72;font-weight:600;">{{ payment.get_status_display }}</span>
+                    <span>{{ payment.get_status_display }}</span>
                     {% endif %}
                 </div>
-                {% if payment.reference_number %}
-                <div class="summary-row">
-                    <span>Mã tham chiếu</span>
-                    <span style="font-family:monospace;font-weight:600;color:#667eea;">{{ payment.reference_number }}</span>
+                {% endif %}
+                {% endwith %}
+                <div class="os-row total"><span>Tổng cộng</span><span>{{ order.total_amount|floatformat:0 }}đ</span></div>
+
+                {% if nearest_store %}
+                <div style="margin-top:12px;background:#f3f4ff;border-radius:12px;padding:1rem;border:1px solid #e0e3ff">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                        <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;color:white;font-size:14px"><i class="fas fa-store"></i></div>
+                        <div>
+                            <div style="font-weight:800;font-size:.95rem;color:#2d3436">{{ nearest_store.name }}</div>
+                            <div style="font-size:.75rem;color:#636e72"><i class="fas fa-map-pin" style="margin-right:3px"></i>{{ nearest_store.address }}</div>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:1rem;flex-wrap:wrap;font-size:.8rem">
+                        {% if distance_km %}
+                        <div style="background:white;border-radius:8px;padding:6px 12px;display:flex;align-items:center;gap:4px">
+                            <i class="fas fa-route" style="color:#667eea"></i>
+                            <span style="font-weight:700;color:#667eea">{{ distance_km|floatformat:1 }} km</span>
+                        </div>
+                        {% endif %}
+                        <div style="background:white;border-radius:8px;padding:6px 12px;display:flex;align-items:center;gap:4px">
+                            <i class="fas fa-clock" style="color:#fb6340"></i>
+                            <span>{{ nearest_store.opening_hours }}</span>
+                        </div>
+                        {% if distance_km %}
+                        <div style="background:white;border-radius:8px;padding:6px 12px;display:flex;align-items:center;gap:4px">
+                            <i class="fas fa-motorcycle" style="color:#2dce89"></i>
+                            <span style="font-weight:600">~{{ est_minutes }} phút</span>
+                        </div>
+                        {% endif %}
+                    </div>
                 </div>
                 {% endif %}
             </div>
-            {% endif %}
-            {% endwith %}
 
-            <div class="summary-row total">
-                <span>Tổng cộng</span>
-                <span style="color:#667eea;">{{ order.total_amount|floatformat:0 }}đ</span>
+            <!-- Delivery Timeline -->
+            <div class="os-card">
+                <h3><i class="fas fa-truck"></i> Tình Trạng Giao Hàng</h3>
+                <div class="os-timeline">
+                    {% with status_order='pending,confirmed,processing,shipped,completed' %}
+                    <div class="os-step {% if order.status == 'pending' %}current{% elif order.status != 'cancelled' %}done{% endif %}">
+                        <div class="os-step-dot"></div>
+                        <div class="os-step-title">Chờ xử lý</div>
+                        <div class="os-step-desc">{% if order.status == 'pending' %}Đơn hàng đang chờ xác nhận{% else %}Đã xác nhận{% endif %}</div>
+                    </div>
+                    <div class="os-step {% if order.status == 'confirmed' %}current{% elif order.status == 'processing' or order.status == 'shipped' or order.status == 'completed' %}done{% elif order.status == 'cancelled' %}{% endif %}">
+                        <div class="os-step-dot"></div>
+                        <div class="os-step-title">Đã xác nhận</div>
+                        <div class="os-step-desc">{% if order.status == 'confirmed' %}Đang chuẩn bị hàng{% elif order.status == 'processing' or order.status == 'shipped' or order.status == 'completed' %}Đã xác nhận{% endif %}</div>
+                    </div>
+                    <div class="os-step {% if order.status == 'processing' %}current{% elif order.status == 'shipped' or order.status == 'completed' %}done{% endif %}">
+                        <div class="os-step-dot"></div>
+                        <div class="os-step-title">Đang xử lý</div>
+                        <div class="os-step-desc">{% if order.status == 'processing' %}Đóng gói sản phẩm{% elif order.status == 'shipped' or order.status == 'completed' %}Đã đóng gói{% endif %}</div>
+                    </div>
+                    <div class="os-step {% if order.status == 'shipped' %}current{% elif order.status == 'completed' %}done{% endif %}">
+                        <div class="os-step-dot"></div>
+                        <div class="os-step-title">Đang giao hàng</div>
+                        <div class="os-step-desc">
+                            {% if order.status == 'shipped' %}
+                                {% if nearest_store %}Từ {{ nearest_store.name }}{% endif %} đang trên đường giao
+                            {% elif order.status == 'completed' %}
+                                Đã giao thành công
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="os-step {% if order.status == 'completed' %}current{% endif %}">
+                        <div class="os-step-dot"></div>
+                        <div class="os-step-title">Hoàn thành</div>
+                        <div class="os-step-desc">{% if order.status == 'completed' %}Đã giao hàng thành công!{% endif %}</div>
+                    </div>
+                    {% if order.status == 'cancelled' %}
+                    <div class="os-step current" style="margin-top:.5rem;">
+                        <div class="os-step-dot" style="background:#f5365c;box-shadow:0 0 0 2px #f5365c"></div>
+                        <div class="os-step-title" style="color:#f5365c">Đã hủy</div>
+                        <div class="os-step-desc" style="color:#f5365c">Đơn hàng đã bị hủy</div>
+                    </div>
+                    {% endif %}
+                    {% endwith %}
+                </div>
             </div>
         </div>
 
-        <!-- Payment pending notice -->
-        {% with payment=order.payments.first %}
-        {% if payment and payment.status == 'pending' %}
-        <div style="background:#fff9e6;border:1px solid #ffe0a3;border-radius:12px;padding:1rem;margin-bottom:1.5rem;font-size:.85rem;color:#e17055;text-align:left;">
-            <i class="fas fa-exclamation-triangle"></i> Đơn hàng chưa được thanh toán. Vui lòng hoàn tất thanh toán để chúng tôi xử lý đơn hàng.
-            <div style="margin-top:.5rem;">
-                <a href="{% url 'eshop:payment_simulate' order_id=order.order_id %}" style="color:#667eea;font-weight:700;">→ Đến trang thanh toán</a>
+        <!-- RIGHT: Map -->
+        <div>
+            <div class="os-card" style="padding:0;overflow:hidden">
+                <h3 style="padding:1.25rem 1.5rem .75rem;margin-bottom:0"><i class="fas fa-map-location-dot"></i> Bản Đồ Giao Hàng</h3>
+                <div class="os-map-wrap" style="margin:0 1rem 1rem">
+                    <div id="delivery-map"></div>
+                </div>
+                {% if nearest_store %}
+                <div style="padding:0 1.25rem 1.25rem;font-size:.82rem;color:#636e72">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+                        <span style="width:12px;height:12px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);display:inline-block"></span>
+                        <strong style="color:#2d3436">{{ nearest_store.name }}</strong>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px">
+                        <span style="width:12px;height:12px;border-radius:50%;background:linear-gradient(135deg,#2196F3,#03A9F4);display:inline-block"></span>
+                        <span>{{ order.shipping_address }}</span>
+                    </div>
+                    {% if distance_km %}
+                    <div style="margin-top:8px;background:#f3f4ff;border-radius:8px;padding:8px 12px;text-align:center;font-weight:700;color:#667eea">
+                        <i class="fas fa-route"></i> Khoảng cách: {{ distance_km|floatformat:1 }} km
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
             </div>
-        </div>
-        {% endif %}
-        {% endwith %}
 
-        <div style="background:#f3f4ff;border-radius:12px;padding:1rem;margin-bottom:2rem;font-size:.85rem;color:#667eea;font-weight:600;">
-            <i class="fas fa-info-circle"></i> Lưu mã đơn hàng để tra cứu trạng thái: <strong>{{ order.order_id }}</strong>
-        </div>
-
-        <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;">
-            <a href="{% url 'eshop:order_tracking' %}" class="btn-primary">
-                <i class="fas fa-search"></i> Tra Cứu Đơn Hàng
-            </a>
-            <a href="{% url 'eshop:products' %}" class="btn-outline">
-                <i class="fas fa-shopping-bag"></i> Tiếp Tục Mua Sắm
-            </a>
+            <!-- Order Items -->
+            <div class="os-card" style="margin-top:1.5rem">
+                <h3><i class="fas fa-box-open"></i> Chi Tiết Sản Phẩm</h3>
+                {% for item in order.items.all %}
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f0f2f5;font-size:.85rem">
+                    <div>
+                        <div style="font-weight:600;color:#2d3436">{{ item.product.name }}</div>
+                        <div style="font-size:.75rem;color:#b2bec3">x{{ item.quantity }} · {{ item.unit_price|floatformat:0 }}đ</div>
+                    </div>
+                    <div style="font-weight:700;color:#667eea">{{ item.total_price|floatformat:0 }}đ</div>
+                </div>
+                {% endfor %}
+            </div>
         </div>
     </div>
+
+    <!-- Payment pending notice -->
+    {% with payment=order.payments.first %}
+    {% if payment and payment.status == 'pending' %}
+    <div style="background:#fff9e6;border:1px solid #ffe0a3;border-radius:12px;padding:1rem;margin-bottom:1.5rem;font-size:.85rem;color:#e17055;text-align:left;">
+        <i class="fas fa-exclamation-triangle"></i> Đơn hàng chưa được thanh toán. Vui lòng hoàn tất thanh toán để chúng tôi xử lý đơn hàng.
+        <div style="margin-top:.5rem;">
+            <a href="{% url 'eshop:payment_simulate' order_id=order.order_id %}" style="color:#667eea;font-weight:700;">→ Đến trang thanh toán</a>
+        </div>
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <div style="background:#f3f4ff;border-radius:12px;padding:1rem;margin-bottom:2rem;font-size:.85rem;color:#667eea;font-weight:600;text-align:center">
+        <i class="fas fa-info-circle"></i> Lưu mã đơn hàng để tra cứu trạng thái: <strong>{{ order.order_id }}</strong>
+    </div>
+
+    <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;margin-bottom:2rem">
+        <a href="{% url 'eshop:order_tracking' %}" class="btn-primary"><i class="fas fa-search"></i> Tra Cứu Đơn Hàng</a>
+        <a href="{% url 'eshop:directions' %}{% if nearest_store %}?store_id={{ nearest_store.pk }}{% endif %}" class="btn-outline"><i class="fas fa-directions"></i> Xem Bản Đồ Chi Tiết</a>
+        <a href="{% url 'eshop:products' %}" class="btn-outline"><i class="fas fa-shopping-bag"></i> Tiếp Tục Mua Sắm</a>
+    </div>
 </div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+<script>
+{% if nearest_store and order.lat and order.lng %}
+(function(){
+    var storeLat={{ nearest_store.latitude }}, storeLng={{ nearest_store.longitude }};
+    var custLat={{ order.lat }}, custLng={{ order.lng }};
+    var map=L.map('delivery-map',{center:[(storeLat+custLat)/2,(storeLng+custLng)/2],zoom:13,zoomControl:true});
+    setTimeout(function(){map.invalidateSize()},200);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{
+        attribution:'&copy; OpenStreetMap &copy; CARTO',subdomains:'abcd',maxZoom:20
+    }).addTo(map);
+
+    var storeIcon=L.divIcon({className:'',html:'<div style="background:linear-gradient(135deg,#667eea,#764ba2);width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:14px;border:3px solid white;box-shadow:0 3px 10px rgba(0,0,0,.3)"><i class="fas fa-store"></i></div>',iconSize:[34,34],iconAnchor:[17,17]});
+    var custIcon=L.divIcon({className:'',html:'<div style="background:linear-gradient(135deg,#2196F3,#03A9F4);width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:14px;border:3px solid white;box-shadow:0 3px 10px rgba(0,0,0,.3)"><i class="fas fa-home"></i></div>',iconSize:[34,34],iconAnchor:[17,17]});
+
+    L.marker([storeLat,storeLng],{icon:storeIcon}).addTo(map).bindPopup('<b>{{ nearest_store.name|escapejs }}</b><br>{{ nearest_store.address|escapejs }}');
+    L.marker([custLat,custLng],{icon:custIcon}).addTo(map).bindPopup('<b>Giao đến</b><br>{{ order.shipping_address|escapejs }}');
+
+    L.Routing.control({
+        waypoints:[L.latLng(storeLat,storeLng),L.latLng(custLat,custLng)],
+        routeWhileDragging:false,show:false,addWaypoints:false,
+        lineOptions:{styles:[{color:'#667eea',opacity:.8,weight:5}]},
+        createMarker:function(){return null}
+    }).addTo(map);
+
+    var bounds=L.latLngBounds([[storeLat,storeLng],[custLat,custLng]]);
+    map.fitBounds(bounds,{padding:[40,40]});
+})();
+{% elif nearest_store %}
+(function(){
+    var storeLat={{ nearest_store.latitude }}, storeLng={{ nearest_store.longitude }};
+    var map=L.map('delivery-map',{center:[storeLat,storeLng],zoom:15,zoomControl:true});
+    setTimeout(function(){map.invalidateSize()},200);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{
+        attribution:'&copy; OpenStreetMap &copy; CARTO',subdomains:'abcd',maxZoom:20
+    }).addTo(map);
+    var storeIcon=L.divIcon({className:'',html:'<div style="background:linear-gradient(135deg,#667eea,#764ba2);width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:14px;border:3px solid white;box-shadow:0 3px 10px rgba(0,0,0,.3)"><i class="fas fa-store"></i></div>',iconSize:[34,34],iconAnchor:[17,17]});
+    L.marker([storeLat,storeLng],{icon:storeIcon}).addTo(map).bindPopup('<b>{{ nearest_store.name|escapejs }}</b><br>{{ nearest_store.address|escapejs }}').openPopup();
+})();
+{% else %}
+(function(){
+    var map=L.map('delivery-map',{center:[10.7769,106.7009],zoom:12,zoomControl:true});
+    setTimeout(function(){map.invalidateSize()},200);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{
+        attribution:'&copy; OpenStreetMap &copy; CARTO',subdomains:'abcd',maxZoom:20
+    }).addTo(map);
+    var stores=[
+        {% for s in stores %}{"name":"{{ s.name|escapejs }}","lat":{{ s.latitude }},"lng":{{ s.longitude }}}{% if not forloop.last %},{% endif %}{% endfor %}
+    ];
+    var icon=L.divIcon({className:'',html:'<div style="background:linear-gradient(135deg,#667eea,#764ba2);width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:12px;border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,.3)"><i class="fas fa-store"></i></div>',iconSize:[30,30],iconAnchor:[15,15]});
+    stores.forEach(function(s){L.marker([s.lat,s.lng],{icon:icon}).addTo(map).bindPopup('<b>'+s.name+'</b>')});
+    if(stores.length){map.fitBounds(L.latLngBounds(stores.map(function(s){return[s.lat,s.lng]})),{padding:[30,30]})}
+})();
+{% endif %}
+</script>
 {% endblock %}
