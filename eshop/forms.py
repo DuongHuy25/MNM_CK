@@ -140,9 +140,12 @@ class ProfileEditForm(forms.Form):
             'class': 'eshop-input',
             'placeholder': 'Địa chỉ giao hàng mặc định',
             'rows': 3,
+            'id': 'id_address',
         }),
         label='Địa chỉ'
     )
+    lat = forms.FloatField(required=False, widget=forms.HiddenInput(attrs={'id': 'id_lat'}))
+    lng = forms.FloatField(required=False, widget=forms.HiddenInput(attrs={'id': 'id_lng'}))
     avatar = forms.ImageField(
         required=False,
         widget=forms.FileInput(attrs={
