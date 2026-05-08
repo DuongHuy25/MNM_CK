@@ -53,6 +53,8 @@ class User(AbstractUser):
     )
     phone = models.CharField(max_length=20, blank=True, default='', verbose_name='Số điện thoại')
     address = models.TextField(blank=True, default='', verbose_name='Địa chỉ')
+    lat = models.FloatField(null=True, blank=True, verbose_name='Vĩ độ')
+    lng = models.FloatField(null=True, blank=True, verbose_name='Kinh độ')
     avatar = models.ImageField(upload_to='avatars/', blank=True, default='', verbose_name='Ảnh đại diện')
     
     # Remove username field requirement since we use email as USERNAME_FIELD
