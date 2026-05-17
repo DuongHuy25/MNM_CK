@@ -1,0 +1,140 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">{{ page_title }}</h1>
+        <a href="{% url 'dashboard:goods_receipt_list' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Quay lại
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Thông tin phiếu nhập hàng</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Số phiếu:</strong> {{ goods_receipt.receipt_number }}</p>
+                            <p><strong>Đơn mua hàng:</strong>
+                                {% if goods_receipt.purchase_order %}
+                                <a href="{% url 'dashboard:purchase_order_detail' goods_receipt.purchase_order.pk %}" class="text-decoration-none">{{ goods_receipt.purchase_order.po_number }}</a>
+                                {% else %}
+                                —
+                                {% endif %}
+                            </p>
+                            <p><strong>Nhà cung cấp:</strong>
+                                {% if goods_receipt.supplier %}
+                                {{ goods_receipt.supplier.name }}
+                                {% elif goods_receipt.purchase_order %}
+                                {{ goods_receipt.purchase_order.supplier.name }}
+                                {% else %}
+                                —
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Kho nhập:</strong> {{ goods_receipt.warehouse.store.name }}</p>
+                            <p><strong>Ngày nhập:</strong> {{ goods_receipt.receipt_date|date:"d/m/Y H:i" }}</p>
+                            <p><strong>Trạng thái:</strong>
+                                <span class="badge bg-{% if goods_receipt.status == 'confirmed' %}success{% elif goods_receipt.status == 'cancelled' %}danger{% else %}secondary{% endif %}">
+                                    {{ goods_receipt.get_status_display }}
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+                    {% if goods_receipt.note %}
+                    <div class="mt-3">
+                        <p><strong>Ghi chú:</strong></p>
+                        <p class="text-muted">{{ goods_receipt.note }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Sản phẩm nhập kho</h5>
+                </div>
+                <div class="card-body">
+                    {% if items %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Sản phẩm</th>
+                                    <th>Số lượng</th>
+                                    <th>Đơn giá</th>
+                                    <th>Thành tiền</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in items %}
+                                <tr>
+                                    <td>{{ item.product.name }}</td>
+                                    <td>{{ item.quantity }}</td>
+                                    <td>{{ item.unit_cost|floatformat:0 }}đ</td>
+                                    <td>{{ item.total_cost|floatformat:0 }}đ</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">Chưa có sản phẩm nào</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Thao tác</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        {% if goods_receipt.status == 'draft' %}
+                        <a href="{% url 'dashboard:goods_receipt_edit' goods_receipt.pk %}" class="btn btn-warning">
+                            <i class="fas fa-edit"></i> Chỉnh sửa
+                        </a>
+                        <a href="{% url 'dashboard:goods_receipt_confirm' goods_receipt.pk %}" class="btn btn-success">
+                            <i class="fas fa-check"></i> Xác nhận nhập kho
+                        </a>
+                        <a href="{% url 'dashboard:goods_receipt_cancel' goods_receipt.pk %}" class="btn btn-danger">
+                            <i class="fas fa-times"></i> Hủy phiếu
+                        </a>
+                        {% endif %}
+                        {% if goods_receipt.status == 'draft' %}
+                        <a href="{% url 'dashboard:goods_receipt_delete' goods_receipt.pk %}" class="btn btn-outline-danger">
+                            <i class="fas fa-trash"></i> Xóa phiếu
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Thông tin tổng quan</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <h4 class="text-primary">{{ items|length }}</h4>
+                            <small class="text-muted">Sản phẩm</small>
+                        </div>
+                        <div class="col-6">
+                            <h4 class="text-success">{{ goods_receipt.total_amount|floatformat:0 }}đ</h4>
+                            <small class="text-muted">Tổng giá trị</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

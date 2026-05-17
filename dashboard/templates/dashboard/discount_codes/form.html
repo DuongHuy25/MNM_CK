@@ -1,0 +1,250 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block content %}
+
+<div class="page-header">
+    <h1>
+        <i class="fas fa-ticket-alt"></i> 
+        {{ page_title }}
+    </h1>
+    <a href="{% url 'dashboard:discount_code_list' %}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left"></i> Quay lại
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="post" novalidate>
+            {% csrf_token %}
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="{{ form.code.id_for_label }}" class="form-label">
+                            {{ form.code.label }} <span class="text-danger">*</span>
+                        </label>
+                        {{ form.code }}
+                        {% if form.code.errors %}
+                            <div class="text-danger small">{{ form.code.errors.0 }}</div>
+                        {% endif %}
+                        <div class="form-text">Mã giảm giá sẽ được tự động chuyển thành chữ hoa và không chứa khoảng trắng.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.name.id_for_label }}" class="form-label">
+                            {{ form.name.label }} <span class="text-danger">*</span>
+                        </label>
+                        {{ form.name }}
+                        {% if form.name.errors %}
+                            <div class="text-danger small">{{ form.name.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.description.id_for_label }}" class="form-label">
+                            {{ form.description.label }}
+                        </label>
+                        {{ form.description }}
+                        {% if form.description.errors %}
+                            <div class="text-danger small">{{ form.description.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.discount_type.id_for_label }}" class="form-label">
+                                    {{ form.discount_type.label }} <span class="text-danger">*</span>
+                                </label>
+                                {{ form.discount_type }}
+                                {% if form.discount_type.errors %}
+                                    <div class="text-danger small">{{ form.discount_type.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.discount_value.id_for_label }}" class="form-label">
+                                    {{ form.discount_value.label }} <span class="text-danger">*</span>
+                                </label>
+                                {{ form.discount_value }}
+                                {% if form.discount_value.errors %}
+                                    <div class="text-danger small">{{ form.discount_value.errors.0 }}</div>
+                                {% endif %}
+                                <div class="form-text" id="discountValueHelp">
+                                    {% if form.discount_type.value == 'percentage' %}
+                                        Giá trị từ 1-100 (%)
+                                    {% else %}
+                                        Giá trị giảm giá (VNĐ)
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.minimum_order_amount.id_for_label }}" class="form-label">
+                                    {{ form.minimum_order_amount.label }}
+                                </label>
+                                {{ form.minimum_order_amount }}
+                                {% if form.minimum_order_amount.errors %}
+                                    <div class="text-danger small">{{ form.minimum_order_amount.errors.0 }}</div>
+                                {% endif %}
+                                <div class="form-text">Giá trị đơn hàng tối thiểu để áp dụng mã giảm giá.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.maximum_discount_amount.id_for_label }}" class="form-label">
+                                    {{ form.maximum_discount_amount.label }}
+                                </label>
+                                {{ form.maximum_discount_amount }}
+                                {% if form.maximum_discount_amount.errors %}
+                                    <div class="text-danger small">{{ form.maximum_discount_amount.errors.0 }}</div>
+                                {% endif %}
+                                <div class="form-text">Chỉ áp dụng cho giảm giá theo %.</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.usage_limit.id_for_label }}" class="form-label">
+                                    {{ form.usage_limit.label }}
+                                </label>
+                                {{ form.usage_limit }}
+                                {% if form.usage_limit.errors %}
+                                    <div class="text-danger small">{{ form.usage_limit.errors.0 }}</div>
+                                {% endif %}
+                                <div class="form-text">Tổng số lần sử dụng cho mã này. Để trống = không giới hạn.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.user_limit.id_for_label }}" class="form-label">
+                                    {{ form.user_limit.label }}
+                                </label>
+                                {{ form.user_limit }}
+                                {% if form.user_limit.errors %}
+                                    <div class="text-danger small">{{ form.user_limit.errors.0 }}</div>
+                                {% endif %}
+                                <div class="form-text">Số lần mỗi user có thể sử dụng mã này.</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.start_date.id_for_label }}" class="form-label">
+                                    {{ form.start_date.label }} <span class="text-danger">*</span>
+                                </label>
+                                {{ form.start_date }}
+                                {% if form.start_date.errors %}
+                                    <div class="text-danger small">{{ form.start_date.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.end_date.id_for_label }}" class="form-label">
+                                    {{ form.end_date.label }} <span class="text-danger">*</span>
+                                </label>
+                                {{ form.end_date }}
+                                {% if form.end_date.errors %}
+                                    <div class="text-danger small">{{ form.end_date.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.status.id_for_label }}" class="form-label">
+                                    {{ form.status.label }}
+                                </label>
+                                {{ form.status }}
+                                {% if form.status.errors %}
+                                    <div class="text-danger small">{{ form.status.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <div class="form-check mt-4">
+                                    {{ form.is_active }}
+                                    <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                                        {{ form.is_active.label }}
+                                    </label>
+                                </div>
+                                {% if form.is_active.errors %}
+                                    <div class="text-danger small">{{ form.is_active.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="d-flex justify-content-between mt-4">
+                <a href="{% url 'dashboard:discount_code_list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-times"></i> Hủy
+                </a>
+                <div>
+                    {% if is_edit %}
+                    <a href="{% url 'dashboard:discount_code_detail' discount_code.pk %}" class="btn btn-outline-info me-2">
+                        <i class="fas fa-eye"></i> Xem chi tiết
+                    </a>
+                    {% endif %}
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> 
+                        {% if is_create %}Tạo Mã Giảm Giá{% else %}Cập Nhật{% endif %}
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const discountTypeSelect = document.querySelector('select[name="discount_type"]');
+    const discountValueInput = document.querySelector('input[name="discount_value"]');
+    const maxDiscountInput = document.querySelector('input[name="maximum_discount_amount"]');
+    const discountValueHelp = document.getElementById('discountValueHelp');
+    
+    function updateDiscountFields() {
+        const isPercentage = discountTypeSelect.value === 'percentage';
+        
+        if (isPercentage) {
+            discountValueInput.placeholder = 'Giá trị phần trăm (1-100)';
+            discountValueInput.max = '100';
+            discountValueInput.min = '1';
+            discountValueInput.step = '0.01';
+            maxDiscountInput.disabled = false;
+            maxDiscountInput.parentElement.style.opacity = '1';
+            discountValueHelp.textContent = 'Giá trị từ 1-100 (%)';
+        } else {
+            discountValueInput.placeholder = 'Giá trị giảm giá (VNĐ)';
+            discountValueInput.removeAttribute('max');
+            discountValueInput.min = '0';
+            discountValueInput.step = '1000';
+            maxDiscountInput.disabled = true;
+            maxDiscountInput.parentElement.style.opacity = '0.5';
+            maxDiscountInput.value = '';
+            discountValueHelp.textContent = 'Giá trị giảm giá (VNĐ)';
+        }
+    }
+    
+    discountTypeSelect.addEventListener('change', updateDiscountFields);
+    updateDiscountFields();
+});
+</script>
+
+{% endblock %}

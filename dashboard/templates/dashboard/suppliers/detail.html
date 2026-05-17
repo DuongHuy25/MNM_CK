@@ -1,0 +1,144 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">{{ page_title }}</h1>
+        <div>
+            <a href="{% url 'dashboard:supplier_edit' supplier.pk %}" class="btn btn-warning">
+                <i class="fas fa-edit"></i> Chỉnh sửa
+            </a>
+            <a href="{% url 'dashboard:supplier_list' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Quay lại
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Supplier Info -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Thông tin nhà cung cấp</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Tên nhà cung cấp:</strong> {{ supplier.name }}</p>
+                            <p><strong>Người liên hệ:</strong> {{ supplier.contact_person|default:"-" }}</p>
+                            <p><strong>Email:</strong> {{ supplier.email|default:"-" }}</p>
+                            <p><strong>Điện thoại:</strong> {{ supplier.phone|default:"-" }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Địa chỉ:</strong> {{ supplier.address|default:"-" }}</p>
+                            <p><strong>Mã số thuế:</strong> {{ supplier.tax_code|default:"-" }}</p>
+                            <p><strong>Trạng thái:</strong> 
+                                {% if supplier.is_active %}
+                                <span class="badge bg-success">Hoạt động</span>
+                                {% else %}
+                                <span class="badge bg-danger">Ngừng hoạt động</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Purchase Orders -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Đơn mua hàng gần đây</h5>
+                </div>
+                <div class="card-body">
+                    {% if purchase_orders %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Số PO</th>
+                                    <th>Ngày đặt</th>
+                                    <th>Tổng tiền</th>
+                                    <th>Trạng thái</th>
+                                    <th>Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in purchase_orders %}
+                                <tr>
+                                    <td>{{ order.po_number }}</td>
+                                    <td>{{ order.order_date|date:"d/m/Y" }}</td>
+                                    <td>{{ order.total_amount|floatformat:0 }}đ</td>
+                                    <td>
+                                        <span class="badge bg-{% if order.status == 'received' %}success{% elif order.status == 'cancelled' %}danger{% elif order.status == 'approved' %}warning{% elif order.status == 'pending' %}info{% else %}secondary{% endif %}">
+                                            {{ order.get_status_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'dashboard:purchase_order_detail' order.pk %}" class="btn btn-sm btn-outline-primary">Chi tiết</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-shopping-cart fa-2x text-muted mb-2"></i>
+                        <p class="text-muted">Chưa có đơn mua hàng nào</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <!-- Actions -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Thao tác</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'dashboard:supplier_edit' supplier.pk %}" class="btn btn-warning">
+                            <i class="fas fa-edit"></i> Chỉnh sửa thông tin
+                        </a>
+                        <a href="{% url 'dashboard:purchase_order_create' %}?supplier={{ supplier.pk }}" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Tạo đơn mua hàng
+                        </a>
+                        <a href="{% url 'dashboard:supplier_delete' supplier.pk %}" class="btn btn-danger">
+                            <i class="fas fa-trash"></i> Xóa nhà cung cấp
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistics -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Thống kê</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <h4 class="text-primary">{{ purchase_orders|length }}</h4>
+                            <small class="text-muted">Đơn mua hàng</small>
+                        </div>
+                        <div class="col-6">
+                            <h4 class="text-success">
+                                {% for order in purchase_orders %}
+                                {% if forloop.first %}
+                                {{ order.total_amount|floatformat:0 }}đ
+                                {% endif %}
+                                {% empty %}
+                                0đ
+                                {% endfor %}
+                            </h4>
+                            <small class="text-muted">Giá trị gần nhất</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

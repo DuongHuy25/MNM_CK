@@ -1,0 +1,127 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">{{ page_title }}</h1>
+        <div>
+            <a href="{% url 'dashboard:customer_group_edit' customer_group.pk %}" class="btn btn-warning">
+                <i class="fas fa-edit"></i> Chỉnh sửa
+            </a>
+            <a href="{% url 'dashboard:customer_group_list' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Quay lại
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Group Info -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Thông tin nhóm khách hàng</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Tên nhóm:</strong> {{ customer_group.name }}</p>
+                            <p><strong>Mô tả:</strong> {{ customer_group.description|default:"-" }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Chiết khấu:</strong> {{ customer_group.discount_percent|default:0 }}%</p>
+                            <p><strong>Trạng thái:</strong> 
+                                {% if customer_group.is_active %}
+                                <span class="badge bg-success">Hoạt động</span>
+                                {% else %}
+                                <span class="badge bg-danger">Ngừng hoạt động</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Customers -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Khách hàng trong nhóm</h5>
+                </div>
+                <div class="card-body">
+                    {% if customers %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Tên khách hàng</th>
+                                    <th>Email</th>
+                                    <th>Điện thoại</th>
+                                    <th>Địa chỉ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for customer in customers %}
+                                <tr>
+                                    <td>{{ customer.name }}</td>
+                                    <td>{{ customer.email|default:"-" }}</td>
+                                    <td>{{ customer.phone|default:"-" }}</td>
+                                    <td>{{ customer.address|default:"-"|truncatechars:30 }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-users fa-2x text-muted mb-2"></i>
+                        <p class="text-muted">Chưa có khách hàng nào trong nhóm này</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <!-- Actions -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Thao tác</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'dashboard:customer_group_edit' customer_group.pk %}" class="btn btn-warning">
+                            <i class="fas fa-edit"></i> Chỉnh sửa thông tin
+                        </a>
+                        <a href="{% url 'dashboard:customer_group_delete' customer_group.pk %}" class="btn btn-danger">
+                            <i class="fas fa-trash"></i> Xóa nhóm
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistics -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Thống kê</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <h4 class="text-primary">{{ customer_count }}</h4>
+                            <small class="text-muted">Khách hàng</small>
+                        </div>
+                        <div class="col-6">
+                            <h4 class="text-success">{{ total_orders }}</h4>
+                            <small class="text-muted">Đơn hàng</small>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="text-center">
+                        <h5 class="text-info">{{ total_revenue|floatformat:0 }}đ</h5>
+                        <small class="text-muted">Tổng doanh thu</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

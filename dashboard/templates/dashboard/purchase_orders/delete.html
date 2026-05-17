@@ -1,0 +1,55 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">{{ page_title }}</h1>
+        <a href="{% url 'dashboard:purchase_order_detail' purchase_order.pk %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Quay lại
+        </a>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exclamation-triangle"></i> Xác nhận xóa
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-info-circle"></i> Bạn có chắc chắn muốn xóa đơn mua hàng này?
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h6>Đơn mua hàng sẽ bị xóa:</h6>
+                        <ul class="list-unstyled">
+                            <li><strong>Số PO:</strong> {{ purchase_order.po_number }}</li>
+                            <li><strong>Nhà cung cấp:</strong> {{ purchase_order.supplier.name }}</li>
+                            <li><strong>Ngày đặt:</strong> {{ purchase_order.order_date|date:"d/m/Y H:i" }}</li>
+                            <li><strong>Tổng tiền:</strong> {{ purchase_order.total_amount|floatformat:0 }}đ</li>
+                        </ul>
+                    </div>
+
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle"></i> <strong>Lưu ý:</strong> Hành động này không thể hoàn tác!
+                    </div>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-end gap-2">
+                            <a href="{% url 'dashboard:purchase_order_detail' purchase_order.pk %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times"></i> Hủy
+                            </a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-trash"></i> Xóa đơn mua hàng
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

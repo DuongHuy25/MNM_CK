@@ -1,0 +1,104 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">{{ page_title }}</h1>
+        <a href="{% url 'dashboard:goods_receipt_list' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Quay lại
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Đơn mua hàng</label>
+                            {{ form.purchase_order }}
+                            {% if form.purchase_order.errors %}
+                            <div class="text-danger small">{{ form.purchase_order.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Nhà cung cấp</label>
+                            {{ form.supplier }}
+                            {% if form.supplier.errors %}
+                            <div class="text-danger small">{{ form.supplier.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Kho nhập</label>
+                            {{ form.warehouse }}
+                            {% if form.warehouse.errors %}
+                            <div class="text-danger small">{{ form.warehouse.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Số phiếu nhập</label>
+                            {{ form.receipt_number }}
+                            {% if form.receipt_number.errors %}
+                            <div class="text-danger small">{{ form.receipt_number.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Trạng thái</label>
+                            {{ form.status }}
+                            {% if form.status.errors %}
+                            <div class="text-danger small">{{ form.status.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Ghi chú</label>
+                    {{ form.note }}
+                    {% if form.note.errors %}
+                    <div class="text-danger small">{{ form.note.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="d-flex justify-content-end gap-2">
+                    <a href="{% url 'dashboard:goods_receipt_list' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-times"></i> Hủy
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Lưu
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('select, input, textarea').forEach(field => {
+        if (!field.classList.contains('form-control') && !field.classList.contains('form-select')) {
+            if (field.tagName === 'SELECT') {
+                field.classList.add('form-select');
+            } else {
+                field.classList.add('form-control');
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

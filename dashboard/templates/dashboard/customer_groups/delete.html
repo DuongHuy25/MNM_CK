@@ -1,0 +1,54 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">{{ page_title }}</h1>
+        <a href="{% url 'dashboard:customer_group_detail' customer_group.pk %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Quay lại
+        </a>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exclamation-triangle"></i> Xác nhận xóa
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-info-circle"></i> Bạn có chắc chắn muốn xóa nhóm khách hàng này?
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h6>Nhóm khách hàng sẽ bị xóa:</h6>
+                        <ul class="list-unstyled">
+                            <li><strong>Tên nhóm:</strong> {{ customer_group.name }}</li>
+                            <li><strong>Mô tả:</strong> {{ customer_group.description|default:"-" }}</li>
+                            <li><strong>Chiết khấu:</strong> {{ customer_group.discount_percent|default:0 }}%</li>
+                        </ul>
+                    </div>
+
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle"></i> <strong>Lưu ý:</strong> Hành động này không thể hoàn tác!
+                    </div>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-end gap-2">
+                            <a href="{% url 'dashboard:customer_group_detail' customer_group.pk %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times"></i> Hủy
+                            </a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-trash"></i> Xóa nhóm khách hàng
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

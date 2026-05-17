@@ -1,0 +1,55 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">{{ page_title }}</h1>
+        <a href="{% url 'dashboard:goods_receipt_detail' goods_receipt.pk %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Quay lại
+        </a>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exclamation-triangle"></i> Hủy phiếu nhập hàng
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i> Bạn có chắc chắn muốn hủy phiếu nhập hàng này?
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h6>Thông tin phiếu sẽ bị hủy:</h6>
+                        <ul class="list-unstyled">
+                            <li><strong>Số phiếu:</strong> {{ goods_receipt.receipt_number }}</li>
+                            <li><strong>Kho:</strong> {{ goods_receipt.warehouse.store.name }}</li>
+                            <li><strong>Ngày nhập:</strong> {{ goods_receipt.receipt_date|date:"d/m/Y H:i" }}</li>
+                            <li><strong>Tổng giá trị:</strong> {{ goods_receipt.total_amount|floatformat:0 }}đ</li>
+                        </ul>
+                    </div>
+
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i> <strong>Lưu ý:</strong> Sau khi hủy, phiếu sẽ không thể phục hồi!
+                    </div>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-end gap-2">
+                            <a href="{% url 'dashboard:goods_receipt_detail' goods_receipt.pk %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times"></i> Không hủy
+                            </a>
+                            <button type="submit" class="btn btn-warning">
+                                <i class="fas fa-times"></i> Hủy phiếu
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,12 @@
+STARTED: Create dashboard contact management.
+
+Next implementation steps (will be executed):
+1) Add ContactSettings singleton model to dashboard/models.py.
+2) Add ContactSettingsForm to dashboard/forms.py.
+3) Add view contact_settings_edit to dashboard/views.py.
+4) Add url route to dashboard/urls.py.
+5) Create template dashboard/templates/dashboard/contact/settings.html.
+6) Add sidebar link to dashboard/templates/dashboard/base.html.
+7) Add migration + migrate.
+8) Update storefront contact page (eshop/views.py + eshop/templates/eshop/contact.html) to use ContactSettings (recipient emails, hotline, address, opening_hours).
+

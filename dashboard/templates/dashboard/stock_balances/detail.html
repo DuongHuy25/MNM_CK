@@ -1,0 +1,130 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">{{ page_title }}</h1>
+        <a href="{% url 'dashboard:stock_balance_list' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Quay lại
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Thông tin tồn kho</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Kho:</strong> {{ balance.warehouse.name }}</p>
+                            <p><strong>Sản phẩm:</strong> {{ balance.product.name }}</p>
+                            <p><strong>SKU:</strong> {{ balance.product.sku|default:"-" }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Tồn kho hiện tại:</strong> 
+                                {% if balance.quantity_on_hand <= balance.product.min_stock %}
+                                <span class="text-danger">{{ balance.quantity_on_hand }}</span>
+                                {% else %}
+                                {{ balance.quantity_on_hand }}
+                                {% endif %}
+                            </p>
+                            <p><strong>Tồn kho tối thiểu:</strong> {{ balance.product.min_stock }}</p>
+                            <p><strong>Trạng thái:</strong>
+                                {% if balance.quantity_on_hand <= 0 %}
+                                <span class="badge bg-danger">Hết hàng</span>
+                                {% elif balance.quantity_on_hand <= balance.product.min_stock %}
+                                <span class="badge bg-warning">Sắp hết</span>
+                                {% else %}
+                                <span class="badge bg-success">Tồn kho tốt</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Chuyển động kho gần đây</h5>
+                </div>
+                <div class="card-body">
+                    {% if movements %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Ngày</th>
+                                    <th>Loại</th>
+                                    <th>Số lượng</th>
+                                    <th>Ghi chú</th>
+                                    <th>Người thực hiện</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for movement in movements %}
+                                <tr>
+                                    <td>{{ movement.created_at|date:"d/m/Y H:i" }}</td>
+                                    <td>
+                                        {% if movement.movement_type == 'in' %}
+                                        <span class="badge bg-success">Nhập</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">Xuất</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ movement.quantity }}</td>
+                                    <td>{{ movement.notes|default:"-" }}</td>
+                                    <td>{{ movement.user.get_full_name|default:movement.user.email }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">Chưa có chuyển động kho nào</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Thống kê</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <h4 class="{% if balance.quantity_on_hand <= balance.product.min_stock %}text-danger{% else %}text-success{% endif %}">
+                                {{ balance.quantity_on_hand }}
+                            </h4>
+                            <small class="text-muted">Tồn hiện tại</small>
+                        </div>
+                        <div class="col-6">
+                            <h4 class="text-warning">{{ balance.product.min_stock }}</h4>
+                            <small class="text-muted">Tồn tối thiểu</small>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="text-center">
+                        {% if balance.quantity_on_hand <= 0 %}
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle"></i> Hết hàng!
+                        </div>
+                        {% elif balance.quantity_on_hand <= balance.product.min_stock %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle"></i> Sắp hết hàng!
+                        </div>
+                        {% else %}
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle"></i> Tồn kho tốt
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
