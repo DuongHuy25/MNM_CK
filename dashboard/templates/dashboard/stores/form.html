@@ -125,21 +125,36 @@ async function geocodeAddress() {
 // Reverse geocoding: tọa độ -> địa chỉ
 async function reverseGeocodeCoords(lat, lng) {
     if (reverseGeocodeLoading) return;
-    
     reverseGeocodeLoading = true;
     try {
         var res = await fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lng + '&zoom=18&addressdetails=1', {
             timeout: 5000
         });
         var data = await res.json();
-        
+
         if (data && data.address) {
-            // Xây dựng địa chỉ từ các thành phần
-            var addr = data.address.road || '';
-            if (data.address.house_number) addr = data.address.house_number + ' ' + addr;
-            if (data.address.city) addr += ', ' + data.address.city;
-            if (data.address.province) addr += ', ' + data.address.province;
-            
+            // Ưu tiên lấy đúng "quận/huyện" thay vì city/province (có thể bị sai theo dữ liệu sáp nhập)
+            // Nominatim fields thường có: suburb/district/county/hamlet
+            var addrParts = [];
+
+            // house_number + road (đã đúng theo phản hồi)
+            var street = data.address.road || '';
+            var house = data.address.house_number || '';
+            var streetLine = (house ? (house + ' ') : '') + street;
+            if (streetLine.trim()) addrParts.push(streetLine.trim());
+
+            var district = data.address.district || data.address.suburb || data.address.county || data.address.municipality || '';
+            if (district && district.trim()) addrParts.push(district.trim());
+
+            // thành phố/tỉnh
+            var city = data.address.city || data.address.town || data.address.village || data.address.municipality || '';
+            if (city && city.trim()) addrParts.push(city.trim());
+
+            // fallback province
+            var province = data.address.province || data.address.state || '';
+            if ((!city || !city.trim()) && province && province.trim()) addrParts.push(province.trim());
+
+            var addr = addrParts.join(', ');
             if (addr.trim()) {
                 document.getElementById('id_address').value = addr.trim();
                 document.getElementById('id_address').style.borderColor = '#28a745';
