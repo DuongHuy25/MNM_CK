@@ -17,7 +17,16 @@ urlpatterns = [
     path('order/success/<str:order_id>/', views.order_success, name='order_success'),
     path('order/payment/<str:order_id>/', views.payment_simulate, name='payment_simulate'),
     path('order/tracking/', views.order_tracking, name='order_tracking'),
+    path('order/detail/<str:order_id>/', views.order_detail, name='order_detail'),
+    path('order/review/<str:order_id>/', views.order_review, name='order_review'),
     path('tim-duong/', views.directions, name='directions'),
+    path('about/', views.about, name='about'),
+    path('news/', views.news_list, name='news'),
+    path('news/<slug:slug>/', views.news_detail, name='news_detail'),
+    path('contact/', views.contact, name='contact'),
+    path('wishlist/', views.wishlist, name='wishlist'),
+    path('wishlist/add/<int:product_id>/', views.add_to_wishlist, name='add_to_wishlist'),
+    path('wishlist/remove/<int:product_id>/', views.remove_from_wishlist, name='remove_from_wishlist'),
 
     # Auth
     path('login/', views.login_view, name='login'),

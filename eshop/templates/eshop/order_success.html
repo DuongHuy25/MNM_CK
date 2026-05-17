@@ -151,6 +151,16 @@
                     {% endif %}
                     {% endwith %}
                 </div>
+
+                <!-- Review CTA -->
+                {% if order.status == 'completed' %}
+                <div style="margin-top:1.5rem;padding:1rem;background:#f3f4ff;border-radius:12px;text-align:center;">
+                    <div style="font-weight:700;color:#667eea;margin-bottom:.5rem;">Bạn có hài lòng với đơn hàng này?</div>
+                    <a href="{% url 'eshop:order_review' order.order_id %}" style="display:inline-flex;align-items:center;gap:6px;background:#667eea;color:white;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:600;font-size:.9rem;transition:all .2s;" onmouseover="this.style.background='#5a67d8';this.style.transform='translateY(-1px)'" onmouseout="this.style.background='#667eea';this.style.transform=''">
+                        <i class="fas fa-star"></i> Đánh giá đơn hàng
+                    </a>
+                </div>
+                {% endif %}
             </div>
         </div>
 

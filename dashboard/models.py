@@ -2,6 +2,7 @@ from django.db import models
 from django.db.models import Sum
 from django.conf import settings
 from django.utils import timezone
+from django.contrib.auth import get_user_model
 
 # ========== CORE MODELS ==========
 
@@ -259,6 +260,7 @@ class GoodsReceipt(models.Model):
     STATUS_CHOICES = (
         ('draft', 'Nháp'),
         ('confirmed', 'Đã xác nhận'),
+        ('cancelled', 'Đã hủy'),
     )
 
     purchase_order = models.OneToOneField(PurchaseOrder, on_delete=models.CASCADE, related_name='goods_receipt', null=True, blank=True, verbose_name="Đơn mua")
@@ -348,6 +350,125 @@ class PaymentMethod(models.Model):
         verbose_name_plural = "Phương Thức Thanh Toán"
 
 
+# ========== DISCOUNT CODES ==========
+# 21. Mã Giảm Giá
+class DiscountCode(models.Model):
+    DISCOUNT_TYPE_CHOICES = (
+        ('percentage', 'Phần trăm'),
+        ('fixed', 'Cố định'),
+    )
+    
+    STATUS_CHOICES = (
+        ('active', 'Hoạt động'),
+        ('inactive', 'Không hoạt động'),
+        ('expired', 'Hết hạn'),
+    )
+
+    code = models.CharField(max_length=50, unique=True, verbose_name="Mã giảm giá")
+    name = models.CharField(max_length=200, verbose_name="Tên mã giảm giá")
+    description = models.TextField(blank=True, verbose_name="Mô tả")
+    
+    discount_type = models.CharField(max_length=20, choices=DISCOUNT_TYPE_CHOICES, default='percentage', verbose_name="Loại giảm giá")
+    discount_value = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Giá trị giảm")
+    
+    minimum_order_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="Giá trị đơn hàng tối thiểu")
+    maximum_discount_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Giảm giá tối đa")
+    
+    usage_limit = models.IntegerField(null=True, blank=True, verbose_name="Giới hạn số lần sử dụng")
+    usage_count = models.IntegerField(default=0, verbose_name="Số lần đã sử dụng")
+    
+    user_limit = models.IntegerField(default=1, verbose_name="Giới hạn sử dụng mỗi user")
+    
+    start_date = models.DateTimeField(verbose_name="Ngày bắt đầu")
+    end_date = models.DateTimeField(verbose_name="Ngày kết thúc")
+    
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active', verbose_name="Trạng thái")
+    is_active = models.BooleanField(default=True, verbose_name="Kích hoạt")
+    
+    created_by = models.ForeignKey('Employee', on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Người tạo")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Ngày tạo")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Cập nhật lần cuối")
+
+    def __str__(self):
+        return f"{self.code} - {self.name}"
+
+    class Meta:
+        verbose_name = "Mã Giảm Giá"
+        verbose_name_plural = "Mã Giảm Giá"
+        ordering = ['-created_at']
+
+    def is_valid(self):
+        """Kiểm tra mã giảm giá có hợp lệ không"""
+        from django.utils import timezone
+        
+        if not self.is_active or self.status != 'active':
+            return False, "Mã giảm giá không hoạt động"
+        
+        now = timezone.now()
+        if now < self.start_date:
+            return False, "Mã giảm giá chưa bắt đầu"
+        
+        if now > self.end_date:
+            return False, "Mã giảm giá đã hết hạn"
+        
+        if self.usage_limit and self.usage_count >= self.usage_limit:
+            return False, "Mã giảm giá đã hết lượt sử dụng"
+        
+        return True, "Mã giảm giá hợp lệ"
+
+    def calculate_discount(self, order_amount):
+        """Tính toán số tiền giảm giá"""
+        if order_amount < self.minimum_order_amount:
+            return 0, f"Đơn hàng tối thiểu phải {self.minimum_order_amount:,.0f}đ"
+        
+        if self.discount_type == 'percentage':
+            discount = order_amount * (self.discount_value / 100)
+            if self.maximum_discount_amount and discount > self.maximum_discount_amount:
+                discount = self.maximum_discount_amount
+        else:  # fixed
+            discount = self.discount_value
+            if discount > order_amount:
+                discount = order_amount
+        
+        return discount, ""
+
+    def can_user_use(self, user):
+        """Kiểm tra user có thể sử dụng mã này không"""
+        if not user or user.is_anonymous:
+            return False, "Cần đăng nhập để sử dụng mã giảm giá"
+        
+        # Kiểm tra số lần sử dụng của user này
+        user_usage = Order.objects.filter(user=user, discount_code=self).count()
+        
+        if user_usage >= self.user_limit:
+            return False, f"Bạn đã sử dụng mã này {user_usage}/{self.user_limit} lần"
+        
+        return True, ""
+
+    def mark_as_used(self):
+        """Đánh dấu mã đã được sử dụng"""
+        self.usage_count += 1
+        self.save(update_fields=['usage_count'])
+
+
+# 22. Sử dụng mã giảm giá của user
+class DiscountCodeUsage(models.Model):
+    discount_code = models.ForeignKey(DiscountCode, on_delete=models.CASCADE, related_name='usages', verbose_name="Mã giảm giá")
+    user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name='discount_usages', verbose_name="User")
+    order = models.ForeignKey('Order', on_delete=models.CASCADE, related_name='discount_usage', verbose_name="Đơn hàng")
+    discount_amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Số tiền giảm")
+    used_at = models.DateTimeField(auto_now_add=True, verbose_name="Thời gian sử dụng")
+
+    def __str__(self):
+        return f"{self.user.email} - {self.discount_code.code} - {self.discount_amount:,.0f}đ"
+
+    class Meta:
+        verbose_name = "Lịch Sử Sử Dụng Mã Giảm Giá"
+        verbose_name_plural = "Lịch Sử Sử Dụng Mã Giảm Giá"
+        ordering = ['-used_at']
+        unique_together = ['discount_code', 'user', 'order']
+
+
 # 18. Đơn Hàng Bán
 class Order(models.Model):
     STATUS_CHOICES = (
@@ -377,6 +498,12 @@ class Order(models.Model):
     total_amount = models.FloatField(default=0, verbose_name="Tổng tiền")
     discount = models.FloatField(default=0, verbose_name="Chiết khấu")
     tax_amount = models.FloatField(default=0, verbose_name="Thuế")
+    shipping_fee = models.FloatField(default=0, verbose_name="Phí giao hàng")
+    shipping_distance = models.FloatField(null=True, blank=True, verbose_name="Khoảng cách giao hàng (km)")
+    delivery_time_slot = models.CharField(max_length=50, blank=True, verbose_name="Khung giờ giao hàng")
+    nearest_store = models.ForeignKey(Store, on_delete=models.SET_NULL, null=True, blank=True, related_name='delivered_orders', verbose_name="Cửa hàng giao hàng gần nhất")
+    discount_code = models.ForeignKey(DiscountCode, on_delete=models.SET_NULL, null=True, blank=True, related_name='orders', verbose_name="Mã giảm giá")
+    discount_amount = models.FloatField(default=0, verbose_name="Số tiền giảm giá")
     note = models.TextField(blank=True, verbose_name="Ghi chú")
     created_by = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Người tạo")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Ngày tạo")
@@ -815,3 +942,47 @@ class OrderReview(models.Model):
         if ratings:
             return sum(ratings) / len(ratings)
         return self.overall_rating
+
+
+# ========== CONTACT SETTINGS ==========
+
+# 31. Cài đặt trang Liên hệ
+class ContactSettings(models.Model):
+    site_name = models.CharField(max_length=200, default='ZenMart', verbose_name="Tên website")
+    intro_text = models.TextField(blank=True, default='Có câu hỏi hoặc góp ý? Chúng tôi luôn sẵn sàng lắng nghe!', verbose_name="Lời giới thiệu")
+    email = models.TextField(blank=True, default='1250080068@sv.hcmunre.edu.vn\n1250080065@sv.hcmunre.edu.vn\n1250080110@sv.hcmunre.edu.vn', verbose_name="Email nhận liên hệ (mỗi dòng 1 email)")
+    phone = models.CharField(max_length=100, blank=True, default='1900-xxxx', verbose_name="Hotline")
+    address = models.TextField(blank=True, default='TP. Hồ Chí Minh, Việt Nam', verbose_name="Địa chỉ")
+    working_hours = models.CharField(max_length=200, blank=True, default='Tất cả các ngày: 8:00 - 22:00', verbose_name="Giờ làm việc")
+    smtp_host = models.CharField(max_length=200, default='smtp.gmail.com', verbose_name="SMTP Host")
+    smtp_port = models.IntegerField(default=587, verbose_name="SMTP Port")
+    smtp_user = models.CharField(max_length=200, blank=True, default='duongdanhuy25@gmail.com', verbose_name="SMTP Email gửi")
+    smtp_password = models.CharField(max_length=200, blank=True, default='', verbose_name="SMTP App Password")
+    smtp_use_tls = models.BooleanField(default=True, verbose_name="Sử dụng TLS")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Cập nhật")
+
+    class Meta:
+        verbose_name_plural = "Cài đặt Liên hệ"
+
+    def __str__(self):
+        return f"Cài đặt Liên hệ - {self.site_name}"
+
+    def get_emails(self):
+        return [e.strip() for e in self.email.split('\n') if e.strip()]
+
+
+# ========== WISHLIST ==========
+
+# 32. Danh sách yêu thích
+class Wishlist(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='wishlist_items', verbose_name="Người dùng")
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='wishlist_items', verbose_name="Sản phẩm")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Ngày thêm")
+
+    class Meta:
+        verbose_name_plural = "Danh sách yêu thích"
+        unique_together = ['user', 'product']
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user.email} - {self.product.name}"

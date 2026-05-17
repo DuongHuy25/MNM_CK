@@ -1,0 +1,113 @@
+{% extends 'eshop/base.html' %}
+{% block title %}Tin Tức{% endblock %}
+{% block content %}
+<style>
+.news-hero{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:3rem 2rem;text-align:center;border-radius:0 0 24px 24px;margin-bottom:2rem}
+.news-hero h1{font-size:2rem;font-weight:800;margin:0 0 .5rem}
+.news-hero p{opacity:.9;font-size:1rem}
+.news-wrap{max-width:1100px;margin:0 auto;padding:0 1rem 2rem}
+.news-cats{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.5rem}
+.news-cat{padding:8px 16px;border-radius:50px;font-weight:600;font-size:.85rem;cursor:pointer;transition:.2s;text-decoration:none}
+.news-cat:hover{transform:translateY(-1px)}
+.news-cat-all{background:#667eea;color:white}
+.news-cat-promotion{background:#fff3e0;color:#e65100}
+.news-cat-event{background:#e8f5e9;color:#2e7d32}
+.news-cat-product{background:#e3f2fd;color:#1565c0}
+.news-cat-company{background:#fce4ec;color:#c62828}
+.news-cat-other{background:#f3f4ff;color:#667eea}
+.news-cat.active{box-shadow:0 0 0 3px rgba(102,126,234,.4)}
+.news-featured{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;margin-bottom:2rem}
+.news-f-card{background:white;border-radius:16px;overflow:hidden;box-shadow:0 2px 15px rgba(0,0,0,.06);transition:.2s;text-decoration:none;color:inherit;display:block}
+.news-f-card:hover{transform:translateY(-4px);box-shadow:0 8px 25px rgba(0,0,0,.1)}
+.news-f-card img{width:100%;height:180px;object-fit:cover}
+.news-f-card .body{padding:1rem}
+.news-f-card .badge{display:inline-block;padding:3px 10px;border-radius:50px;font-size:.7rem;font-weight:700;margin-bottom:6px}
+.news-f-card h3{font-size:1rem;font-weight:700;margin:0 0 6px;line-height:1.4}
+.news-f-card .meta{font-size:.75rem;color:#636e72;display:flex;gap:12px}
+.news-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1.5rem}
+.news-card{background:white;border-radius:16px;overflow:hidden;box-shadow:0 2px 15px rgba(0,0,0,.06);transition:.2s;text-decoration:none;color:inherit;display:flex}
+.news-card:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.1)}
+.news-card img{width:220px;min-height:160px;object-fit:cover;flex-shrink:0}
+.news-card .body{padding:1rem;flex:1;display:flex;flex-direction:column}
+.news-card .badge{display:inline-block;padding:3px 10px;border-radius:50px;font-size:.7rem;font-weight:700;margin-bottom:6px;align-self:flex-start}
+.news-card h3{font-size:1rem;font-weight:700;margin:0 0 6px;line-height:1.4}
+.news-card .summary{font-size:.85rem;color:#636e72;line-height:1.5;flex:1}
+.news-card .meta{font-size:.75rem;color:#b2bec3;display:flex;gap:12px;margin-top:8px}
+.badge-promotion{background:#fff3e0;color:#e65100}
+.badge-event{background:#e8f5e9;color:#2e7d32}
+.badge-product{background:#e3f2fd;color:#1565c0}
+.badge-company{background:#fce4ec;color:#c62828}
+.badge-other{background:#f3f4ff;color:#667eea}
+.news-empty{text-align:center;padding:4rem 2rem;background:white;border-radius:16px;box-shadow:0 2px 15px rgba(0,0,0,.06)}
+@media(max-width:768px){.news-featured{grid-template-columns:1fr}.news-grid{grid-template-columns:1fr}.news-card{flex-direction:column}.news-card img{width:100%;height:180px}}
+</style>
+
+<div class="news-hero">
+    <h1><i class="fas fa-newspaper"></i> Tin Tức</h1>
+    <p>Cập nhật khuyến mãi, sự kiện và tin tức mới nhất từ ZenMart</p>
+</div>
+
+<div class="news-wrap">
+    <!-- Category filter -->
+    <div class="news-cats">
+        <a href="{% url 'eshop:news' %}" class="news-cat news-cat-all {% if not current_category %}active{% endif %}">Tất cả</a>
+        <a href="?category=promotion" class="news-cat news-cat-promotion {% if current_category == 'promotion' %}active{% endif %}">Khuyến mãi</a>
+        <a href="?category=event" class="news-cat news-cat-event {% if current_category == 'event' %}active{% endif %}">Sự kiện</a>
+        <a href="?category=product" class="news-cat news-cat-product {% if current_category == 'product' %}active{% endif %}">Sản phẩm mới</a>
+        <a href="?category=company" class="news-cat news-cat-company {% if current_category == 'company' %}active{% endif %}">Tin công ty</a>
+    </div>
+
+    <!-- Featured -->
+    {% if featured and not current_category %}
+    <div class="news-featured">
+        {% for article in featured %}
+        <a href="{% url 'eshop:news_detail' article.slug %}" class="news-f-card">
+            {% if article.image %}
+            <img src="{{ article.image.url }}" alt="{{ article.title }}">
+            {% else %}
+            <div style="width:100%;height:180px;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center"><i class="fas fa-newspaper" style="font-size:2.5rem;color:rgba(255,255,255,.5)"></i></div>
+            {% endif %}
+            <div class="body">
+                <span class="badge badge-{{ article.category }}">{{ article.get_category_display }}</span>
+                <h3>{{ article.title }}</h3>
+                <div class="meta">
+                    <span><i class="fas fa-calendar"></i> {{ article.published_at|date:"d/m/Y" }}</span>
+                    <span><i class="fas fa-eye"></i> {{ article.views_count }}</span>
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- All news -->
+    {% if news %}
+    <div class="news-grid">
+        {% for article in news %}
+        <a href="{% url 'eshop:news_detail' article.slug %}" class="news-card">
+            {% if article.image %}
+            <img src="{{ article.image.url }}" alt="{{ article.title }}">
+            {% else %}
+            <div style="width:220px;min-height:160px;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="fas fa-newspaper" style="font-size:2rem;color:rgba(255,255,255,.5)"></i></div>
+            {% endif %}
+            <div class="body">
+                <span class="badge badge-{{ article.category }}">{{ article.get_category_display }}</span>
+                <h3>{{ article.title }}</h3>
+                {% if article.summary %}<div class="summary">{{ article.summary|truncatewords:25 }}</div>{% endif %}
+                <div class="meta">
+                    <span><i class="fas fa-calendar"></i> {{ article.published_at|date:"d/m/Y" }}</span>
+                    <span><i class="fas fa-eye"></i> {{ article.views_count }}</span>
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="news-empty">
+        <i class="fas fa-newspaper" style="font-size:3rem;color:#b2bec3;margin-bottom:1rem"></i>
+        <h3 style="color:#636e72">Chưa có tin tức</h3>
+        <p style="color:#b2bec3">Hiện chưa có bài viết nào. Vui lòng quay lại sau!</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

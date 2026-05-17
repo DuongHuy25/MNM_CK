@@ -177,4 +177,15 @@ STATIC_URL = 'static/'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+# Email backend (Gmail SMTP)
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'duongdanhuy25@gmail.com'
+EMAIL_HOST_PASSWORD = 'qvqx wqdc sxid nqmf'  # Gmail App Password
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+EMAIL_SSL_CERTFILE = None
+EMAIL_SSL_KEYFILE = None
+
 LOGIN_URL = '/dashboard/login/'

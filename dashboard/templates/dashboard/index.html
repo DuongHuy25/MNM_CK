@@ -1,5 +1,8 @@
 {% extends 'dashboard/base.html' %}
 {% block title %}Bảng Điều Khiển{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+{% endblock %}
 {% block content %}
 
 <!-- ===== STAT CARDS ===== -->
@@ -144,6 +147,96 @@
     </div>
 </div>
 
+<!-- ===== CHARTS SECTION ===== -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:2rem;">
+    <!-- Revenue Chart -->
+    <div class="card">
+        <div class="card-header">
+            <span><i class="fas fa-chart-line" style="color:#667eea;margin-right:8px;"></i>Biểu đồ Doanh thu (6 tháng)</span>
+        </div>
+        <div class="card-body">
+            <canvas id="revenueChart" style="max-height:300px;"></canvas>
+        </div>
+    </div>
+
+    <!-- Orders Chart -->
+    <div class="card">
+        <div class="card-header">
+            <span><i class="fas fa-chart-bar" style="color:#f5365c;margin-right:8px;"></i>Biểu đồ Đơn hàng (6 tháng)</span>
+        </div>
+        <div class="card-body">
+            <canvas id="ordersChart" style="max-height:300px;"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- ===== TOP PRODUCTS & ORDERS STATUS ===== -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:2rem;">
+    <!-- Top Products -->
+    <div class="card">
+        <div class="card-header">
+            <span><i class="fas fa-trophy" style="color:#ffd600;margin-right:8px;"></i>Sản phẩm bán chạy</span>
+        </div>
+        <div class="card-body">
+            {% if top_products %}
+            <div style="max-height:300px;overflow-y:auto;">
+                {% for product in top_products %}
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:0.75rem 0;border-bottom:1px solid #f0f2f5;">
+                    <div>
+                        <div style="font-weight:600;color:#32325d;">{{ product.product__name }}</div>
+                        <div style="font-size:0.75rem;color:#8898aa;">{{ product.total_quantity }} sản phẩm</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-weight:700;color:#667eea;">{{ product.total_revenue|floatformat:0 }}đ</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div style="text-align:center;padding:2rem;color:#adb5bd;">Chưa có dữ liệu</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Orders Status -->
+    <div class="card">
+        <div class="card-header">
+            <span><i class="fas fa-pie-chart" style="color:#2dce89;margin-right:8px;"></i>Trạng thái đơn hàng</span>
+        </div>
+        <div class="card-body">
+            <canvas id="ordersStatusChart" style="max-height:300px;"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- ===== LOW STOCK ALERTS ===== -->
+{% if low_stock_items %}
+<div class="card" style="margin-bottom:2rem;">
+    <div class="card-header" style="background:#fff5f5;border-bottom:2px solid #feb2b2;">
+        <span><i class="fas fa-exclamation-triangle" style="color:#e53e3e;margin-right:8px;"></i>Cảnh báo tồn kho thấp</span>
+        <span style="font-size:0.82rem;color:#e53e3e;">{{ low_stock_items|length }} sản phẩm</span>
+    </div>
+    <div class="card-body">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1rem;">
+            {% for item in low_stock_items %}
+            <div style="background:#fff5f5;border:1px solid #feb2b2;border-radius:8px;padding:1rem;">
+                <div style="display:flex;justify-content:space-between;align-items:start;">
+                    <div>
+                        <div style="font-weight:600;color:#c53030;">{{ item.product.name }}</div>
+                        <div style="font-size:0.75rem;color:#718096;">Kho: {{ item.warehouse.name }}</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-size:0.75rem;color:#718096;">Tồn kho:</div>
+                        <div style="font-weight:700;color:#e53e3e;">{{ item.quantity_on_hand }}</div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <!-- ===== QUICK ACTIONS ===== -->
 <div class="card" style="margin-top:1.5rem;">
     <div class="card-header">
@@ -183,37 +276,183 @@
         <span><i class="fas fa-map-location-dot" style="color:#0052D4;margin-right:8px;"></i>Chi Nhánh Cửa Hàng</span>
         <span style="font-size:0.82rem;color:#8898aa;">{{ stores|length }} chi nhánh</span>
     </div>
-    <div id="storesMap" style="height:400px;border-radius:0 0 8px 8px;"></div>
+    {{ stores|json_script:"dashboard-stores-map-data" }}
+    <div id="storesMap" class="dashboard-stores-leaflet" style="height:400px;border-radius:0 0 8px 8px;z-index:1;"></div>
 </div>
 
 {% endblock %}
 
 {% block extra_js %}
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    .dashboard-stores-leaflet.leaflet-container { background: #e8ecf4; }
+</style>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const storesData = {{ stores|safe }};
-    const map = L.map('storesMap').setView([10.7769, 106.7009], 11);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png', {
-        attribution: '© OpenStreetMap, © CartoDB', maxZoom: 20
-    }).addTo(map);
+    // Store Map — dữ liệu JSON an toàn (tránh lỗi cú pháp khi tên/địa chỉ có dấu ' hoặc lat/lng null)
+    var storesData = [];
+    var storesJsonEl = document.getElementById('dashboard-stores-map-data');
+    if (storesJsonEl && storesJsonEl.textContent) {
+        try {
+            storesData = JSON.parse(storesJsonEl.textContent);
+        } catch (e) {
+            console.error('dashboard stores map JSON', e);
+        }
+    }
+    var mapEl = document.getElementById('storesMap');
+    if (mapEl && typeof L !== 'undefined') {
+        var map = L.map('storesMap').setView([10.7769, 106.7009], 11);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+            maxZoom: 19
+        }).addTo(map);
 
-    const markers = [];
-    storesData.forEach(function(s) {
-        if (s.latitude && s.longitude) {
-            const tooltipHtml = '<b>' + s.name + '</b>' + (s.address ? '<br><small>' + s.address + '</small>' : '');
-            const marker = L.marker([s.latitude, s.longitude]).addTo(map);
+        var markers = [];
+        storesData.forEach(function(s) {
+            var lat = Number(s.latitude);
+            var lng = Number(s.longitude);
+            if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+            var name = (s.name != null) ? String(s.name) : '';
+            var addr = (s.address != null) ? String(s.address) : '';
+            var tooltipHtml = '<b>' + L.Util.escapeHTML(name) + '</b>' + (addr ? '<br><small>' + L.Util.escapeHTML(addr) + '</small>' : '');
+            var marker = L.marker([lat, lng]).addTo(map);
             marker.bindTooltip(tooltipHtml, { direction: 'top', offset: [0, -10], opacity: 1, sticky: false });
             marker.on('mouseover', function() { this.openTooltip(); });
             marker.on('mouseout', function() { this.closeTooltip(); });
             markers.push(marker);
-        }
-    });
+        });
 
-    if (markers.length) {
-        const group = L.featureGroup(markers);
-        map.fitBounds(group.getBounds().pad(0.15));
+        if (markers.length) {
+            var group = L.featureGroup(markers);
+            map.fitBounds(group.getBounds().pad(0.15));
+        }
+        function refreshMapSize() {
+            map.invalidateSize(true);
+        }
+        requestAnimationFrame(refreshMapSize);
+        setTimeout(refreshMapSize, 150);
+        setTimeout(refreshMapSize, 500);
+    }
+
+    // Revenue Chart
+    const revenueCtx = document.getElementById('revenueChart');
+    if (revenueCtx) {
+        const revenueData = {{ revenue_chart_data|safe }};
+        new Chart(revenueCtx, {
+            type: 'line',
+            data: {
+                labels: revenueData.map(item => item.month),
+                datasets: [{
+                    label: 'Doanh thu (VNĐ)',
+                    data: revenueData.map(item => item.revenue),
+                    borderColor: '#667eea',
+                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return value.toLocaleString('vi-VN') + 'đ';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Orders Chart
+    const ordersCtx = document.getElementById('ordersChart');
+    if (ordersCtx) {
+        const orderData = {{ order_chart_data|safe }};
+        new Chart(ordersCtx, {
+            type: 'bar',
+            data: {
+                labels: orderData.map(item => item.month),
+                datasets: [{
+                    label: 'Số đơn hàng',
+                    data: orderData.map(item => item.orders),
+                    backgroundColor: '#f5365c',
+                    borderColor: '#f5365c',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Orders Status Chart
+    const statusCtx = document.getElementById('ordersStatusChart');
+    if (statusCtx) {
+        const statusData = {{ orders_by_status|safe }};
+        const statusColors = {
+            'pending': '#ffd600',
+            'processing': '#667eea', 
+            'shipped': '#2dce89',
+            'delivered': '#11cdef',
+            'cancelled': '#f5365c'
+        };
+        
+        new Chart(statusCtx, {
+            type: 'doughnut',
+            data: {
+                labels: statusData.map(item => {
+                    const statusMap = {
+                        'pending': 'Chờ xử lý',
+                        'processing': 'Đang xử lý',
+                        'shipped': 'Đang giao',
+                        'delivered': 'Đã giao',
+                        'cancelled': 'Đã hủy'
+                    };
+                    return statusMap[item.status] || item.status;
+                }),
+                datasets: [{
+                    data: statusData.map(item => item.count),
+                    backgroundColor: statusData.map(item => statusColors[item.status] || '#8898aa'),
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
     }
 });
 </script>

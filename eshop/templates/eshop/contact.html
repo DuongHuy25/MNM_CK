@@ -1,0 +1,101 @@
+{% extends 'eshop/base.html' %}
+{% block title %}Liên Hệ{% endblock %}
+{% block content %}
+<style>
+.ct-hero{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:3rem 2rem;text-align:center;border-radius:0 0 24px 24px;margin-bottom:2rem}
+.ct-hero h1{font-size:2rem;font-weight:800;margin:0 0 .5rem}
+.ct-hero p{opacity:.9;font-size:1rem}
+.ct-wrap{max-width:900px;margin:0 auto;padding:0 1rem 2rem}
+.ct-grid{display:grid;grid-template-columns:1fr 1fr;gap:2rem}
+.ct-form-card,.ct-info-card{background:white;border-radius:16px;padding:2rem;box-shadow:0 2px 15px rgba(0,0,0,.06)}
+.ct-form-card h2,.ct-info-card h2{font-size:1.2rem;font-weight:800;color:#2d3436;margin:0 0 1.5rem;display:flex;align-items:center;gap:8px}
+.ct-form-card h2 i,.ct-info-card h2 i{color:#667eea}
+.ct-input{width:100%;padding:12px 16px;border:2px solid #e8ecf1;border-radius:10px;font-size:.9rem;outline:none;transition:border .2s;margin-bottom:1rem;font-family:inherit}
+.ct-input:focus{border-color:#667eea}
+.ct-input::placeholder{color:#b2bec3}
+textarea.ct-input{resize:vertical;min-height:120px}
+.ct-btn{width:100%;padding:14px;border:none;border-radius:10px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;font-weight:700;font-size:1rem;cursor:pointer;transition:.2s}
+.ct-btn:hover{transform:translateY(-1px);box-shadow:0 4px 15px rgba(102,126,234,.4)}
+.ct-info-item{display:flex;gap:12px;margin-bottom:1.5rem;align-items:flex-start}
+.ct-info-icon{width:44px;height:44px;border-radius:12px;background:#f3f4ff;display:flex;align-items:center;justify-content:center;color:#667eea;font-size:1.1rem;flex-shrink:0}
+.ct-info-item h4{font-size:.95rem;font-weight:700;color:#2d3436;margin:0 0 2px}
+.ct-info-item p{font-size:.85rem;color:#636e72;margin:0}
+.ct-stores{margin-top:1.5rem;border-top:1px solid #f0f2f5;padding-top:1.5rem}
+.ct-stores h3{font-size:1rem;font-weight:700;color:#2d3436;margin:0 0 1rem;display:flex;align-items:center;gap:6px}
+.ct-stores h3 i{color:#667eea}
+.ct-store-item{display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #f8f9fa}
+.ct-store-dot{width:10px;height:10px;border-radius:50%;background:#2dce89;flex-shrink:0}
+.ct-store-item .name{font-weight:600;font-size:.85rem;color:#2d3436}
+.ct-store-item .addr{font-size:.75rem;color:#636e72}
+@media(max-width:768px){.ct-grid{grid-template-columns:1fr}}
+</style>
+
+<div class="ct-hero">
+    <h1><i class="fas fa-headset"></i> Liên Hệ</h1>
+    <p>{{ cs.intro_text|default:"Có câu hỏi hoặc góp ý? Chúng tôi luôn sẵn sàng lắng nghe!" }}</p>
+</div>
+
+<div class="ct-wrap">
+    <div class="ct-grid">
+        <!-- Form -->
+        <div class="ct-form-card">
+            <h2><i class="fas fa-paper-plane"></i> Gửi tin nhắn</h2>
+            <form method="post">
+                {% csrf_token %}
+                <input type="text" name="name" class="ct-input" placeholder="Họ và tên của bạn" required>
+                <input type="email" name="email" class="ct-input" placeholder="Email của bạn" required>
+                <input type="text" name="subject" class="ct-input" placeholder="Chủ đề" required>
+                <textarea name="message" class="ct-input" placeholder="Nội dung tin nhắn..." required></textarea>
+                <button type="submit" class="ct-btn"><i class="fas fa-paper-plane"></i> Gửi tin nhắn</button>
+            </form>
+        </div>
+
+        <!-- Info -->
+        <div class="ct-info-card">
+            <h2><i class="fas fa-info-circle"></i> Thông tin liên hệ</h2>
+            <div class="ct-info-item">
+                <div class="ct-info-icon"><i class="fas fa-envelope"></i></div>
+                <div>
+                    <h4>Email</h4>
+                    <p>{{ cs.get_emails|first|default:"1250080068@sv.hcmunre.edu.vn" }}</p>
+                </div>
+            </div>
+            <div class="ct-info-item">
+                <div class="ct-info-icon"><i class="fas fa-phone"></i></div>
+                <div>
+                    <h4>Hotline</h4>
+                    <p>{{ cs.phone|default:"1900-xxxx" }}</p>
+                </div>
+            </div>
+            <div class="ct-info-item">
+                <div class="ct-info-icon"><i class="fas fa-map-marker-alt"></i></div>
+                <div>
+                    <h4>Trụ sở chính</h4>
+                    <p>{{ cs.address|default:"TP. Hồ Chí Minh, Việt Nam" }}</p>
+                </div>
+            </div>
+            <div class="ct-info-item">
+                <div class="ct-info-icon"><i class="fas fa-clock"></i></div>
+                <div>
+                    <h4>Giờ làm việc</h4>
+                    <p>{{ cs.working_hours|default:"Tất cả các ngày: 8:00 - 22:00" }}</p>
+                </div>
+            </div>
+
+            <!-- Stores -->
+            <div class="ct-stores">
+                <h3><i class="fas fa-store"></i> Cửa hàng gần bạn</h3>
+                {% for store in stores %}
+                <div class="ct-store-item">
+                    <div class="ct-store-dot"></div>
+                    <div>
+                        <div class="name">{{ store.name }}</div>
+                        <div class="addr">{{ store.address }} · {{ store.opening_hours }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

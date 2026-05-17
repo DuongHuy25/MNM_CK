@@ -86,6 +86,54 @@
         </div>
     </div>
     {% endif %}
+
+    <!-- ABOUT US - 3 CARDS -->
+    <div class="section" style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:3rem 2rem;border-radius:20px;margin:2rem 0;">
+        <div style="text-align:center;margin-bottom:3rem;">
+            <h2 style="font-size:2rem;font-weight:800;margin:0 0 1rem;display:flex;align-items:center;justify-content:center;gap:10px;">
+                <i class="fas fa-store"></i> Về ZenMart
+            </h2>
+            <p style="font-size:1.1rem;opacity:.9;max-width:600px;margin:0 auto;">Chuỗi cửa hàng tiện lợi hàng đầu Việt Nam - Chất lượng, Tiện lợi, Tận tâm</p>
+        </div>
+        
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:2rem;max-width:1200px;margin:0 auto;">
+            <!-- TIN TỨC -->
+            <a href="{% url 'eshop:news' %}" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;padding:2rem;text-align:center;text-decoration:none;transition:transform .2s,background .2s;" onmouseover="this.style.transform='translateY(-5px)';this.style.background='rgba(255,255,255,0.15)'" onmouseout="this.style.transform='';this.style.background='rgba(255,255,255,0.1)'">
+                <div style="width:64px;height:64px;background:rgba(255,255,255,0.2);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem;">
+                    <i class="fas fa-newspaper" style="font-size:1.8rem;color:white;"></i>
+                </div>
+                <h3 style="font-size:1.3rem;font-weight:700;margin:0 0 1rem;color:white;">Tin Tức</h3>
+                <p style="font-size:.95rem;opacity:.9;margin:0 0 1.5rem;line-height:1.5;">Cập nhật thông tin khuyến mãi, sự kiện và tin tức mới nhất từ ZenMart</p>
+                <div style="display:inline-flex;align-items:center;gap:6px;color:white;font-weight:600;font-size:.9rem;">
+                    <i class="fas fa-arrow-right"></i> Xem tin tức
+                </div>
+            </a>
+
+            <!-- GIỚI THIỆU -->
+            <a href="{% url 'eshop:about' %}" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;padding:2rem;text-align:center;text-decoration:none;transition:transform .2s,background .2s;" onmouseover="this.style.transform='translateY(-5px)';this.style.background='rgba(255,255,255,0.15)'" onmouseout="this.style.transform='';this.style.background='rgba(255,255,255,0.1)'">
+                <div style="width:64px;height:64px;background:rgba(255,255,255,0.2);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem;">
+                    <i class="fas fa-info-circle" style="font-size:1.8rem;color:white;"></i>
+                </div>
+                <h3 style="font-size:1.3rem;font-weight:700;margin:0 0 1rem;color:white;">Giới Thiệu</h3>
+                <p style="font-size:.95rem;opacity:.9;margin:0 0 1.5rem;line-height:1.5;">Tìm hiểu về lịch sử hình thành, sứ mệnh và giá trị cốt lõi của ZenMart</p>
+                <div style="display:inline-flex;align-items:center;gap:6px;color:white;font-weight:600;font-size:.9rem;">
+                    <i class="fas fa-arrow-right"></i> Tìm hiểu thêm
+                </div>
+            </a>
+
+            <!-- LIÊN HỆ -->
+            <a href="{% url 'eshop:contact' %}" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;padding:2rem;text-align:center;text-decoration:none;transition:transform .2s,background .2s;" onmouseover="this.style.transform='translateY(-5px)';this.style.background='rgba(255,255,255,0.15)'" onmouseout="this.style.transform='';this.style.background='rgba(255,255,255,0.1)'">
+                <div style="width:64px;height:64px;background:rgba(255,255,255,0.2);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem;">
+                    <i class="fas fa-headset" style="font-size:1.8rem;color:white;"></i>
+                </div>
+                <h3 style="font-size:1.3rem;font-weight:700;margin:0 0 1rem;color:white;">Liên Hệ</h3>
+                <p style="font-size:.95rem;opacity:.9;margin:0 0 1.5rem;line-height:1.5;">Gửi thắc mắc, góp ý cho chúng tôi. Chúng tôi luôn sẵn sàng lắng nghe!</p>
+                <div style="display:inline-flex;align-items:center;gap:6px;color:white;font-weight:600;font-size:.9rem;">
+                    <i class="fas fa-arrow-right"></i> Liên hệ ngay
+                </div>
+            </a>
+        </div>
+    </div>
 </div>
 
 {% endblock %}

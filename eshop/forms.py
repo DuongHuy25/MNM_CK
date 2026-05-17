@@ -201,6 +201,14 @@ class CheckoutForm(forms.Form):
         }),
         label='Phương thức thanh toán'
     )
+    delivery_time_slot = forms.ChoiceField(
+        choices=[],
+        required=False,
+        widget=forms.Select(attrs={
+            'class': 'eshop-input',
+        }),
+        label='Thời gian giao hàng (tùy chọn)'
+    )
 
 
 class OrderTrackingForm(forms.Form):
@@ -211,4 +219,78 @@ class OrderTrackingForm(forms.Form):
             'placeholder': 'Nhập mã đơn hàng (VD: ORD-20250507-A1B2C3D4)',
         }),
         label='Mã đơn hàng'
+    )
+
+
+class ProductReviewForm(forms.Form):
+    rating = forms.ChoiceField(
+        choices=[(i, f'{i} sao') for i in range(1, 6)],
+        widget=forms.RadioSelect(attrs={
+            'class': 'rating-radio',
+        }),
+        label='Đánh giá của bạn'
+    )
+    comment = forms.CharField(
+        widget=forms.Textarea(attrs={
+            'class': 'eshop-input',
+            'placeholder': 'Chia sẻ trải nghiệm của bạn về sản phẩm này...',
+            'rows': 4,
+        }),
+        label='Bình luận',
+        required=False
+    )
+    images = forms.ImageField(
+        required=False,
+        widget=forms.FileInput(attrs={
+            'class': 'eshop-input',
+            'accept': 'image/*',
+        }),
+        label='Hình ảnh (tối đa 5, có thể chọn nhiều file)'
+    )
+
+
+class OrderReviewForm(forms.Form):
+    food_quality = forms.ChoiceField(
+        choices=[(i, f'{i} sao') for i in range(1, 6)],
+        widget=forms.RadioSelect(attrs={
+            'class': 'rating-radio',
+        }),
+        label='Chất lượng món ăn'
+    )
+    service_quality = forms.ChoiceField(
+        choices=[(i, f'{i} sao') for i in range(1, 6)],
+        widget=forms.RadioSelect(attrs={
+            'class': 'rating-radio',
+        }),
+        label='Chất lượng phục vụ'
+    )
+    delivery_speed = forms.ChoiceField(
+        choices=[(i, f'{i} sao') for i in range(1, 6)],
+        widget=forms.RadioSelect(attrs={
+            'class': 'rating-radio',
+        }),
+        label='Tốc độ giao hàng'
+    )
+    packaging_quality = forms.ChoiceField(
+        choices=[(i, f'{i} sao') for i in range(1, 6)],
+        widget=forms.RadioSelect(attrs={
+            'class': 'rating-radio',
+        }),
+        label='Chất lượng đóng gói'
+    )
+    overall_rating = forms.ChoiceField(
+        choices=[(i, f'{i} sao') for i in range(1, 6)],
+        widget=forms.RadioSelect(attrs={
+            'class': 'rating-radio',
+        }),
+        label='Đánh giá tổng thể'
+    )
+    comment = forms.CharField(
+        widget=forms.Textarea(attrs={
+            'class': 'eshop-input',
+            'placeholder': 'Chia sẻ trải nghiệm của bạn về đơn hàng này...',
+            'rows': 4,
+        }),
+        label='Bình luận',
+        required=False
     )

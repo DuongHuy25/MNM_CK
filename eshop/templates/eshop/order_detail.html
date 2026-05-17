@@ -1,0 +1,174 @@
+{% extends 'eshop/base.html' %}
+{% block title %}Chi tiết đơn hàng {{ order.order_id }} - ZenMart{% endblock %}
+{% block content %}
+<style>
+.order-detail-wrap{max-width:1000px;margin:0 auto;padding:2rem 1rem}
+.order-header{background:white;border-radius:16px;padding:2rem;box-shadow:0 2px 15px rgba(0,0,0,.06);margin-bottom:2rem}
+.order-header h1{font-size:1.8rem;font-weight:800;color:#2d3436;margin:0 0 1rem;display:flex;align-items:center;gap:10px;}
+.order-header .order-id{font-size:1.1rem;color:#636e72;margin-bottom:1rem}
+.order-header .status-badge{display:inline-block;padding:6px 16px;border-radius:20px;font-size:.85rem;font-weight:700;}
+.status-pending{background:#fff8f0;color:#fb6340;}
+.status-confirmed{background:#f0fff4;color:#2dce89;}
+.status-processing{background:#e3f2fd;color:#3399ff;}
+.status-shipped{background:#f3e5f5;color:#9c27b0;}
+.status-completed{background:#e8f5e8;color:#4caf50;}
+.status-cancelled{background:#ffebee;color:#f44336;}
+.order-grid{display:grid;grid-template-columns:1fr 1.5fr;gap:2rem;margin-bottom:2rem}
+@media(max-width:768px){.order-grid{grid-template-columns:1fr}}
+.order-card{background:white;border-radius:16px;padding:2rem;box-shadow:0 2px 15px rgba(0,0,0,.06);}
+.order-card h3{font-size:1.2rem;font-weight:800;color:#2d3436;margin:0 0 1.5rem;display:flex;align-items:center;gap:8px;}
+.order-card h3 i{color:#667eea}
+.order-info-row{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f0f2f5}
+.order-info-row:last-child{border-bottom:none}
+.order-info-row .label{color:#636e72;font-weight:600}
+.order-info-row .value{color:#2d3436;text-align:right;max-width:60%}
+.order-item{display:flex;gap:1rem;padding:1rem 0;border-bottom:1px solid #f0f2f5}
+.order-item:last-child{border-bottom:none}
+.order-item img{width:80px;height:80px;border-radius:12px;object-fit:cover}
+.order-item .details{flex:1}
+.order-item .name{font-weight:700;color:#2d3436;margin-bottom:4px}
+.order-item .price{color:#667eea;font-weight:700}
+.order-item .quantity{color:#636e72;font-size:.9rem}
+.order-summary{margin-top:1.5rem;padding-top:1.5rem;border-top:2px solid #f0f2f5}
+.order-summary .row{display:flex;justify-content:space-between;margin-bottom:8px}
+.order-summary .total{font-size:1.2rem;font-weight:800;color:#2d3436;margin-top:8px;padding-top:8px;border-top:1px solid #f0f2f5}
+.order-summary .total .value{color:#667eea}
+.cancel-btn{background:#f44336;color:white;border:none;padding:12px 24px;border-radius:8px;font-weight:700;cursor:pointer;transition:.2s;margin-top:1rem}
+.cancel-btn:hover{background:#d32f2f;transform:translateY(-1px)}
+.cancel-btn:disabled{background:#ccc;cursor:not-allowed;transform:none}
+</style>
+
+<div class="order-detail-wrap">
+    <div class="order-header">
+        <h1><i class="fas fa-receipt"></i> Chi tiết đơn hàng</h1>
+        <div class="order-id">Mã đơn hàng: <strong>{{ order.order_id }}</strong></div>
+        <div class="status-badge status-{{ order.status }}">{{ order.get_status_display }}</div>
+    </div>
+
+    <div class="order-grid">
+        <!-- Order Info -->
+        <div class="order-card">
+            <h3><i class="fas fa-info-circle"></i> Thông tin đơn hàng</h3>
+            
+            <div class="order-info-row">
+                <span class="label">Ngày đặt hàng</span>
+                <span class="value">{{ order.created_at|date:"d/m/Y H:i" }}</span>
+            </div>
+            
+            <div class="order-info-row">
+                <span class="label">Phương thức thanh toán</span>
+                <span class="value">{{ order.get_payment_method_display }}</span>
+            </div>
+            
+            <div class="order-info-row">
+                <span class="label">Trạng thái thanh toán</span>
+                <span class="value">
+                    {% with payment=order.payments.first %}
+                    {% if payment.status == 'completed' %}
+                    <span style="color:#2dce89;font-weight:700;"><i class="fas fa-check-circle"></i> Đã thanh toán</span>
+                    {% elif payment.status == 'pending' %}
+                    <span style="color:#fb6340;font-weight:700;"><i class="fas fa-clock"></i> Chờ thanh toán</span>
+                    {% else %}
+                    <span style="color:#636e72;">{{ payment.get_status_display }}</span>
+                    {% endif %}
+                    {% endwith %}
+                </span>
+            </div>
+            
+            <div class="order-info-row">
+                <span class="label">Ghi chú</span>
+                <span class="value">{{ order.note|default:"Không có" }}</span>
+            </div>
+            
+            <!-- Cancel Button -->
+            {% if order.status in 'pending,confirmed' %}
+            <form method="post" onsubmit="return confirm('Bạn có chắc chắn muốn hủy đơn hàng này?')">
+                {% csrf_token %}
+                <button type="submit" class="cancel-btn">
+                    <i class="fas fa-times-circle"></i> Hủy đơn hàng
+                </button>
+            </form>
+            {% endif %}
+        </div>
+
+        <!-- Shipping Info -->
+        <div class="order-card">
+            <h3><i class="fas fa-truck"></i> Thông tin giao hàng</h3>
+            
+            <div class="order-info-row">
+                <span class="label">Người nhận</span>
+                <span class="value">{{ order.full_name }}</span>
+            </div>
+            
+            <div class="order-info-row">
+                <span class="label">Số điện thoại</span>
+                <span class="value">{{ order.phone_number }}</span>
+            </div>
+            
+            <div class="order-info-row">
+                <span class="label">Địa chỉ giao hàng</span>
+                <span class="value">{{ order.shipping_address }}</span>
+            </div>
+            
+            <div class="order-info-row">
+                <span class="label">Tổng tiền</span>
+                <span class="value" style="font-size:1.3rem;font-weight:800;color:#667eea;">
+                    {{ order.get_total|floatformat:0 }}đ
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Items -->
+    <div class="order-card">
+        <h3><i class="fas fa-shopping-bag"></i> Sản phẩm đã đặt</h3>
+        
+        {% for item in order.items.all %}
+        <div class="order-item">
+            {% if item.product.image %}
+            <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}">
+            {% else %}
+            <div style="width:80px;height:80px;background:linear-gradient(135deg,#f6d365,#fda085);border-radius:12px;display:flex;align-items:center;justify-content:center;">
+                <i class="fas fa-bowl-food" style="font-size:2rem;color:rgba(255,255,255,.6);"></i>
+            </div>
+            {% endif %}
+            
+            <div class="details">
+                <div class="name">{{ item.product.name }}</div>
+                <div class="price">{{ item.price|floatformat:0 }}đ</div>
+                <div class="quantity">Số lượng: {{ item.quantity }}</div>
+            </div>
+            
+            <div style="text-align:right;">
+                <div style="font-size:1.1rem;font-weight:800;color:#667eea;">
+                    {{ item.get_total|floatformat:0 }}đ
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        
+        <div class="order-summary">
+            <div class="row">
+                <span>Tạm tính</span>
+                <span>{{ order.get_subtotal|floatformat:0 }}đ</span>
+            </div>
+            {% if order.shipping_fee > 0 %}
+            <div class="row">
+                <span>Phí vận chuyển</span>
+                <span>{{ order.shipping_fee|floatformat:0 }}đ</span>
+            </div>
+            {% endif %}
+            {% if order.discount > 0 %}
+            <div class="row" style="color:#f44336;">
+                <span>Giảm giá</span>
+                <span>-{{ order.discount|floatformat:0 }}đ</span>
+            </div>
+            {% endif %}
+            <div class="row total">
+                <span>Tổng cộng</span>
+                <span class="value">{{ order.get_total|floatformat:0 }}đ</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

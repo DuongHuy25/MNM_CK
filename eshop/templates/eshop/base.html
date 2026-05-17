@@ -30,6 +30,50 @@
         .nav-search input:focus{border-color:#667eea}
         .nav-search button{border:2px solid #667eea;border-left:none;background:#667eea;color:white;padding:8px 14px;border-radius:0 50px 50px 0;cursor:pointer;font-size:.85rem}
 
+        /* DROPDOWN (Vc1 chng ti) */
+        .nav-dropdown{position:relative;display:flex;align-items:center;}
+        .nav-dropdown-btn{font-weight:600;font-size:.9rem;color:#636e72;transition:color .2s;display:flex;align-items:center;}
+        .nav-dropdown-btn:hover{color:#667eea;}
+
+        .dropdown-content{
+            position:absolute;
+            top:calc(100% + 12px);
+            left:0;
+            background:white;
+            border-radius:12px;
+            min-width:240px;
+            padding:10px;
+            box-shadow:0 10px 30px rgba(0,0,0,.08);
+            opacity:0;
+            transform:translateY(6px);
+            pointer-events:none;
+            transition:opacity .18s ease, transform .18s ease;
+            list-style:none;
+            margin:0;
+            z-index:1000;
+        }
+        .dropdown-content{display:none;}
+        .nav-dropdown.open .dropdown-content{
+            display:block;
+            opacity:1;
+            transform:translateY(0);
+            pointer-events:auto;
+        }
+        .nav-dropdown.open .nav-dropdown-btn{color:#667eea;}
+
+        .dropdown-content li a{
+            display:flex;
+            align-items:center;
+            gap:8px;
+            padding:10px 12px;
+            border-radius:10px;
+            font-weight:600;
+            color:#636e72;
+            transition:background .15s ease, color .15s ease;
+        }
+        .dropdown-content li a:hover{background:#f3f4ff;color:#667eea;}
+
+
         /* HERO */
         .hero{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:4rem 2rem;text-align:center}
         .hero h1{font-size:2.5rem;font-weight:800;margin-bottom:.75rem}
@@ -61,6 +105,8 @@
         .product-card .card-body .old-price{font-size:.8rem;color:#b2bec3;text-decoration:line-through;margin-left:6px}
         .product-card .add-btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;padding:10px;font-weight:700;font-size:.85rem;cursor:pointer;transition:opacity .2s}
         .product-card .add-btn:hover{opacity:.9}
+        .product-card .wishlist-btn{position:absolute;top:10px;right:10px;width:36px;height:36px;background:rgba(255,255,255,.9);color:#e74c3c;border-radius:50%;display:flex;align-items:center;justify-content:center;text-decoration:none;transition:all .2s;z-index:10}
+        .product-card .wishlist-btn:hover{background:#e74c3c;color:white;transform:scale(1.1)}
 
         /* CATEGORY PILLS */
         .cat-pills{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.5rem}
@@ -160,7 +206,20 @@
                 <a href="{% url 'eshop:home' %}">Trang chủ</a>
                 <a href="{% url 'eshop:products' %}">Sản phẩm</a>
                 <a href="{% url 'eshop:directions' %}">Tìm đường</a>
-                <a href="{% url 'eshop:order_tracking' %}">Tra cứu đơn</a>
+
+
+                <!-- VỀ CHÚNG TÔI -->
+                <div class="nav-dropdown" id="aboutDropdown">
+                    <a href="#" class="nav-dropdown-btn" onclick="document.getElementById('aboutDropdown').classList.toggle('open'); return false;">
+
+                        <i class="fa-solid fa-users" style="margin-right:8px;"></i> Về chúng tôi <span style="margin-left:6px;">▼</span>
+                    </a>
+                    <ul class="dropdown-content">
+                        <li><a href="{% url 'eshop:about' %}"><i class="fa-solid fa-info-circle" style="margin-right:8px;"></i> Giới thiệu</a></li>
+                        <li><a href="{% url 'eshop:news' %}"><i class="fa-solid fa-newspaper" style="margin-right:8px;"></i> Tin tức</a></li>
+                        <li><a href="{% url 'eshop:contact' %}"><i class="fa-solid fa-address-book" style="margin-right:8px;"></i> Liên hệ</a></li>
+                    </ul>
+                </div>
             </div>
             <form method="get" action="{% url 'eshop:products' %}" class="nav-search">
                 <input type="text" name="q" placeholder="Tìm sản phẩm..." value="{{ request.GET.q }}">
@@ -174,6 +233,10 @@
                 {% endif %}
             </a>
             {% if user.is_authenticated %}
+            <a href="{% url 'eshop:wishlist' %}" class="nav-cart" style="background:#fff8f0;color:#fb6340;">
+                <i class="fas fa-heart"></i>
+                <span>Yêu thích</span>
+            </a>
             <a href="{% url 'eshop:profile' %}" class="nav-cart" style="background:#f0fff4;color:#2d3436;">
                 {% if user.avatar %}
                 <img src="{{ user.avatar.url }}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;">
@@ -223,18 +286,28 @@
             <div>
                 <h4>Hỗ trợ</h4>
                 <a href="{% url 'eshop:order_tracking' %}" style="display:block;">Tra cứu đơn hàng</a>
-                <a href="{% url 'eshop:directions' %}" style="display:block;">Tìm đường đến quán</a>
-                <a href="#" style="display:block;">Chính sách đổi trả</a>
-                <a href="#" style="display:block;">Liên hệ</a>
+                <a href="{% url 'eshop:about' %}" style="display:block;">Về chúng tôi</a>
+                <a href="{% url 'eshop:directions' %}" style="display:block;">Tìm đường</a>
+                <a href="{% url 'eshop:contact' %}" style="display:block;">Liên hệ</a>
             </div>
             <div>
                 <h4>Liên hệ</h4>
                 <p><i class="fas fa-phone" style="margin-right:6px;"></i>1900 1234</p>
-                <p><i class="fas fa-envelope" style="margin-right:6px;"></i>info@cuahang.com</p>
+                <p><i class="fas fa-envelope" style="margin-right:6px;"></i>1250080068@sv.hcmunre.edu.vn</p>
                 <p><i class="fas fa-clock" style="margin-right:6px;"></i>9:00 - 22:00</p>
             </div>
         </div>
         <div class="footer-bottom">&copy; 2025 ZenMart - Cửa Hàng Tiện Lợi. All rights reserved.</div>
     </footer>
+
+    <script>
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const dropdown = document.getElementById('aboutDropdown');
+            if (dropdown && !dropdown.contains(event.target)) {
+                dropdown.classList.remove('open');
+            }
+        });
+    </script>
 </body>
 </html>

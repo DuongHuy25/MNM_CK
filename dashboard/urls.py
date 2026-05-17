@@ -149,12 +149,75 @@ urlpatterns = [
     path('api/search/alley/',      views.api_search_by_alley,     name='api_search_alley'),
     path('api/warehouse/low-stock/', views.api_warehouse_low_stock, name='api_low_stock'),
 
+    # API endpoints for new CRUD views
+    path('api/suppliers/', views.supplier_list_api, name='api_suppliers'),
+    path('api/purchase-orders/', views.purchase_order_list_api, name='api_purchase_orders'),
+    path('api/goods-receipts/', views.goods_receipt_list_api, name='api_goods_receipts'),
+    path('api/customer-groups/', views.customer_group_list_api, name='api_customer_groups'),
+    path('api/stock-balances/', views.stock_balance_list_api, name='api_stock_balances'),
+    path('api/stock-movements/', views.stock_movement_list_api, name='api_stock_movements'),
+
     # REST Framework
     path('api/', include(router.urls)),
     path('api/stores-create/', views.store_list_create, name='store_api'),
 
     # Manage stores
     path('manage/', views.manage_stores_view, name='manage_stores'),
+
+    # Contact Settings
+    path('contact-settings/', views.contact_settings, name='contact_settings'),
+
+    # Supplier Management
+    path('suppliers/', views.supplier_list, name='supplier_list'),
+    path('suppliers/create/', views.supplier_create, name='supplier_create'),
+    path('suppliers/<int:pk>/', views.supplier_detail, name='supplier_detail'),
+    path('suppliers/<int:pk>/edit/', views.supplier_edit, name='supplier_edit'),
+    path('suppliers/<int:pk>/delete/', views.supplier_delete, name='supplier_delete'),
+
+    # Purchase Order Management
+    path('purchase-orders/', views.purchase_order_list, name='purchase_order_list'),
+    path('purchase-orders/create/', views.purchase_order_create, name='purchase_order_create'),
+    path('purchase-orders/<int:pk>/', views.purchase_order_detail, name='purchase_order_detail'),
+    path('purchase-orders/<int:pk>/edit/', views.purchase_order_edit, name='purchase_order_edit'),
+    path('purchase-orders/<int:pk>/confirm/', views.purchase_order_confirm, name='purchase_order_confirm'),
+    path('purchase-orders/<int:pk>/cancel/', views.purchase_order_cancel, name='purchase_order_cancel'),
+    path('purchase-orders/<int:pk>/delete/', views.purchase_order_delete, name='purchase_order_delete'),
+
+    # Goods Receipt Management
+    path('goods-receipts/', views.goods_receipt_list, name='goods_receipt_list'),
+    path('goods-receipts/create/', views.goods_receipt_create, name='goods_receipt_create'),
+    path('goods-receipts/<int:pk>/', views.goods_receipt_detail, name='goods_receipt_detail'),
+    path('goods-receipts/<int:pk>/edit/', views.goods_receipt_edit, name='goods_receipt_edit'),
+    path('goods-receipts/<int:pk>/confirm/', views.goods_receipt_confirm, name='goods_receipt_confirm'),
+    path('goods-receipts/<int:pk>/cancel/', views.goods_receipt_cancel, name='goods_receipt_cancel'),
+    path('goods-receipts/<int:pk>/delete/', views.goods_receipt_delete, name='goods_receipt_delete'),
+
+    # Customer Group Management
+    path('customer-groups/', views.customer_group_list, name='customer_group_list'),
+    path('customer-groups/create/', views.customer_group_create, name='customer_group_create'),
+    path('customer-groups/<int:pk>/', views.customer_group_detail, name='customer_group_detail'),
+    path('customer-groups/<int:pk>/edit/', views.customer_group_edit, name='customer_group_edit'),
+    path('customer-groups/<int:pk>/delete/', views.customer_group_delete, name='customer_group_delete'),
+
+    # Stock Management
+    path('stock-movements/', views.stock_movement_list, name='stock_movement_list'),
+    path('stock-balances/', views.stock_balance_list, name='stock_balance_list'),
+    path('stock-balances/<int:pk>/', views.stock_balance_detail, name='stock_balance_detail'),
+
+    # Report Export
+    path('export/orders-excel/', views.export_orders_excel, name='export_orders_excel'),
+    path('export/revenue-excel/', views.export_revenue_excel, name='export_revenue_excel'),
+    path('export/stock-excel/', views.export_stock_excel, name='export_stock_excel'),
+
+    # Discount Code Management
+    path('discount-codes/', views.discount_code_list, name='discount_code_list'),
+    path('discount-codes/create/', views.discount_code_create, name='discount_code_create'),
+    path('discount-codes/<int:pk>/', views.discount_code_detail, name='discount_code_detail'),
+    path('discount-codes/<int:pk>/edit/', views.discount_code_edit, name='discount_code_edit'),
+    path('discount-codes/<int:pk>/delete/', views.discount_code_delete, name='discount_code_delete'),
+
+    # Discount Code API
+    path('api/discount-codes/validate/', views.validate_discount_code, name='validate_discount_code'),
 
     # Checkout API (merged from orders app)
     path('api/checkout/',          views.CheckoutAPIView.as_view(), name='checkout'),

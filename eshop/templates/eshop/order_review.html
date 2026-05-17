@@ -1,0 +1,146 @@
+{% extends 'eshop/base.html' %}
+{% block title %}Đánh giá đơn hàng {{ order.order_id }}{% endblock %}
+{% block content %}
+<style>
+.review-wrap{max-width:800px;margin:0 auto;padding:2rem 1rem}
+.review-header{text-align:center;margin-bottom:2rem}
+.review-header h1{font-size:1.8rem;font-weight:800;color:#2d3436;margin:0 0 .5rem}
+.review-header p{color:#636e72;font-size:1rem}
+.order-info{background:#f8f9fa;border-radius:12px;padding:1.5rem;margin-bottom:2rem}
+.order-info h3{font-size:1.1rem;font-weight:700;color:#2d3436;margin:0 0 1rem}
+.order-item{display:flex;gap:1rem;padding:.75rem 0;border-bottom:1px solid #e9ecef}
+.order-item:last-child{border-bottom:none}
+.order-item img{width:60px;height:60px;border-radius:8px;object-fit:cover}
+.order-item .details{flex:1}
+.order-item .name{font-weight:600;color:#2d3436}
+.order-item .price{color:#667eea;font-weight:700}
+.review-form{background:white;border-radius:12px;padding:2rem;box-shadow:0 2px 15px rgba(0,0,0,.06)}
+.review-form h2{font-size:1.3rem;font-weight:800;color:#2d3436;margin:0 0 1.5rem}
+.rating-group{margin-bottom:1.5rem}
+.rating-group label{display:block;font-weight:600;color:#2d3436;margin-bottom:.75rem}
+.rating-radio{display:flex;gap:1rem}
+.rating-radio label{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer}
+.rating-radio input{display:none}
+.rating-radio .star{font-size:1.5rem;color:#ddd;transition:color .2s}
+.rating-radio input:checked ~ .star{color:#ffc107}
+.rating-radio:hover .star{color:#ffc107}
+.review-btn{width:100%;padding:14px;border:none;border-radius:10px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;font-weight:700;font-size:1rem;cursor:pointer;transition:.2s}
+.review-btn:hover{transform:translateY(-1px);box-shadow:0 4px 15px rgba(102,126,234,.4)}
+@media(max-width:768px){.order-item{flex-direction:column;text-align:center}.rating-radio{flex-wrap:wrap}}
+</style>
+
+<div class="review-wrap">
+    <div class="review-header">
+        <h1><i class="fas fa-star"></i> Đánh giá đơn hàng</h1>
+        <p>Cảm ơn bạn đã đặt hàng tại ZenMart! Vui lòng chia sẻ trải nghiệm của bạn.</p>
+    </div>
+
+    <div class="order-info">
+        <h3><i class="fas fa-receipt"></i> Thông tin đơn hàng</h3>
+        <div style="display:flex;justify-content:space-between;margin-bottom:1rem;font-size:.9rem;">
+            <div><strong>Mã đơn:</strong> {{ order.order_id }}</div>
+            <div><strong>Ngày đặt:</strong> {{ order.created_at|date:"d/m/Y H:i" }}</div>
+        </div>
+        
+        {% for item in order.items.all %}
+        <div class="order-item">
+            {% if item.product.image %}
+            <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}">
+            {% else %}
+            <div style="width:60px;height:60px;background:#f3f4ff;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#667eea;">
+                <i class="fas fa-box"></i>
+            </div>
+            {% endif %}
+            <div class="details">
+                <div class="name">{{ item.product.name }}</div>
+                <div style="color:#636e72;font-size:.85rem;">SL: {{ item.quantity }} × {{ item.price|floatformat:0 }}đ</div>
+            </div>
+            <div class="price">{{ item.get_total|floatformat:0 }}đ</div>
+        </div>
+        {% endfor %}
+        
+        <div style="text-align:right;margin-top:1rem;padding-top:1rem;border-top:1px solid #e9ecef;">
+            <div style="font-size:1.1rem;font-weight:700;color:#2d3436;">Tổng cộng: {{ order.get_total|floatformat:0 }}đ</div>
+        </div>
+    </div>
+
+    <form method="post" class="review-form">
+        {% csrf_token %}
+        <h2><i class="fas fa-edit"></i> Đánh giá của bạn</h2>
+        
+        <div class="rating-group">
+            <label>Chất lượng món ăn</label>
+            <div class="rating-radio">
+                {% for i in "12345" %}
+                <label>
+                    <input type="radio" name="food_quality" value="{{ i }}" required>
+                    <span class="star">★</span>
+                    <span>{{ i }}</span>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="rating-group">
+            <label>Chất lượng phục vụ</label>
+            <div class="rating-radio">
+                {% for i in "12345" %}
+                <label>
+                    <input type="radio" name="service_quality" value="{{ i }}" required>
+                    <span class="star">★</span>
+                    <span>{{ i }}</span>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="rating-group">
+            <label>Tốc độ giao hàng</label>
+            <div class="rating-radio">
+                {% for i in "12345" %}
+                <label>
+                    <input type="radio" name="delivery_speed" value="{{ i }}" required>
+                    <span class="star">★</span>
+                    <span>{{ i }}</span>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="rating-group">
+            <label>Chất lượng đóng gói</label>
+            <div class="rating-radio">
+                {% for i in "12345" %}
+                <label>
+                    <input type="radio" name="packaging_quality" value="{{ i }}" required>
+                    <span class="star">★</span>
+                    <span>{{ i }}</span>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="rating-group">
+            <label>Đánh giá tổng thể</label>
+            <div class="rating-radio">
+                {% for i in "12345" %}
+                <label>
+                    <input type="radio" name="overall_rating" value="{{ i }}" required>
+                    <span class="star">★</span>
+                    <span>{{ i }}</span>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="rating-group">
+            <label for="comment">Bình luận (tùy chọn)</label>
+            <textarea name="comment" id="comment" rows="4" class="eshop-input" placeholder="Chia sẻ trải nghiệm của bạn về đơn hàng này..."></textarea>
+        </div>
+
+        <button type="submit" class="review-btn">
+            <i class="fas fa-paper-plane"></i> Gửi đánh giá
+        </button>
+    </form>
+</div>
+{% endblock %}

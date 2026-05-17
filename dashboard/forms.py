@@ -1,4 +1,5 @@
 from django import forms
+from django.utils import timezone
 from django.contrib.auth import get_user_model
 from dashboard.models import (
     Store, Product, Order, OrderItem, Category, Warehouse, Employee, Department,
@@ -6,7 +7,7 @@ from dashboard.models import (
     WarehouseBatch, WarehouseBatchItem, Customer, CustomerGroup, StockMovement,
     Brand, PaymentMethod, OrderPayment,
     WarehouseItem, WarehouseTransaction, About, CustomerProfile, News,
-    Review, ReviewImage
+    Review, ReviewImage, ContactSettings, DiscountCode, DiscountCodeUsage
 )
 
 User = get_user_model()
@@ -130,6 +131,27 @@ class SupplierForm(forms.ModelForm):
             'tax_code': forms.TextInput(attrs={'class': INPUT_CLASS, 'placeholder': 'Mã số thuế'}),
             'is_active': forms.CheckboxInput(attrs={'class': 'h-4 w-4'}),
         }
+    
+    def clean_name(self):
+        name = self.cleaned_data.get('name')
+        if not name or len(name.strip()) < 2:
+            raise forms.ValidationError('Tên nhà cung cấp phải có ít nhất 2 ký tự')
+        return name.strip()
+    
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if email and Supplier.objects.exclude(pk=self.instance.pk).filter(email=email).exists():
+            raise forms.ValidationError('Email này đã được sử dụng')
+        return email
+    
+    def clean_phone(self):
+        phone = self.cleaned_data.get('phone')
+        if phone:
+            # Remove spaces and special characters
+            phone = ''.join(filter(str.isdigit, phone))
+            if len(phone) < 10 or len(phone) > 11:
+                raise forms.ValidationError('Số điện thoại không hợp lệ')
+        return phone
 
 
 # ========== Purchase Order Form ==========
@@ -145,6 +167,25 @@ class PurchaseOrderForm(forms.ModelForm):
             'status': forms.Select(attrs={'class': SELECT_CLASS}),
             'note': forms.Textarea(attrs={'class': TEXTAREA_CLASS, 'rows': 3}),
         }
+    
+    def clean_po_number(self):
+        po_number = self.cleaned_data.get('po_number')
+        if not po_number:
+            raise forms.ValidationError('Số PO không được để trống')
+        
+        # Check for duplicate PO number
+        if PurchaseOrder.objects.exclude(pk=self.instance.pk).filter(po_number=po_number).exists():
+            raise forms.ValidationError('Số PO này đã tồn tại')
+        
+        return po_number
+    
+    def clean_expected_delivery_date(self):
+        expected_delivery_date = self.cleaned_data.get('expected_delivery_date')
+        
+        if expected_delivery_date and expected_delivery_date < timezone.now().date():
+            raise forms.ValidationError('Ngày giao hàng dự kiến không thể trong quá khứ')
+        
+        return expected_delivery_date
 
 
 class PurchaseOrderItemForm(forms.ModelForm):
@@ -171,6 +212,32 @@ class GoodsReceiptForm(forms.ModelForm):
             'status': forms.Select(attrs={'class': SELECT_CLASS}),
             'note': forms.Textarea(attrs={'class': TEXTAREA_CLASS, 'rows': 3}),
         }
+    
+    def clean_receipt_number(self):
+        receipt_number = self.cleaned_data.get('receipt_number')
+        if not receipt_number:
+            raise forms.ValidationError('Số phiếu nhập không được để trống')
+        
+        # Check for duplicate receipt number
+        if GoodsReceipt.objects.exclude(pk=self.instance.pk).filter(receipt_number=receipt_number).exists():
+            raise forms.ValidationError('Số phiếu nhập này đã tồn tại')
+        
+        return receipt_number
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        purchase_order = cleaned_data.get('purchase_order')
+        supplier = cleaned_data.get('supplier')
+        
+        # If purchase order is selected, auto-fill supplier
+        if purchase_order and purchase_order.supplier:
+            cleaned_data['supplier'] = purchase_order.supplier
+        
+        # Validate that either purchase order or supplier is selected
+        if not purchase_order and not supplier:
+            raise forms.ValidationError('Phải chọn đơn mua hàng hoặc nhà cung cấp')
+        
+        return cleaned_data
 
 
 class GoodsReceiptItemForm(forms.ModelForm):
@@ -520,3 +587,95 @@ class ReviewReplyForm(forms.Form):
         label='Phản hồi của cửa hàng',
         required=True
     )
+
+
+class ContactSettingsForm(forms.ModelForm):
+    class Meta:
+        model = ContactSettings
+        fields = ['site_name', 'intro_text', 'email', 'phone', 'address', 'working_hours',
+                  'smtp_host', 'smtp_port', 'smtp_user', 'smtp_password', 'smtp_use_tls']
+        widgets = {
+            'site_name': forms.TextInput(attrs={'class': INPUT_CLASS, 'placeholder': 'ZenMart'}),
+            'intro_text': forms.Textarea(attrs={'class': TEXTAREA_CLASS, 'rows': 2, 'placeholder': 'Lời giới thiệu trang liên hệ'}),
+            'email': forms.Textarea(attrs={'class': TEXTAREA_CLASS, 'rows': 4, 'placeholder': 'Mỗi dòng 1 email\nvd: example@gmail.com'}),
+            'phone': forms.TextInput(attrs={'class': INPUT_CLASS, 'placeholder': '1900-xxxx'}),
+            'address': forms.Textarea(attrs={'class': TEXTAREA_CLASS, 'rows': 2, 'placeholder': 'Địa chỉ'}),
+            'working_hours': forms.TextInput(attrs={'class': INPUT_CLASS, 'placeholder': '8:00 - 22:00'}),
+            'smtp_host': forms.TextInput(attrs={'class': INPUT_CLASS, 'placeholder': 'smtp.gmail.com'}),
+            'smtp_port': forms.NumberInput(attrs={'class': INPUT_CLASS, 'placeholder': '587'}),
+            'smtp_user': forms.EmailInput(attrs={'class': INPUT_CLASS, 'placeholder': 'email@gmail.com'}),
+            'smtp_password': forms.PasswordInput(attrs={'class': INPUT_CLASS, 'placeholder': 'App Password'}, render_value=True),
+            'smtp_use_tls': forms.CheckboxInput(attrs={'class': 'h-4 w-4'}),
+        }
+
+
+# ========== Discount Code Form ==========
+class DiscountCodeForm(forms.ModelForm):
+    class Meta:
+        model = DiscountCode
+        fields = [
+            'code', 'name', 'description', 'discount_type', 'discount_value',
+            'minimum_order_amount', 'maximum_discount_amount', 'usage_limit', 'user_limit',
+            'start_date', 'end_date', 'status', 'is_active'
+        ]
+        widgets = {
+            'code': forms.TextInput(attrs={'class': INPUT_CLASS, 'placeholder': 'Mã giảm giá (VD: SAVE20)'}),
+            'name': forms.TextInput(attrs={'class': INPUT_CLASS, 'placeholder': 'Tên mã giảm giá'}),
+            'description': forms.Textarea(attrs={'class': TEXTAREA_CLASS, 'rows': 3}),
+            'discount_type': forms.Select(attrs={'class': SELECT_CLASS}),
+            'discount_value': forms.NumberInput(attrs={'class': INPUT_CLASS, 'placeholder': 'Giá trị giảm', 'step': '0.01'}),
+            'minimum_order_amount': forms.NumberInput(attrs={'class': INPUT_CLASS, 'placeholder': 'Giá trị đơn hàng tối thiểu', 'step': '0.01'}),
+            'maximum_discount_amount': forms.NumberInput(attrs={'class': INPUT_CLASS, 'placeholder': 'Giảm giá tối đa (tùy chọn)', 'step': '0.01'}),
+            'usage_limit': forms.NumberInput(attrs={'class': INPUT_CLASS, 'placeholder': 'Giới hạn số lần sử dụng'}),
+            'user_limit': forms.NumberInput(attrs={'class': INPUT_CLASS, 'placeholder': 'Giới hạn mỗi user'}),
+            'start_date': forms.DateTimeInput(attrs={'class': INPUT_CLASS, 'type': 'datetime-local'}),
+            'end_date': forms.DateTimeInput(attrs={'class': INPUT_CLASS, 'type': 'datetime-local'}),
+            'status': forms.Select(attrs={'class': SELECT_CLASS}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'h-4 w-4'}),
+        }
+    
+    def clean_code(self):
+        code = self.cleaned_data.get('code')
+        if not code:
+            raise forms.ValidationError('Mã giảm giá không được để trống')
+        
+        # Convert to uppercase and remove spaces
+        code = code.upper().replace(' ', '')
+        
+        # Check for duplicate code
+        if DiscountCode.objects.exclude(pk=self.instance.pk).filter(code=code).exists():
+            raise forms.ValidationError('Mã giảm giá này đã tồn tại')
+        
+        return code
+    
+    def clean_discount_value(self):
+        discount_value = self.cleaned_data.get('discount_value')
+        discount_type = self.cleaned_data.get('discount_type')
+        
+        if discount_value <= 0:
+            raise forms.ValidationError('Giá trị giảm phải lớn hơn 0')
+        
+        if discount_type == 'percentage' and discount_value > 100:
+            raise forms.ValidationError('Giảm giá theo phần trăm không thể vượt quá 100%')
+        
+        return discount_value
+    
+    def clean_end_date(self):
+        start_date = self.cleaned_data.get('start_date')
+        end_date = self.cleaned_data.get('end_date')
+        
+        if start_date and end_date:
+            if end_date <= start_date:
+                raise forms.ValidationError('Ngày kết thúc phải sau ngày bắt đầu')
+        
+        return end_date
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        discount_type = cleaned_data.get('discount_type')
+        maximum_discount_amount = cleaned_data.get('maximum_discount_amount')
+        
+        if discount_type == 'fixed' and maximum_discount_amount:
+            raise forms.ValidationError('Giảm giá tối đa chỉ áp dụng cho loại giảm giá theo phần trăm')
+        
+        return cleaned_data

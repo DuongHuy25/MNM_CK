@@ -106,6 +106,16 @@ const TARGET_STORE = {"id":{{ target_store.pk }},"name":"{{ target_store.name|es
 const TARGET_STORE = null;
 {% endif %}
 
+// Fallback origin (saved user profile location)
+const USER_LOCATION = (
+    {% if user_lat != None and user_lng != None %}
+        {"lat": {{ user_lat }}, "lng": {{ user_lng }}, "address": "{{ user_address|default:''|escapejs }}"}
+    {% else %}
+        null
+    {% endif %}
+);
+
+
 let map = L.map('map',{center:[10.7769,106.7009],zoom:13,zoomControl:true});
 let userMarker = null, pinnedMarker = null, routingControl = null;
 let storeMarkers = [];
@@ -204,9 +214,27 @@ async function searchAddress(){
     }catch(e){showToast('Lỗi kết nối!','error');}
 }
 
-// GPS
+// GPS + fallback
+function useFallbackLocation(){
+    if(!USER_LOCATION) {
+        showToast('Không có vị trí để sử dụng!','error');
+        return;
+    }
+    const uLat = USER_LOCATION.lat;
+    const uLng = USER_LOCATION.lng;
+    const label = USER_LOCATION.address ? `📍 Vị trí đã lưu: ${USER_LOCATION.address}` : '📍 Vị trí đã lưu';
+
+    if(userMarker) map.removeLayer(userMarker);
+    userMarker = L.marker([uLat,uLng],{icon:userIcon}).addTo(map).bindPopup(`<b><i class="fas fa-user"></i> ${label}</b>`).openPopup();
+    routeToNearest(uLat,uLng,label);
+    showToast('Đã dùng vị trí đã lưu trong tài khoản!','success');
+}
+
 function getLocation(){
-    if(!navigator.geolocation) return showToast('Trình duyệt không hỗ trợ định vị','error');
+    if(!navigator.geolocation){
+        useFallbackLocation();
+        return;
+    }
     showToast('Đang lấy vị trí GPS...','info');
     navigator.geolocation.getCurrentPosition(p=>{
         const lat=p.coords.latitude,lng=p.coords.longitude;
@@ -214,8 +242,15 @@ function getLocation(){
         userMarker=L.marker([lat,lng],{icon:userIcon}).addTo(map).bindPopup('<b><i class="fas fa-user"></i> Vị trí GPS</b>').openPopup();
         routeToNearest(lat,lng,'📍 Vị trí GPS');
         showToast('Đã định vị! Đang chỉ đường...','success');
-    },()=>showToast('Vui lòng cho phép quyền vị trí!','error'));
+    },()=>{
+        if(USER_LOCATION){
+            useFallbackLocation();
+        } else {
+            showToast('Vui lòng cho phép quyền vị trí!','error');
+        }
+    });
 }
+
 
 // Nearby stores
 function findNearbyStores(){
@@ -267,11 +302,16 @@ function selectStoreCard(el){
     } else if(pinnedMarker){
         const pLat=pinnedMarker.getLatLng().lat,pLng=pinnedMarker.getLatLng().lng;
         drawRoute(lat,lng,name,pLat,pLng,'Vị trí đã ghim');
+    } else if(USER_LOCATION){
+        // GPS not available yet -> fallback to saved profile location
+        useFallbackLocation();
+        // drawRoute will be triggered inside useFallbackLocation()
     } else {
         // No origin yet - ask for GPS
         showToast('Hãy định vị vị trí của bạn trước!','info');
         getLocation();
     }
+
 }
 
 // Clear route

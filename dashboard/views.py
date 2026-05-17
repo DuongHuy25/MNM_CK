@@ -18,7 +18,8 @@ from dashboard.models import (
     StockBalance, StockMovement, Supplier, PurchaseOrder, PurchaseOrderItem,
     GoodsReceipt, GoodsReceiptItem, CustomerGroup, Customer, PaymentMethod, Order,
     OrderItem, OrderPayment, WarehouseBatch, WarehouseBatchItem,
-    About, CustomerProfile, News, Review, ReviewImage, OrderReview
+    About, CustomerProfile, News, Review, ReviewImage, OrderReview,
+    ContactSettings, DiscountCode, DiscountCodeUsage
 )
 from .serializers import (
     ProductSerializer, StoreSerializer, OrderSerializer, CategorySerializer,
@@ -29,7 +30,8 @@ from .forms import (
     SupplierForm, PurchaseOrderForm, CustomerForm, WarehouseBatchForm, BrandForm,
     UserForm, WarehouseForm, WarehouseItemForm, WarehouseTransactionForm,
     WarehouseBatchItemForm, ImportExcelForm, AboutForm, AboutImportForm,
-    CustomerProfileForm, UserBasicInfoForm, NewsForm, ReviewReplyForm
+    CustomerProfileForm, UserBasicInfoForm, NewsForm, ReviewReplyForm,
+    ContactSettingsForm, DiscountCodeForm
 )
 from .utils import admin_required, search_items, paginate_queryset, get_stats, generate_batch_number
 
@@ -62,6 +64,11 @@ def logout_view(request):
 def dashboard_index(request):
     """Dashboard chính"""
     try:
+        from datetime import datetime, timedelta
+        from django.db.models import Count, Sum
+        from django.utils import timezone
+        import json
+
         stats = {
             'stores_count': Store.objects.filter(is_active=True).count(),
             'products_count': Product.objects.filter(is_active=True).count(),
@@ -74,7 +81,76 @@ def dashboard_index(request):
         recent_orders = Order.objects.select_related('customer', 'store').order_by('-created_at')[:5]
         recent_products = Product.objects.select_related('category').order_by('-created_at')[:5]
         recent_employees = Employee.objects.select_related('store', 'department').order_by('-created_at')[:5]
-        stores = list(Store.objects.filter(is_active=True).values('id', 'name', 'address', 'latitude', 'longitude'))
+        # Normalize map coordinates so Leaflet can always render markers
+        stores = list(
+            Store.objects.filter(is_active=True)
+            .exclude(latitude__isnull=True)
+            .exclude(longitude__isnull=True)
+            .values('id', 'name', 'address', 'latitude', 'longitude')
+        )
+        # Force lat/lng to float (in case DB stores as string)
+        for s in stores:
+            try:
+                s['latitude'] = float(s['latitude'])
+            except (TypeError, ValueError):
+                s['latitude'] = None
+            try:
+                s['longitude'] = float(s['longitude'])
+            except (TypeError, ValueError):
+                s['longitude'] = None
+        stores = [s for s in stores if s['latitude'] is not None and s['longitude'] is not None]
+
+
+        # Chart data - Revenue by month (last 6 months)
+        revenue_chart_data = []
+        order_chart_data = []
+        
+        for i in range(6):
+            month_date = timezone.now() - timedelta(days=30*i)
+            month_start = month_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            month_end = (month_start + timedelta(days=32)).replace(day=1, hour=23, minute=59, second=59, microsecond=999999) - timedelta(microseconds=1)
+            
+            month_revenue = Order.objects.filter(
+                created_at__gte=month_start,
+                created_at__lte=month_end,
+                status='completed'
+            ).aggregate(total=Sum('total_amount'))['total'] or 0
+            
+            month_orders = Order.objects.filter(
+                created_at__gte=month_start,
+                created_at__lte=month_end
+            ).count()
+            
+            revenue_chart_data.append({
+                'month': month_start.strftime('%m/%Y'),
+                'revenue': float(month_revenue)
+            })
+            
+            order_chart_data.append({
+                'month': month_start.strftime('%m/%Y'),
+                'orders': month_orders
+            })
+        
+        revenue_chart_data.reverse()
+        order_chart_data.reverse()
+
+        # Top selling products
+        top_products = OrderItem.objects.values(
+            'product__name'
+        ).annotate(
+            total_quantity=Sum('quantity'),
+            total_revenue=Sum('total_price')
+        ).order_by('-total_quantity')[:10]
+
+        # Orders by status
+        orders_by_status = Order.objects.values('status').annotate(
+            count=Count('id')
+        ).order_by('status')
+
+        # Low stock alerts
+        low_stock_items = StockBalance.objects.filter(
+            quantity_on_hand__lte=F('product__min_stock')
+        ).select_related('product', 'warehouse')[:10]
 
         context = {
             'stats': stats,
@@ -82,12 +158,20 @@ def dashboard_index(request):
             'recent_products': recent_products,
             'recent_employees': recent_employees,
             'stores': stores,
+            'revenue_chart_data': json.dumps(revenue_chart_data),
+            'order_chart_data': json.dumps(order_chart_data),
+            'top_products': top_products,
+            'orders_by_status': orders_by_status,
+            'low_stock_items': low_stock_items,
             'page_title': 'Bảng Điều Khiển',
         }
         return render(request, 'dashboard/index.html', context)
     except Exception as e:
         messages.error(request, f'Lỗi: {str(e)}')
-        return render(request, 'dashboard/index.html', {'page_title': 'Bảng Điều Khiển'})
+        return render(request, 'dashboard/index.html', {
+            'page_title': 'Bảng Điều Khiển',
+            'stores': [],
+        })
 
 
 # ==================== STORES ====================
@@ -810,26 +894,120 @@ def order_list_view(request):
 @permission_classes([permissions.IsAuthenticated])
 def order_detail_view(request, order_id):
     """API lấy chi tiết đơn hàng."""
-    order = get_object_or_404(Order, order_id=order_id, user=request.user)
-    items = []
-    for item in order.items.all():
-        items.append({
-            "product_id": item.product.id,
-            "product_name": item.product.name,
-            "quantity": item.quantity,
-            "price": float(item.unit_price),
-            "total_price": float(item.total_price)
+    try:
+        order = get_object_or_404(Order, order_id=order_id, user=request.user)
+        data = {
+            "order_id": order.order_id,
+            "status": order.status,
+            "total_amount": float(order.total_amount),
+            "created_at": order.created_at.isoformat(),
+            "items": [
+                {
+                    "product_name": item.product.name,
+                    "quantity": item.quantity,
+                    "price": float(item.price),
+                    "total_price": float(item.total_price)
+                }
+                for item in order.items.all()
+            ]
+        }
+        return Response(data)
+    except Exception as e:
+        return Response({"error": str(e)}, status=400)
+
+
+# API endpoints for new CRUD views
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def supplier_list_api(request):
+    """API danh sách nhà cung cấp"""
+    suppliers = Supplier.objects.all().values('id', 'name', 'contact_person', 'email', 'phone', 'is_active')
+    return Response(list(suppliers))
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def purchase_order_list_api(request):
+    """API danh sách đơn mua hàng"""
+    orders = PurchaseOrder.objects.select_related('supplier').all()
+    data = []
+    for order in orders:
+        data.append({
+            'id': order.pk,
+            'po_number': order.po_number,
+            'supplier': order.supplier.name,
+            'order_date': order.order_date.isoformat(),
+            'total_amount': float(order.total_amount),
+            'status': order.status
         })
-    data = {
-        "order_id": order.order_id,
-        "total_amount": order.total_amount,
-        "status": order.status,
-        "created_at": order.created_at.isoformat(),
-        "shipping_address": order.shipping_address,
-        "phone_number": order.phone_number,
-        "note": order.note,
-        "items": items
-    }
+    return Response(data)
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def goods_receipt_list_api(request):
+    """API danh sách phiếu nhập hàng"""
+    receipts = GoodsReceipt.objects.select_related('purchase_order', 'supplier').all()
+    data = []
+    for receipt in receipts:
+        data.append({
+            'id': receipt.pk,
+            'receipt_number': receipt.receipt_number,
+            'purchase_order': receipt.purchase_order.po_number if receipt.purchase_order else None,
+            'supplier': receipt.supplier.name if receipt.supplier else None,
+            'receipt_date': receipt.receipt_date.isoformat(),
+            'total_amount': float(receipt.total_amount),
+            'status': receipt.status
+        })
+    return Response(data)
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def customer_group_list_api(request):
+    """API danh sách nhóm khách hàng"""
+    groups = CustomerGroup.objects.all().values('id', 'name', 'description', 'discount_percent', 'is_active')
+    return Response(list(groups))
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def stock_balance_list_api(request):
+    """API danh sách số dư tồn kho"""
+    balances = StockBalance.objects.select_related('product', 'warehouse').all()
+    data = []
+    for balance in balances:
+        data.append({
+            'id': balance.pk,
+            'product': balance.product.name,
+            'warehouse': balance.warehouse.store.name,
+            'quantity_on_hand': balance.quantity_on_hand,
+            'min_stock': balance.product.min_stock,
+            'status': 'low_stock' if balance.quantity_on_hand <= balance.product.min_stock else 'normal'
+        })
+    return Response(data)
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def stock_movement_list_api(request):
+    """API danh sách chuyển động kho"""
+    movements = StockMovement.objects.select_related('product', 'warehouse', 'created_by').all()[:50]
+    data = []
+    for movement in movements:
+        creator = movement.created_by
+        creator_label = ''
+        if creator:
+            user = getattr(creator, 'user', None)
+            if user:
+                creator_label = user.get_full_name() or user.email
+            else:
+                creator_label = f'{creator.first_name} {creator.last_name}'.strip() or str(creator.pk)
+        data.append({
+            'id': movement.pk,
+            'product': movement.product.name,
+            'warehouse': movement.warehouse.store.name,
+            'movement_type': movement.movement_type,
+            'quantity': movement.quantity,
+            'note': movement.note,
+            'created_at': movement.created_at.isoformat(),
+            'created_by': creator_label,
+        })
     return Response(data)
 
 
@@ -1479,9 +1657,9 @@ def customer_profile_list(request):
     verification_rate = round((verified_count / total_customers) * 100, 1) if total_customers > 0 else 0
 
     page = request.GET.get('page', 1)
-    paginated_profiles = paginate_queryset(profiles, page, 20)
+    profiles, paginator = paginate_queryset(profiles, page, 20)
     return render(request, 'dashboard/customer_profiles/list.html', {
-        'profiles': paginated_profiles, 'page_title': 'Quản Lý Thông Tin Người Dùng',
+        'profiles': profiles, 'page_title': 'Quản Lý Thông Tin Người Dùng',
         'search_query': search_query, 'verified_filter': verified_filter,
         'status_filter': status_filter, 'gender_filter': gender_filter,
         'vip_filter': vip_filter,
@@ -2008,3 +2186,1065 @@ def order_review_delete(request, pk):
     return render(request, 'dashboard/order_reviews/delete.html', {
         'order_review': order_review, 'page_title': 'Xóa đánh giá đơn hàng',
     })
+
+
+# ==================== CONTACT SETTINGS ====================
+
+@admin_required
+def contact_settings(request):
+    obj = ContactSettings.objects.first()
+    if not obj:
+        obj = ContactSettings.objects.create()
+
+    if request.method == 'POST':
+        form = ContactSettingsForm(request.POST, instance=obj)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Đã cập nhật cài đặt Liên hệ!')
+            return redirect('dashboard:contact_settings')
+    else:
+        form = ContactSettingsForm(instance=obj)
+
+    return render(request, 'dashboard/contact_settings.html', {
+        'form': form,
+        'settings': obj,
+        'page_title': 'Cài đặt Liên hệ',
+    })
+
+
+# ==================== SUPPLIER MANAGEMENT ====================
+
+@admin_required
+def supplier_list(request):
+    """Danh sách nhà cung cấp"""
+    query = request.GET.get('q', '')
+    suppliers = Supplier.objects.all()
+    
+    if query:
+        suppliers = suppliers.filter(
+            Q(name__icontains=query) |
+            Q(contact_person__icontains=query) |
+            Q(email__icontains=query) |
+            Q(phone__icontains=query)
+        )
+    
+    suppliers = suppliers.order_by('name')
+    page_obj, paginator = paginate_queryset(suppliers, request.GET.get('page'), 20)
+    
+    return render(request, 'dashboard/suppliers/list.html', {
+        'page_obj': page_obj,
+        'query': query,
+        'page_title': 'Nhà cung cấp',
+    })
+
+@admin_required
+def supplier_create(request):
+    """Tạo nhà cung cấp mới"""
+    if request.method == 'POST':
+        form = SupplierForm(request.POST)
+        if form.is_valid():
+            supplier = form.save()
+            messages.success(request, f'Đã tạo nhà cung cấp {supplier.name}!')
+            return redirect('dashboard:supplier_list')
+    else:
+        form = SupplierForm()
+    
+    return render(request, 'dashboard/suppliers/form.html', {
+        'form': form,
+        'page_title': 'Thêm nhà cung cấp',
+    })
+
+@admin_required
+def supplier_edit(request, pk):
+    """Chỉnh sửa nhà cung cấp"""
+    supplier = get_object_or_404(Supplier, pk=pk)
+    
+    if request.method == 'POST':
+        form = SupplierForm(request.POST, instance=supplier)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Đã cập nhật nhà cung cấp {supplier.name}!')
+            return redirect('dashboard:supplier_list')
+    else:
+        form = SupplierForm(instance=supplier)
+    
+    return render(request, 'dashboard/suppliers/form.html', {
+        'form': form,
+        'supplier': supplier,
+        'page_title': 'Chỉnh sửa nhà cung cấp',
+    })
+
+@admin_required
+def supplier_detail(request, pk):
+    """Chi tiết nhà cung cấp"""
+    supplier = get_object_or_404(Supplier, pk=pk)
+    
+    # Lấy các đơn mua hàng gần đây
+    purchase_orders = PurchaseOrder.objects.filter(
+        supplier=supplier
+    ).order_by('-order_date')[:10]
+    
+    return render(request, 'dashboard/suppliers/detail.html', {
+        'supplier': supplier,
+        'purchase_orders': purchase_orders,
+        'page_title': f'Chi tiết nhà cung cấp: {supplier.name}',
+    })
+
+@admin_required
+def supplier_delete(request, pk):
+    """Xóa nhà cung cấp"""
+    supplier = get_object_or_404(Supplier, pk=pk)
+    
+    if request.method == 'POST':
+        # Kiểm tra xem có đơn mua hàng nào không
+        if PurchaseOrder.objects.filter(supplier=supplier).exists():
+            messages.error(request, 'Không thể xóa nhà cung cấp đã có đơn mua hàng!')
+            return redirect('dashboard:supplier_detail', pk=pk)
+        if GoodsReceipt.objects.filter(supplier=supplier).exists():
+            messages.error(request, 'Không thể xóa nhà cung cấp đã có phiếu nhập hàng!')
+            return redirect('dashboard:supplier_detail', pk=pk)
+        
+        supplier.delete()
+        messages.success(request, f'Đã xóa nhà cung cấp {supplier.name}!')
+        return redirect('dashboard:supplier_list')
+    
+    return render(request, 'dashboard/suppliers/delete.html', {
+        'supplier': supplier,
+        'page_title': 'Xóa nhà cung cấp',
+    })
+
+
+# ==================== PURCHASE ORDER MANAGEMENT ====================
+
+@admin_required
+def purchase_order_list(request):
+    """Danh sách đơn mua hàng"""
+    query = request.GET.get('q', '')
+    status_filter = request.GET.get('status', '')
+    supplier_filter = request.GET.get('supplier', '')
+    
+    purchase_orders = PurchaseOrder.objects.select_related('supplier').prefetch_related('items')
+    
+    if query:
+        purchase_orders = purchase_orders.filter(
+            Q(po_number__icontains=query) |
+            Q(supplier__name__icontains=query) |
+            Q(note__icontains=query)
+        )
+    
+    if status_filter:
+        purchase_orders = purchase_orders.filter(status=status_filter)
+    
+    if supplier_filter:
+        purchase_orders = purchase_orders.filter(supplier_id=supplier_filter)
+    
+    purchase_orders = purchase_orders.order_by('-order_date')
+    page_obj, paginator = paginate_queryset(purchase_orders, request.GET.get('page'), 20)
+    
+    suppliers = Supplier.objects.filter(is_active=True)
+    
+    return render(request, 'dashboard/purchase_orders/list.html', {
+        'page_obj': page_obj,
+        'query': query,
+        'suppliers': suppliers,
+        'status_filter': status_filter,
+        'supplier_filter': supplier_filter,
+        'page_title': 'Đơn mua hàng',
+    })
+
+@admin_required
+def purchase_order_create(request):
+    """Tạo đơn mua hàng mới"""
+    if request.method == 'POST':
+        form = PurchaseOrderForm(request.POST)
+        if form.is_valid():
+            purchase_order = form.save()
+            messages.success(request, f'Đã tạo đơn mua hàng {purchase_order.po_number}!')
+            return redirect('dashboard:purchase_order_detail', pk=purchase_order.pk)
+    else:
+        initial = {}
+        sup = request.GET.get('supplier')
+        if sup and sup.isdigit():
+            initial['supplier'] = int(sup)
+        form = PurchaseOrderForm(initial=initial)
+    
+    return render(request, 'dashboard/purchase_orders/form.html', {
+        'form': form,
+        'page_title': 'Thêm đơn mua hàng',
+    })
+
+@admin_required
+def purchase_order_edit(request, pk):
+    """Chỉnh sửa đơn mua hàng"""
+    purchase_order = get_object_or_404(PurchaseOrder, pk=pk)
+    
+    # Chỉ cho phép sửa đơn ở trạng thái nháp hoặc chờ duyệt
+    if purchase_order.status not in ('draft', 'pending'):
+        messages.error(request, 'Chỉ có thể sửa đơn ở trạng thái Nháp hoặc Chờ duyệt!')
+        return redirect('dashboard:purchase_order_detail', pk=pk)
+    
+    if request.method == 'POST':
+        form = PurchaseOrderForm(request.POST, instance=purchase_order)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Đã cập nhật đơn mua hàng {purchase_order.po_number}!')
+            return redirect('dashboard:purchase_order_detail', pk=pk)
+    else:
+        form = PurchaseOrderForm(instance=purchase_order)
+    
+    return render(request, 'dashboard/purchase_orders/form.html', {
+        'form': form,
+        'purchase_order': purchase_order,
+        'page_title': 'Chỉnh sửa đơn mua hàng',
+    })
+
+@admin_required
+def purchase_order_detail(request, pk):
+    """Chi tiết đơn mua hàng"""
+    purchase_order = get_object_or_404(
+        PurchaseOrder.objects.select_related('supplier', 'store'),
+        pk=pk
+    )
+    items = purchase_order.items.select_related('product')
+    
+    return render(request, 'dashboard/purchase_orders/detail.html', {
+        'purchase_order': purchase_order,
+        'items': items,
+        'page_title': f'Chi tiết đơn mua hàng: {purchase_order.po_number}',
+    })
+
+@admin_required
+def purchase_order_confirm(request, pk):
+    """Xác nhận đơn mua hàng"""
+    purchase_order = get_object_or_404(PurchaseOrder, pk=pk)
+    
+    if purchase_order.status not in ('draft', 'pending'):
+        messages.error(request, 'Chỉ có thể xác nhận đơn ở trạng thái Nháp hoặc Chờ duyệt!')
+        return redirect('dashboard:purchase_order_detail', pk=pk)
+
+    if request.method == 'POST':
+        purchase_order.status = 'approved'
+        purchase_order.save()
+        messages.success(request, f'Đã duyệt đơn mua hàng {purchase_order.po_number}!')
+        return redirect('dashboard:purchase_order_detail', pk=pk)
+    
+    return render(request, 'dashboard/purchase_orders/confirm.html', {
+        'purchase_order': purchase_order,
+        'page_title': 'Xác nhận đơn mua hàng',
+    })
+
+@admin_required
+def purchase_order_cancel(request, pk):
+    """Hủy đơn mua hàng"""
+    purchase_order = get_object_or_404(PurchaseOrder, pk=pk)
+    
+    if purchase_order.status not in ('draft', 'pending', 'approved'):
+        messages.error(request, 'Không thể hủy đơn hàng ở trạng thái này!')
+        return redirect('dashboard:purchase_order_detail', pk=pk)
+
+    if request.method == 'POST':
+        purchase_order.status = 'cancelled'
+        purchase_order.save()
+        messages.success(request, f'Đã hủy đơn mua hàng {purchase_order.po_number}!')
+        return redirect('dashboard:purchase_order_detail', pk=pk)
+    
+    return render(request, 'dashboard/purchase_orders/cancel.html', {
+        'purchase_order': purchase_order,
+        'page_title': 'Hủy đơn mua hàng',
+    })
+
+@admin_required
+def purchase_order_delete(request, pk):
+    """Xóa đơn mua hàng"""
+    purchase_order = get_object_or_404(PurchaseOrder, pk=pk)
+    
+    if purchase_order.status not in ('draft', 'pending'):
+        messages.error(request, 'Chỉ có thể xóa đơn ở trạng thái Nháp hoặc Chờ duyệt!')
+        return redirect('dashboard:purchase_order_detail', pk=pk)
+
+    if request.method == 'POST':
+        purchase_order.delete()
+        messages.success(request, 'Đã xóa đơn mua hàng!')
+        return redirect('dashboard:purchase_order_list')
+    
+    return render(request, 'dashboard/purchase_orders/delete.html', {
+        'purchase_order': purchase_order,
+        'page_title': 'Xóa đơn mua hàng',
+    })
+
+
+# ==================== GOODS RECEIPT MANAGEMENT ====================
+
+@admin_required
+def goods_receipt_list(request):
+    """Danh sách phiếu nhập hàng"""
+    query = request.GET.get('q', '')
+    status_filter = request.GET.get('status', '')
+    purchase_order_filter = request.GET.get('purchase_order', '')
+    
+    goods_receipts = GoodsReceipt.objects.select_related(
+        'purchase_order', 'purchase_order__supplier', 'supplier', 'warehouse', 'warehouse__store'
+    ).prefetch_related('items')
+    
+    if query:
+        goods_receipts = goods_receipts.filter(
+            Q(receipt_number__icontains=query) |
+            Q(purchase_order__po_number__icontains=query) |
+            Q(purchase_order__supplier__name__icontains=query) |
+            Q(supplier__name__icontains=query) |
+            Q(note__icontains=query)
+        )
+    
+    if status_filter:
+        goods_receipts = goods_receipts.filter(status=status_filter)
+    
+    if purchase_order_filter:
+        goods_receipts = goods_receipts.filter(purchase_order_id=purchase_order_filter)
+    
+    goods_receipts = goods_receipts.order_by('-receipt_date')
+    page_obj, paginator = paginate_queryset(goods_receipts, request.GET.get('page'), 20)
+    
+    purchase_orders = PurchaseOrder.objects.filter(status__in=['approved', 'pending', 'draft']).order_by('-order_date')
+    
+    return render(request, 'dashboard/goods_receipts/list.html', {
+        'page_obj': page_obj,
+        'query': query,
+        'purchase_orders': purchase_orders,
+        'status_filter': status_filter,
+        'purchase_order_filter': purchase_order_filter,
+        'page_title': 'Phiếu nhập hàng',
+    })
+
+@admin_required
+def goods_receipt_create(request):
+    """Tạo phiếu nhập hàng mới"""
+    if request.method == 'POST':
+        form = GoodsReceiptForm(request.POST)
+        if form.is_valid():
+            goods_receipt = form.save()
+            messages.success(request, f'Đã tạo phiếu nhập hàng {goods_receipt.receipt_number}!')
+            return redirect('dashboard:goods_receipt_detail', pk=goods_receipt.pk)
+    else:
+        form = GoodsReceiptForm()
+    
+    return render(request, 'dashboard/goods_receipts/form.html', {
+        'form': form,
+        'page_title': 'Thêm phiếu nhập hàng',
+    })
+
+@admin_required
+def goods_receipt_edit(request, pk):
+    """Chỉnh sửa phiếu nhập hàng"""
+    goods_receipt = get_object_or_404(GoodsReceipt, pk=pk)
+    
+    # Chỉ cho phép sửa phiếu ở trạng thái nháp
+    if goods_receipt.status != 'draft':
+        messages.error(request, 'Chỉ có thể sửa phiếu nhập ở trạng thái Nháp!')
+        return redirect('dashboard:goods_receipt_detail', pk=pk)
+    
+    if request.method == 'POST':
+        form = GoodsReceiptForm(request.POST, instance=goods_receipt)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Đã cập nhật phiếu nhập hàng {goods_receipt.receipt_number}!')
+            return redirect('dashboard:goods_receipt_detail', pk=pk)
+    else:
+        form = GoodsReceiptForm(instance=goods_receipt)
+    
+    return render(request, 'dashboard/goods_receipts/form.html', {
+        'form': form,
+        'goods_receipt': goods_receipt,
+        'page_title': 'Chỉnh sửa phiếu nhập hàng',
+    })
+
+@admin_required
+def goods_receipt_detail(request, pk):
+    """Chi tiết phiếu nhập hàng"""
+    goods_receipt = get_object_or_404(
+        GoodsReceipt.objects.select_related('purchase_order', 'purchase_order__supplier', 'warehouse', 'warehouse__store'),
+        pk=pk
+    )
+    items = goods_receipt.items.select_related('product')
+    
+    return render(request, 'dashboard/goods_receipts/detail.html', {
+        'goods_receipt': goods_receipt,
+        'items': items,
+        'page_title': f'Chi tiết phiếu nhập hàng: {goods_receipt.receipt_number}',
+    })
+
+@admin_required
+def goods_receipt_confirm(request, pk):
+    """Xác nhận phiếu nhập hàng"""
+    goods_receipt = get_object_or_404(GoodsReceipt, pk=pk)
+    
+    if goods_receipt.status != 'draft':
+        messages.error(request, 'Chỉ có thể xác nhận phiếu nhập ở trạng thái Nháp!')
+        return redirect('dashboard:goods_receipt_detail', pk=pk)
+
+    if request.method == 'POST':
+        for item in goods_receipt.items.all():
+            product = item.product
+            product.stock += item.quantity
+            product.save()
+
+        goods_receipt.status = 'confirmed'
+        goods_receipt.save()
+
+        purchase_order = goods_receipt.purchase_order
+        if purchase_order:
+            purchase_order.status = 'received'
+            purchase_order.save()
+
+        messages.success(request, f'Đã xác nhận phiếu nhập hàng {goods_receipt.receipt_number}!')
+        return redirect('dashboard:goods_receipt_detail', pk=pk)
+    
+    return render(request, 'dashboard/goods_receipts/confirm.html', {
+        'goods_receipt': goods_receipt,
+        'page_title': 'Xác nhận phiếu nhập hàng',
+    })
+
+@admin_required
+def goods_receipt_cancel(request, pk):
+    """Hủy phiếu nhập hàng"""
+    goods_receipt = get_object_or_404(GoodsReceipt, pk=pk)
+    
+    if goods_receipt.status != 'draft':
+        messages.error(request, 'Chỉ có thể hủy phiếu nhập ở trạng thái Nháp!')
+        return redirect('dashboard:goods_receipt_detail', pk=pk)
+
+    if request.method == 'POST':
+        goods_receipt.status = 'cancelled'
+        goods_receipt.save()
+        messages.success(request, f'Đã hủy phiếu nhập hàng {goods_receipt.receipt_number}!')
+        return redirect('dashboard:goods_receipt_detail', pk=pk)
+    
+    return render(request, 'dashboard/goods_receipts/cancel.html', {
+        'goods_receipt': goods_receipt,
+        'page_title': 'Hủy phiếu nhập hàng',
+    })
+
+@admin_required
+def goods_receipt_delete(request, pk):
+    """Xóa phiếu nhập hàng"""
+    goods_receipt = get_object_or_404(GoodsReceipt, pk=pk)
+    
+    if goods_receipt.status != 'draft':
+        messages.error(request, 'Chỉ có thể xóa phiếu nhập ở trạng thái Nháp!')
+        return redirect('dashboard:goods_receipt_detail', pk=pk)
+    
+    if request.method == 'POST':
+        goods_receipt.delete()
+        messages.success(request, f'Đã xóa phiếu nhập hàng {goods_receipt.receipt_number}!')
+        return redirect('dashboard:goods_receipt_list')
+    
+    return render(request, 'dashboard/goods_receipts/delete.html', {
+        'goods_receipt': goods_receipt,
+        'page_title': 'Xóa phiếu nhập hàng',
+    })
+
+
+# ==================== CUSTOMER GROUP MANAGEMENT ====================
+
+@admin_required
+def customer_group_list(request):
+    """Danh sách nhóm khách hàng"""
+    query = request.GET.get('q', '')
+    customer_groups = CustomerGroup.objects.all()
+    
+    if query:
+        customer_groups = customer_groups.filter(
+            Q(name__icontains=query) |
+            Q(description__icontains=query)
+        )
+    
+    customer_groups = customer_groups.order_by('name')
+    page_obj, paginator = paginate_queryset(customer_groups, request.GET.get('page'), 20)
+    
+    return render(request, 'dashboard/customer_groups/list.html', {
+        'page_obj': page_obj,
+        'query': query,
+        'page_title': 'Nhóm khách hàng',
+    })
+
+@admin_required
+def customer_group_create(request):
+    """Tạo nhóm khách hàng mới"""
+    if request.method == 'POST':
+        form = CustomerGroupForm(request.POST)
+        if form.is_valid():
+            customer_group = form.save()
+            messages.success(request, f'Đã tạo nhóm khách hàng {customer_group.name}!')
+            return redirect('dashboard:customer_group_list')
+    else:
+        form = CustomerGroupForm()
+    
+    return render(request, 'dashboard/customer_groups/form.html', {
+        'form': form,
+        'page_title': 'Thêm nhóm khách hàng',
+    })
+
+@admin_required
+def customer_group_edit(request, pk):
+    """Chỉnh sửa nhóm khách hàng"""
+    customer_group = get_object_or_404(CustomerGroup, pk=pk)
+    
+    if request.method == 'POST':
+        form = CustomerGroupForm(request.POST, instance=customer_group)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Đã cập nhật nhóm khách hàng {customer_group.name}!')
+            return redirect('dashboard:customer_group_list')
+    else:
+        form = CustomerGroupForm(instance=customer_group)
+    
+    return render(request, 'dashboard/customer_groups/form.html', {
+        'form': form,
+        'customer_group': customer_group,
+        'page_title': 'Chỉnh sửa nhóm khách hàng',
+    })
+
+@admin_required
+def customer_group_detail(request, pk):
+    """Chi tiết nhóm khách hàng"""
+    customer_group = get_object_or_404(CustomerGroup, pk=pk)
+    
+    # Lấy khách hàng trong nhóm
+    customers = Customer.objects.filter(
+        customer_group=customer_group
+    ).order_by('name')
+    
+    # Thống kê
+    customer_count = customers.count()
+    total_orders = Order.objects.filter(
+        customer__customer_group=customer_group
+    ).count()
+    total_revenue = Order.objects.filter(
+        customer__customer_group=customer_group,
+        status='completed'
+    ).aggregate(total=Sum('total_amount'))['total'] or 0
+    
+    return render(request, 'dashboard/customer_groups/detail.html', {
+        'customer_group': customer_group,
+        'customers': customers,
+        'customer_count': customer_count,
+        'total_orders': total_orders,
+        'total_revenue': total_revenue,
+        'page_title': f'Chi tiết nhóm khách hàng: {customer_group.name}',
+    })
+
+@admin_required
+def customer_group_delete(request, pk):
+    """Xóa nhóm khách hàng"""
+    customer_group = get_object_or_404(CustomerGroup, pk=pk)
+    
+    if request.method == 'POST':
+        # Kiểm tra xem có khách hàng nào không
+        if Customer.objects.filter(customer_group=customer_group).exists():
+            messages.error(request, 'Không thể xóa nhóm khách hàng đã có khách hàng!')
+            return redirect('dashboard:customer_group_detail', pk=pk)
+        
+        customer_group.delete()
+        messages.success(request, f'Đã xóa nhóm khách hàng {customer_group.name}!')
+        return redirect('dashboard:customer_group_list')
+    
+    return render(request, 'dashboard/customer_groups/delete.html', {
+        'customer_group': customer_group,
+        'page_title': 'Xóa nhóm khách hàng',
+    })
+
+
+# ==================== STOCK MANAGEMENT ====================
+
+@admin_required
+def stock_movement_list(request):
+    """Danh sách chuyển động kho"""
+    query = request.GET.get('q', '')
+    movement_type = request.GET.get('type', '')
+    warehouse_filter = request.GET.get('warehouse', '')
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    
+    movements = StockMovement.objects.select_related(
+        'product', 'warehouse', 'warehouse__store', 'created_by', 'created_by__user'
+    ).order_by('-created_at')
+    
+    if query:
+        movements = movements.filter(
+            Q(product__name__icontains=query) |
+            Q(product__barcode__icontains=query) |
+            Q(note__icontains=query)
+        )
+    
+    if movement_type == 'in':
+        movements = movements.filter(movement_type='import')
+    elif movement_type == 'out':
+        movements = movements.filter(movement_type='export')
+    elif movement_type:
+        movements = movements.filter(movement_type=movement_type)
+    
+    if warehouse_filter:
+        movements = movements.filter(warehouse_id=warehouse_filter)
+    
+    if date_from:
+        movements = movements.filter(created_at__date__gte=date_from)
+    
+    if date_to:
+        movements = movements.filter(created_at__date__lte=date_to)
+    
+    page_obj, paginator = paginate_queryset(movements, request.GET.get('page'), 30)
+    warehouses = Warehouse.objects.filter(store__is_active=True).select_related('store')
+    
+    return render(request, 'dashboard/stock_movements/list.html', {
+        'page_obj': page_obj,
+        'query': query,
+        'warehouses': warehouses,
+        'movement_type': movement_type,
+        'warehouse_filter': warehouse_filter,
+        'date_from': date_from,
+        'date_to': date_to,
+        'page_title': 'Chuyển động kho',
+    })
+
+@admin_required
+def stock_balance_list(request):
+    """Danh sách số dư tồn kho"""
+    query = request.GET.get('q', '')
+    warehouse_filter = request.GET.get('warehouse', '')
+    low_stock_only = request.GET.get('low_stock', '')
+    
+    balances = StockBalance.objects.select_related('product', 'warehouse', 'warehouse__store').order_by('warehouse__store__name', 'product__name')
+    
+    if query:
+        balances = balances.filter(
+            Q(product__name__icontains=query) |
+            Q(product__barcode__icontains=query)
+        )
+    
+    if warehouse_filter:
+        balances = balances.filter(warehouse_id=warehouse_filter)
+    
+    if low_stock_only:
+        balances = balances.filter(quantity_on_hand__lte=F('product__min_stock'))
+    
+    page_obj, paginator = paginate_queryset(balances, request.GET.get('page'), 30)
+    warehouses = Warehouse.objects.filter(store__is_active=True).select_related('store')
+    
+    return render(request, 'dashboard/stock_balances/list.html', {
+        'page_obj': page_obj,
+        'query': query,
+        'warehouses': warehouses,
+        'warehouse_filter': warehouse_filter,
+        'low_stock_only': low_stock_only,
+        'page_title': 'Số dư tồn kho',
+    })
+
+@admin_required
+def stock_balance_detail(request, pk):
+    """Chi tiết số dư tồn kho"""
+    balance = get_object_or_404(
+        StockBalance.objects.select_related('product', 'warehouse'), 
+        pk=pk
+    )
+    
+    # Lấy các chuyển động kho gần đây của sản phẩm này
+    movements = StockMovement.objects.filter(
+        product=balance.product,
+        warehouse=balance.warehouse
+    ).order_by('-created_at')[:20]
+    
+    return render(request, 'dashboard/stock_balances/detail.html', {
+        'balance': balance,
+        'movements': movements,
+        'page_title': f'Chi tiết tồn kho: {balance.product.name}',
+    })
+
+
+# ==================== REPORT EXPORT ====================
+
+@admin_required
+def export_orders_excel(request):
+    """Xuất báo cáo đơn hàng Excel"""
+    try:
+        import openpyxl
+        from openpyxl.styles import Font, PatternFill
+        from openpyxl.utils import get_column_letter
+    except ImportError:
+        messages.error(request, 'Thư viện openpyxl chưa được cài đặt. Chạy: pip install openpyxl')
+        return redirect('dashboard:orders_list')
+
+    from io import BytesIO
+    from django.utils import timezone
+
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+    status_filter = request.GET.get('status')
+
+    orders = Order.objects.select_related('customer', 'store')
+
+    if date_from:
+        orders = orders.filter(created_at__date__gte=date_from)
+    if date_to:
+        orders = orders.filter(created_at__date__lte=date_to)
+    if status_filter:
+        orders = orders.filter(status=status_filter)
+
+    orders = orders.order_by('-created_at')
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = 'Báo cáo đơn hàng'
+    header_fill = PatternFill(start_color='4CAF50', end_color='4CAF50', fill_type='solid')
+    header_font = Font(bold=True, color='FFFFFF')
+
+    headers = ['Mã đơn', 'Ngày đặt', 'Khách hàng', 'Cửa hàng', 'Tổng tiền', 'Trạng thái']
+    for col, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col, value=header)
+        cell.font = header_font
+        cell.fill = header_fill
+
+    for row_idx, order in enumerate(orders, 2):
+        ws.cell(row=row_idx, column=1, value=order.order_number or order.order_id or f'#{order.pk}')
+        ws.cell(row=row_idx, column=2, value=order.created_at.date())
+        ws.cell(row=row_idx, column=2).number_format = 'DD/MM/YYYY'
+        ws.cell(row=row_idx, column=3, value=order.customer.name if order.customer else 'Khách vãng lai')
+        ws.cell(row=row_idx, column=4, value=order.store.name if order.store else 'Online')
+        ws.cell(row=row_idx, column=5, value=float(order.total_amount))
+        ws.cell(row=row_idx, column=5).number_format = '#,##0'
+        ws.cell(row=row_idx, column=6, value=order.get_status_display())
+
+    for col in range(1, len(headers) + 1):
+        ws.column_dimensions[get_column_letter(col)].width = 15
+
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    response = HttpResponse(
+        output.read(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename="bao_cao_don_hang_{timezone.now().strftime("%Y%m%d")}.xlsx"'
+    return response
+
+@admin_required
+def export_revenue_excel(request):
+    """Xuất báo cáo doanh thu Excel"""
+    try:
+        import openpyxl
+        from openpyxl.styles import Font, PatternFill
+        from openpyxl.utils import get_column_letter
+    except ImportError:
+        messages.error(request, 'Thư viện openpyxl chưa được cài đặt. Chạy: pip install openpyxl')
+        return redirect('dashboard:index')
+
+    from io import BytesIO
+    from django.utils import timezone
+
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+
+    orders = Order.objects.filter(status='completed')
+
+    if date_from:
+        orders = orders.filter(created_at__date__gte=date_from)
+    if date_to:
+        orders = orders.filter(created_at__date__lte=date_to)
+
+    revenue_by_date = list(
+        orders.extra(
+            select={'day': 'date(created_at)'}
+        ).values('day').annotate(
+            total_revenue=Sum('total_amount'),
+            order_count=Count('id')
+        ).order_by('day')
+    )
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = 'Báo cáo doanh thu'
+    header_fill = PatternFill(start_color='2196F3', end_color='2196F3', fill_type='solid')
+    header_font = Font(bold=True, color='FFFFFF')
+    bold_font = Font(bold=True)
+
+    headers = ['Ngày', 'Số đơn hàng', 'Doanh thu', 'Trung bình/đơn']
+    for col, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col, value=header)
+        cell.font = header_font
+        cell.fill = header_fill
+
+    for row_idx, data in enumerate(revenue_by_date, 2):
+        ws.cell(row=row_idx, column=1, value=data['day'])
+        ws.cell(row=row_idx, column=1).number_format = 'DD/MM/YYYY'
+        ws.cell(row=row_idx, column=2, value=data['order_count'])
+        ws.cell(row=row_idx, column=3, value=float(data['total_revenue'] or 0))
+        ws.cell(row=row_idx, column=3).number_format = '#,##0'
+        avg_revenue = (data['total_revenue'] or 0) / data['order_count'] if data['order_count'] > 0 else 0
+        ws.cell(row=row_idx, column=4, value=float(avg_revenue))
+        ws.cell(row=row_idx, column=4).number_format = '#,##0'
+
+    total_row = len(revenue_by_date) + 2
+    ws.cell(row=total_row, column=1, value='TỔNG CỘNG')
+    ws.cell(row=total_row, column=1).font = bold_font
+    ws.cell(row=total_row, column=2, value=sum(item['order_count'] for item in revenue_by_date))
+    total_rev = sum(item['total_revenue'] or 0 for item in revenue_by_date)
+    ws.cell(row=total_row, column=3, value=float(total_rev))
+    ws.cell(row=total_row, column=3).number_format = '#,##0'
+    total_orders = sum(item['order_count'] for item in revenue_by_date)
+    total_avg = total_rev / total_orders if total_orders > 0 else 0
+    ws.cell(row=total_row, column=4, value=float(total_avg))
+    ws.cell(row=total_row, column=4).number_format = '#,##0'
+
+    for col in range(1, len(headers) + 1):
+        ws.column_dimensions[get_column_letter(col)].width = 20
+
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    response = HttpResponse(
+        output.read(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename="bao_cao_doanh_thu_{timezone.now().strftime("%Y%m%d")}.xlsx"'
+    return response
+
+@admin_required
+def export_stock_excel(request):
+    """Xuất báo cáo tồn kho Excel"""
+    try:
+        import openpyxl
+        from openpyxl.styles import Font, PatternFill
+        from openpyxl.utils import get_column_letter
+    except ImportError:
+        messages.error(request, 'Thư viện openpyxl chưa được cài đặt. Chạy: pip install openpyxl')
+        return redirect('dashboard:stock_balance_list')
+
+    from io import BytesIO
+    from django.utils import timezone
+
+    warehouse_filter = request.GET.get('warehouse')
+    low_stock_only = request.GET.get('low_stock')
+
+    balances = StockBalance.objects.select_related('product', 'warehouse', 'warehouse__store')
+
+    if warehouse_filter:
+        balances = balances.filter(warehouse_id=warehouse_filter)
+    if low_stock_only:
+        balances = balances.filter(quantity_on_hand__lte=F('product__min_stock'))
+
+    balances = balances.order_by('warehouse__store__name', 'product__name')
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = 'Báo cáo tồn kho'
+    header_fill = PatternFill(start_color='FF9800', end_color='FF9800', fill_type='solid')
+    header_font = Font(bold=True, color='FFFFFF')
+
+    headers = ['Kho', 'SKU', 'Sản phẩm', 'Tồn kho', 'Tồn tối thiểu', 'Trạng thái']
+    for col, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col, value=header)
+        cell.font = header_font
+        cell.fill = header_fill
+
+    for row_idx, balance in enumerate(balances, 2):
+        ws.cell(row=row_idx, column=1, value=balance.warehouse.store.name)
+        ws.cell(row=row_idx, column=2, value=balance.product.barcode or '')
+        ws.cell(row=row_idx, column=3, value=balance.product.name)
+        ws.cell(row=row_idx, column=4, value=balance.quantity_on_hand)
+        ws.cell(row=row_idx, column=4).number_format = '#,##0'
+        ws.cell(row=row_idx, column=5, value=balance.product.min_stock)
+        ws.cell(row=row_idx, column=5).number_format = '#,##0'
+
+        if balance.quantity_on_hand <= 0:
+            status = 'Hết hàng'
+        elif balance.quantity_on_hand <= balance.product.min_stock:
+            status = 'Sắp hết'
+        else:
+            status = 'Tồn kho tốt'
+        ws.cell(row=row_idx, column=6, value=status)
+
+    widths = [20, 15, 30, 12, 12, 15]
+    for col, width in enumerate(widths, 1):
+        ws.column_dimensions[get_column_letter(col)].width = width
+
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    response = HttpResponse(
+        output.read(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename="bao_cao_ton_kho_{timezone.now().strftime("%Y%m%d")}.xlsx"'
+    return response
+
+
+# ==================== DISCOUNT CODES ====================
+@admin_required
+def discount_code_list(request):
+    """Danh sách mã giảm giá"""
+    discount_codes = DiscountCode.objects.all().order_by('-created_at')
+    
+    # Search functionality
+    query = request.GET.get('q', '')
+    if query:
+        discount_codes = discount_codes.filter(
+            Q(code__icontains=query) | 
+            Q(name__icontains=query) | 
+            Q(description__icontains=query)
+        )
+    
+    # Filter by status
+    status_filter = request.GET.get('status', '')
+    if status_filter:
+        discount_codes = discount_codes.filter(status=status_filter)
+    
+    page_obj, paginator = paginate_queryset(discount_codes, request.GET.get('page'), 20)
+    
+    context = {
+        'page_obj': page_obj,
+        'paginator': paginator,
+        'query': query,
+        'status_filter': status_filter,
+        'page_title': 'Quản Lý Mã Giảm Giá',
+    }
+    return render(request, 'dashboard/discount_codes/list.html', context)
+
+
+@admin_required
+def discount_code_create(request):
+    """Tạo mã giảm giá mới"""
+    if request.method == 'POST':
+        form = DiscountCodeForm(request.POST)
+        if form.is_valid():
+            discount_code = form.save(commit=False)
+            discount_code.created_by = request.user.employee if hasattr(request.user, 'employee') else None
+            discount_code.save()
+            messages.success(request, 'Mã giảm giá đã được tạo thành công!')
+            return redirect('dashboard:discount_code_list')
+    else:
+        form = DiscountCodeForm()
+    
+    context = {
+        'form': form,
+        'page_title': 'Thêm Mã Giảm Giá',
+        'is_create': True,
+    }
+    return render(request, 'dashboard/discount_codes/form.html', context)
+
+
+@admin_required
+def discount_code_edit(request, pk):
+    """Chỉnh sửa mã giảm giá"""
+    discount_code = get_object_or_404(DiscountCode, pk=pk)
+    
+    if request.method == 'POST':
+        form = DiscountCodeForm(request.POST, instance=discount_code)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Mã giảm giá đã được cập nhật!')
+            return redirect('dashboard:discount_code_list')
+    else:
+        form = DiscountCodeForm(instance=discount_code)
+    
+    context = {
+        'form': form,
+        'discount_code': discount_code,
+        'page_title': f'Chỉnh sửa: {discount_code.code}',
+        'is_edit': True,
+    }
+    return render(request, 'dashboard/discount_codes/form.html', context)
+
+
+@admin_required
+def discount_code_detail(request, pk):
+    """Chi tiết mã giảm giá"""
+    discount_code = get_object_or_404(DiscountCode, pk=pk)
+    usages = DiscountCodeUsage.objects.select_related('user', 'order').filter(discount_code=discount_code).order_by('-used_at')[:20]
+    
+    # Calculate statistics
+    total_usage = discount_code.usage_count
+    total_discount = DiscountCodeUsage.objects.filter(discount_code=discount_code).aggregate(
+        total=Sum('discount_amount')
+    )['total'] or 0
+    
+    context = {
+        'discount_code': discount_code,
+        'usages': usages,
+        'total_usage': total_usage,
+        'total_discount': total_discount,
+        'page_title': f'Chi tiết: {discount_code.code}',
+    }
+    return render(request, 'dashboard/discount_codes/detail.html', context)
+
+
+@admin_required
+@require_http_methods(["POST"])
+def discount_code_delete(request, pk):
+    """Xóa mã giảm giá"""
+    discount_code = get_object_or_404(DiscountCode, pk=pk)
+    code = discount_code.code
+    
+    # Check if code has been used
+    if discount_code.usage_count > 0:
+        messages.error(request, f'Không thể xóa mã "{code}" vì đã có {discount_code.usage_count} lượt sử dụng!')
+        return redirect('dashboard:discount_code_detail', pk=pk)
+    
+    discount_code.delete()
+    messages.success(request, f'Mã giảm giá "{code}" đã được xóa!')
+    return redirect('dashboard:discount_code_list')
+
+
+# ==================== DISCOUNT CODE API ====================
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def validate_discount_code(request):
+    """API validate và áp dụng mã giảm giá"""
+    try:
+        code = request.data.get('code', '').strip().upper()
+        order_amount = float(request.data.get('order_amount', 0))
+        
+        if not code:
+            return Response({'error': 'Vui lòng nhập mã giảm giá'}, status=400)
+        
+        if order_amount <= 0:
+            return Response({'error': 'Giá trị đơn hàng không hợp lệ'}, status=400)
+        
+        # Find discount code
+        try:
+            discount_code = DiscountCode.objects.get(code=code)
+        except DiscountCode.DoesNotExist:
+            return Response({'error': 'Mã giảm giá không tồn tại'}, status=404)
+        
+        # Check if code is valid
+        is_valid, message = discount_code.is_valid()
+        if not is_valid:
+            return Response({'error': message}, status=400)
+        
+        # Check if user can use this code
+        can_use, user_message = discount_code.can_user_use(request.user)
+        if not can_use:
+            return Response({'error': user_message}, status=400)
+        
+        # Calculate discount
+        discount_amount, error_message = discount_code.calculate_discount(order_amount)
+        if error_message:
+            return Response({'error': error_message}, status=400)
+        
+        # Return success response
+        response_data = {
+            'success': True,
+            'discount_code': {
+                'code': discount_code.code,
+                'name': discount_code.name,
+                'discount_type': discount_code.discount_type,
+                'discount_value': float(discount_code.discount_value),
+                'discount_amount': float(discount_amount),
+                'final_amount': order_amount - discount_amount,
+            }
+        }
+        
+        return Response(response_data)
+        
+    except Exception as e:
+        return Response({'error': f'Lỗi hệ thống: {str(e)}'}, status=500)

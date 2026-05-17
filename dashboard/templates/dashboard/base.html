@@ -409,6 +409,25 @@
                 <i class="fas fa-warehouse"></i> Kho Hàng
             </a>
 
+            <div class="nav-section-title">MUA HÀNG & NHÀ CUNG CẤP</div>
+            <a href="{% url 'dashboard:supplier_list' %}" class="nav-link {% if 'supplier' in request.resolver_match.url_name %}active{% endif %}">
+                <i class="fas fa-truck"></i> Nhà Cung Cấp
+            </a>
+            <a href="{% url 'dashboard:purchase_order_list' %}" class="nav-link {% if 'purchase_order' in request.resolver_match.url_name %}active{% endif %}">
+                <i class="fas fa-shopping-cart"></i> Đơn Mua Hàng
+            </a>
+            <a href="{% url 'dashboard:goods_receipt_list' %}" class="nav-link {% if 'goods_receipt' in request.resolver_match.url_name %}active{% endif %}">
+                <i class="fas fa-file-invoice"></i> Phiếu Nhập Hàng
+            </a>
+
+            <div class="nav-section-title">QUẢN LÝ TỒN KHO</div>
+            <a href="{% url 'dashboard:stock_balance_list' %}" class="nav-link {% if 'stock_balance' in request.resolver_match.url_name %}active{% endif %}">
+                <i class="fas fa-boxes"></i> Số Dư Tồn Kho
+            </a>
+            <a href="{% url 'dashboard:stock_movement_list' %}" class="nav-link {% if 'stock_movement' in request.resolver_match.url_name %}active{% endif %}">
+                <i class="fas fa-exchange-alt"></i> Chuyển Động Kho
+            </a>
+
             <div class="nav-section-title">NHÂN SỰ</div>
             <a href="{% url 'dashboard:employees_list' %}" class="nav-link {% if 'employees' in request.resolver_match.url_name %}active{% endif %}">
                 <i class="fas fa-user-tie"></i> Nhân Viên
@@ -418,11 +437,28 @@
             <a href="{% url 'dashboard:customers_unified_list' %}" class="nav-link {% if 'customers_unified' in request.resolver_match.url_name %}active{% endif %}">
                 <i class="fas fa-users"></i> Khách Hàng
             </a>
+            <a href="{% url 'dashboard:customer_group_list' %}" class="nav-link {% if 'customer_group' in request.resolver_match.url_name %}active{% endif %}">
+                <i class="fas fa-user-group"></i> Nhóm Khách Hàng
+            </a>
+            <a href="{% url 'dashboard:discount_code_list' %}" class="nav-link {% if 'discount_code' in request.resolver_match.url_name %}active{% endif %}">
+                <i class="fas fa-ticket-alt"></i> Mã Giảm Giá
+            </a>
             <a href="{% url 'dashboard:review_list' %}" class="nav-link {% if 'review' in request.resolver_match.url_name and 'order_review' not in request.resolver_match.url_name %}active{% endif %}">
                 <i class="fas fa-star"></i> Đánh Giá SP
             </a>
             <a href="{% url 'dashboard:order_review_list' %}" class="nav-link {% if 'order_review' in request.resolver_match.url_name %}active{% endif %}">
                 <i class="fas fa-clipboard-check"></i> Đánh Giá ĐH
+            </a>
+
+            <div class="nav-section-title">BÁO CÁO & XUẤT DỮ LIỆU</div>
+            <a href="{% url 'dashboard:export_orders_excel' %}" class="nav-link">
+                <i class="fas fa-file-excel"></i> Xuất Đơn Hàng
+            </a>
+            <a href="{% url 'dashboard:export_revenue_excel' %}" class="nav-link">
+                <i class="fas fa-chart-line"></i> Xuất Doanh Thu
+            </a>
+            <a href="{% url 'dashboard:export_stock_excel' %}" class="nav-link">
+                <i class="fas fa-boxes"></i> Xuất Tồn Kho
             </a>
 
             <div class="nav-section-title">NỘI DUNG</div>
@@ -431,6 +467,9 @@
             </a>
             <a href="{% url 'dashboard:news_list' %}" class="nav-link {% if 'news' in request.resolver_match.url_name %}active{% endif %}">
                 <i class="fas fa-newspaper"></i> Tin Tức
+            </a>
+            <a href="{% url 'dashboard:contact_settings' %}" class="nav-link {% if 'contact' in request.resolver_match.url_name %}active{% endif %}">
+                <i class="fas fa-headset"></i> Liên Hệ
             </a>
         </div>
 

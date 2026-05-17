@@ -34,9 +34,16 @@
         </div>
 
         <!-- RESULTS -->
-        <div style="margin-bottom:1rem;font-size:.85rem;color:#636e72;">
-            {{ products|length }} sản phẩm
-            {% if query %} cho "{{ query }}"{% endif %}
+        <div style="margin-bottom:1rem;font-size:.85rem;color:#636e72;display:flex;justify-content:space-between;align-items:center;">
+            <div>
+                {{ products.start_index }}-{{ products.end_index }} của {{ products.paginator.count }} sản phẩm
+                {% if query %} cho "{{ query }}"{% endif %}
+            </div>
+            {% if products.has_other_pages %}
+            <div style="font-size:.8rem;">
+                Trang {{ products.number }}/{{ products.paginator.num_pages }}
+            </div>
+            {% endif %}
         </div>
 
         <div class="product-grid">
@@ -50,6 +57,31 @@
             </div>
             {% endfor %}
         </div>
+
+        <!-- PAGINATION -->
+        {% if products.has_other_pages %}
+        <div style="display:flex;justify-content:center;align-items:center;gap:8px;margin-top:2rem;">
+            {% if products.has_previous %}
+            <a href="?page={{ products.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if current_category %}&category={{ current_category }}{% endif %}{% if current_brand %}&brand={{ current_brand }}{% endif %}" style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;border:1px solid #e8ecf1;border-radius:8px;text-decoration:none;color:#636e72;font-weight:600;transition:all .2s;" onmouseover="this.style.background='#f8f9fa';this.style.borderColor='#667eea';this.style.color='#667eea'" onmouseout="this.style.background='';this.style.borderColor='#e8ecf1';this.style.color='#636e72'">
+                <i class="fas fa-chevron-left"></i>
+            </a>
+            {% endif %}
+
+            {% for num in products.paginator.page_range %}
+                {% if products.number == num %}
+                <span style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;background:#667eea;color:white;border-radius:8px;font-weight:700;">{{ num }}</span>
+                {% elif num > products.number|add:'-3' and num < products.number|add:'3' %}
+                <a href="?page={{ num }}{% if query %}&q={{ query }}{% endif %}{% if current_category %}&category={{ current_category }}{% endif %}{% if current_brand %}&brand={{ current_brand }}{% endif %}" style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;border:1px solid #e8ecf1;border-radius:8px;text-decoration:none;color:#636e72;font-weight:600;transition:all .2s;" onmouseover="this.style.background='#f8f9fa';this.style.borderColor='#667eea';this.style.color='#667eea'" onmouseout="this.style.background='';this.style.borderColor='#e8ecf1';this.style.color='#636e72'">{{ num }}</a>
+                {% endif %}
+            {% endfor %}
+
+            {% if products.has_next %}
+            <a href="?page={{ products.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if current_category %}&category={{ current_category }}{% endif %}{% if current_brand %}&brand={{ current_brand }}{% endif %}" style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;border:1px solid #e8ecf1;border-radius:8px;text-decoration:none;color:#636e72;font-weight:600;transition:all .2s;" onmouseover="this.style.background='#f8f9fa';this.style.borderColor='#667eea';this.style.color='#667eea'" onmouseout="this.style.background='';this.style.borderColor='#e8ecf1';this.style.color='#636e72'">
+                <i class="fas fa-chevron-right"></i>
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
