@@ -341,15 +341,27 @@ class UserForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ['email', 'first_name', 'last_name', 'role', 'is_active', 'is_staff']
+        fields = ['email', 'first_name', 'last_name', 'role']
         widgets = {
             'email': forms.EmailInput(attrs={'class': INPUT_CLASS, 'placeholder': 'Email'}),
             'first_name': forms.TextInput(attrs={'class': INPUT_CLASS, 'placeholder': 'Họ'}),
             'last_name': forms.TextInput(attrs={'class': INPUT_CLASS, 'placeholder': 'Tên'}),
             'role': forms.Select(attrs={'class': SELECT_CLASS}),
-            'is_active': forms.CheckboxInput(attrs={'class': 'h-4 w-4 text-indigo-600'}),
-            'is_staff': forms.CheckboxInput(attrs={'class': 'h-4 w-4 text-indigo-600'}),
         }
+
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if email:
+            # Check if email already exists (but allow the same email for the current user when editing)
+            if self.instance and self.instance.pk:
+                # Editing: exclude current user from uniqueness check
+                if User.objects.filter(email=email).exclude(pk=self.instance.pk).exists():
+                    raise forms.ValidationError('Email này đã được đăng ký.')
+            else:
+                # Creating: check if email exists
+                if User.objects.filter(email=email).exists():
+                    raise forms.ValidationError('Email này đã được đăng ký.')
+        return email
 
 
 class WarehouseForm(forms.ModelForm):

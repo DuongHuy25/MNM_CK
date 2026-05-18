@@ -18,8 +18,8 @@
             </select>
             <select name="category" class="form-control" style="width:auto;">
                 <option value="">Tất cả danh mục</option>
-                {% for cat in categories %}
-                <option value="{{ cat.pk }}" {% if category_filter == cat.pk|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
+                {% for cat_value, cat_name in categories %}
+                <option value="{{ cat_value }}" {% if category_filter == cat_value %}selected{% endif %}>{{ cat_name }}</option>
                 {% endfor %}
             </select>
             <button type="submit" class="btn btn-outline"><i class="fas fa-filter"></i> Lọc</button>
@@ -69,7 +69,7 @@
                         <span class="badge" style="background:#fff3cd;color:#856404;margin-top:4px;font-size:0.7rem;"><i class="fas fa-star"></i> Nổi bật</span>
                         {% endif %}
                     </td>
-                    <td style="color:#525f7f;">{{ news.category.name|default:"—" }}</td>
+                    <td style="color:#525f7f;">{{ news.get_category_display }}</td>
                     <td>
                         {% if news.status == 'published' %}
                         <span class="badge badge-available"><i class="fas fa-check-circle"></i> Đã xuất bản</span>

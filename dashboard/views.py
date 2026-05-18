@@ -7,7 +7,7 @@ from django.db.models import Q, Sum, Count, Avg, F
 from django.http import HttpResponse, JsonResponse
 from django.core.paginator import Paginator
 from django.utils import timezone
-
+from .forms import GoodsReceiptForm
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -1243,7 +1243,12 @@ def warehouse_batch_create(request):
                 })
 
             batch = form.save(commit=False)
-            batch.created_by = request.user
+            # Check if user has an associated employee
+            if hasattr(request.user, 'employee'):
+                try:
+                    batch.created_by = request.user.employee
+                except:
+                    batch.created_by = None
             if not batch.batch_number:
                 batch.batch_number = generate_batch_number(batch.batch_type)
             batch.save()
@@ -1343,7 +1348,12 @@ def warehouse_batch_create(request):
         else:
             if form.is_valid():
                 batch = form.save(commit=False)
-                batch.created_by = request.user
+                # Check if user has an associated employee
+                if hasattr(request.user, 'employee'):
+                    try:
+                        batch.created_by = request.user.employee
+                    except:
+                        batch.created_by = None
                 if not batch.batch_number:
                     batch.batch_number = generate_batch_number(batch.batch_type)
                 batch.save()
@@ -1749,7 +1759,7 @@ def customer_profile_toggle_verification(request, pk):
 @admin_required
 def customers_unified_list(request):
     """Unified customer list combining User + CustomerProfile data"""
-    users = User.objects.select_related('profile').all()
+    users = User.objects.prefetch_related('profile').all()
 
     # Stats
     total_users = User.objects.count()
@@ -1945,10 +1955,11 @@ def news_list(request):
     if search_query:
         news_items = news_items.filter(title__icontains=search_query)
     return render(request, 'dashboard/news/list.html', {
-        'news_items': news_items, 'page_title': 'Quản Lý Tin Tức',
+        'news_list': news_items, 'page_title': 'Quản Lý Tin Tức',
         'status_choices': News.STATUS_CHOICES, 'category_choices': News.CATEGORY_CHOICES,
         'current_status': status_filter, 'current_category': category_filter,
         'search_query': search_query,
+        'categories': News.CATEGORY_CHOICES,
     })
 
 @admin_required

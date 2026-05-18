@@ -16,6 +16,18 @@
         <form method="POST" enctype="multipart/form-data">
             {% csrf_token %}
 
+            <!-- Display form errors -->
+            {% if user_form.non_field_errors or profile_form.non_field_errors %}
+            <div style="background-color:#f8d7da;color:#721c24;border:1px solid #f5c6cb;border-radius:4px;padding:12px;margin-bottom:1rem;">
+                {% for error in user_form.non_field_errors %}
+                <div>{{ error }}</div>
+                {% endfor %}
+                {% for error in profile_form.non_field_errors %}
+                <div>{{ error }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
             <!-- Account Info -->
             <div style="margin-bottom:2rem;">
                 <div style="font-size:1rem;font-weight:700;color:#32325d;margin-bottom:1rem;padding-bottom:0.5rem;border-bottom:1px solid #f0f2f5;">
@@ -25,17 +37,29 @@
                     <div>
                         <label class="form-label">Email <span style="color:#f5365c;">*</span></label>
                         {{ user_form.email }}
-                        {% if user_form.email.errors %}<div style="color:#f5365c;font-size:0.8rem;margin-top:4px;">{{ user_form.email.errors.0 }}</div>{% endif %}
+                        {% if user_form.email.errors %}
+                            <div style="color:#f5365c;font-size:0.8rem;margin-top:4px;">
+                                {% for error in user_form.email.errors %}{{ error }}<br>{% endfor %}
+                            </div>
+                        {% endif %}
                     </div>
                     <div>
                         <label class="form-label">Mật khẩu {% if is_create %}<span style="color:#f5365c;">*</span>{% else %}<span style="color:#adb5bd;">(để trống nếu không đổi)</span>{% endif %}</label>
                         {{ user_form.password }}
-                        {% if user_form.password.errors %}<div style="color:#f5365c;font-size:0.8rem;margin-top:4px;">{{ user_form.password.errors.0 }}</div>{% endif %}
+                        {% if user_form.password.errors %}
+                            <div style="color:#f5365c;font-size:0.8rem;margin-top:4px;">
+                                {% for error in user_form.password.errors %}{{ error }}<br>{% endfor %}
+                            </div>
+                        {% endif %}
                     </div>
                     <div>
                         <label class="form-label">Vai trò</label>
                         {{ user_form.role }}
-                        {% if user_form.role.errors %}<div style="color:#f5365c;font-size:0.8rem;margin-top:4px;">{{ user_form.role.errors.0 }}</div>{% endif %}
+                        {% if user_form.role.errors %}
+                            <div style="color:#f5365c;font-size:0.8rem;margin-top:4px;">
+                                {% for error in user_form.role.errors %}{{ error }}<br>{% endfor %}
+                            </div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -49,33 +73,33 @@
                     <div>
                         <label class="form-label">Họ</label>
                         {{ user_form.first_name }}
-                        {% if user_form.first_name.errors %}<div style="color:#f5365c;font-size:0.8rem;margin-top:4px;">{{ user_form.first_name.errors.0 }}</div>{% endif %}
+                        {% if user_form.first_name.errors %}<div style="color:#f5365c;font-size:0.8rem;margin-top:4px;">{% for error in user_form.first_name.errors %}{{ error }}<br>{% endfor %}</div>{% endif %}
                     </div>
                     <div>
                         <label class="form-label">Tên</label>
                         {{ user_form.last_name }}
-                        {% if user_form.last_name.errors %}<div style="color:#f5365c;font-size:0.8rem;margin-top:4px;">{{ user_form.last_name.errors.0 }}</div>{% endif %}
+                        {% if user_form.last_name.errors %}<div style="color:#f5365c;font-size:0.8rem;margin-top:4px;">{% for error in user_form.last_name.errors %}{{ error }}<br>{% endfor %}</div>{% endif %}
                     </div>
                     <div>
                         <label class="form-label">Số điện thoại</label>
                         {{ profile_form.phone }}
-                        {% if profile_form.phone.errors %}<div style="color:#f5365c;font-size:0.8rem;margin-top:4px;">{{ profile_form.phone.errors.0 }}</div>{% endif %}
+                        {% if profile_form.phone.errors %}<div style="color:#f5365c;font-size:0.8rem;margin-top:4px;">{% for error in profile_form.phone.errors %}{{ error }}<br>{% endfor %}</div>{% endif %}
                     </div>
                     <div>
                         <label class="form-label">Ngày sinh</label>
                         {{ profile_form.birth_date }}
-                        {% if profile_form.birth_date.errors %}<div style="color:#f5365c;font-size:0.8rem;margin-top:4px;">{{ profile_form.birth_date.errors.0 }}</div>{% endif %}
+                        {% if profile_form.birth_date.errors %}<div style="color:#f5365c;font-size:0.8rem;margin-top:4px;">{% for error in profile_form.birth_date.errors %}{{ error }}<br>{% endfor %}</div>{% endif %}
                     </div>
                     <div>
                         <label class="form-label">Giới tính</label>
                         {{ profile_form.gender }}
-                        {% if profile_form.gender.errors %}<div style="color:#f5365c;font-size:0.8rem;margin-top:4px;">{{ profile_form.gender.errors.0 }}</div>{% endif %}
+                        {% if profile_form.gender.errors %}<div style="color:#f5365c;font-size:0.8rem;margin-top:4px;">{% for error in profile_form.gender.errors %}{{ error }}<br>{% endfor %}</div>{% endif %}
                     </div>
                 </div>
                 <div style="margin-top:1rem;">
                     <label class="form-label">Địa chỉ</label>
                     {{ profile_form.address }}
-                    {% if profile_form.address.errors %}<div style="color:#f5365c;font-size:0.8rem;margin-top:4px;">{{ profile_form.address.errors.0 }}</div>{% endif %}
+                    {% if profile_form.address.errors %}<div style="color:#f5365c;font-size:0.8rem;margin-top:4px;">{% for error in profile_form.address.errors %}{{ error }}<br>{% endfor %}</div>{% endif %}
                 </div>
             </div>
 

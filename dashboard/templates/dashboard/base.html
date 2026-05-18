@@ -416,17 +416,6 @@
             <a href="{% url 'dashboard:purchase_order_list' %}" class="nav-link {% if 'purchase_order' in request.resolver_match.url_name %}active{% endif %}">
                 <i class="fas fa-shopping-cart"></i> Đơn Mua Hàng
             </a>
-            <a href="{% url 'dashboard:goods_receipt_list' %}" class="nav-link {% if 'goods_receipt' in request.resolver_match.url_name %}active{% endif %}">
-                <i class="fas fa-file-invoice"></i> Phiếu Nhập Hàng
-            </a>
-
-            <div class="nav-section-title">QUẢN LÝ TỒN KHO</div>
-            <a href="{% url 'dashboard:stock_balance_list' %}" class="nav-link {% if 'stock_balance' in request.resolver_match.url_name %}active{% endif %}">
-                <i class="fas fa-boxes"></i> Số Dư Tồn Kho
-            </a>
-            <a href="{% url 'dashboard:stock_movement_list' %}" class="nav-link {% if 'stock_movement' in request.resolver_match.url_name %}active{% endif %}">
-                <i class="fas fa-exchange-alt"></i> Chuyển Động Kho
-            </a>
 
             <div class="nav-section-title">NHÂN SỰ</div>
             <a href="{% url 'dashboard:employees_list' %}" class="nav-link {% if 'employees' in request.resolver_match.url_name %}active{% endif %}">
@@ -436,9 +425,6 @@
             <div class="nav-section-title">KHÁCH HÀNG</div>
             <a href="{% url 'dashboard:customers_unified_list' %}" class="nav-link {% if 'customers_unified' in request.resolver_match.url_name %}active{% endif %}">
                 <i class="fas fa-users"></i> Khách Hàng
-            </a>
-            <a href="{% url 'dashboard:customer_group_list' %}" class="nav-link {% if 'customer_group' in request.resolver_match.url_name %}active{% endif %}">
-                <i class="fas fa-user-group"></i> Nhóm Khách Hàng
             </a>
             <a href="{% url 'dashboard:discount_code_list' %}" class="nav-link {% if 'discount_code' in request.resolver_match.url_name %}active{% endif %}">
                 <i class="fas fa-ticket-alt"></i> Mã Giảm Giá

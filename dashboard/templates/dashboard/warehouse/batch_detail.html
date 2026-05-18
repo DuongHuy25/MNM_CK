@@ -32,7 +32,13 @@
         </div>
         <div>
             <div style="color:#8898aa;font-size:0.72rem;font-weight:700;text-transform:uppercase;">Người Tạo</div>
-            <div style="color:#32325d;font-weight:600;margin-top:0.25rem;">{{ batch.created_by.get_full_name|default:batch.created_by.username|default:"—" }}</div>
+            <div style="color:#32325d;font-weight:600;margin-top:0.25rem;">
+                {% if batch.created_by %}
+                    {{ batch.created_by.first_name }} {{ batch.created_by.last_name }}
+                {% else %}
+                    —
+                {% endif %}
+            </div>
         </div>
         <div>
             <div style="color:#8898aa;font-size:0.72rem;font-weight:700;text-transform:uppercase;">Tổng Tiền</div>

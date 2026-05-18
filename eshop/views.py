@@ -59,7 +59,7 @@ def find_nearest_store(user_lat, user_lng):
     if not user_lat or not user_lng:
         return None
     
-    stores = Store.objects.filter(is_active=True)
+    stores = Store.objects.all()
     nearest_store = None
     min_distance = float('inf')
     
@@ -631,7 +631,7 @@ def error_test_view(request, status_code):
 # ==================== DIRECTIONS ====================
 
 def directions(request):
-    stores = Store.objects.filter(is_active=True)
+    stores = Store.objects.all()
     # Only pass stores with valid coordinates to the JS frontend
     stores = stores.exclude(latitude__isnull=True).exclude(longitude__isnull=True)
     stores = stores.filter(latitude__gt=-90, latitude__lt=90, longitude__gt=-180, longitude__lt=180)
@@ -639,7 +639,7 @@ def directions(request):
     store_id = request.GET.get('store_id')
     target_store = None
     if store_id:
-        target_store = Store.objects.filter(pk=store_id, is_active=True).exclude(latitude__isnull=True).exclude(longitude__isnull=True).first()
+        target_store = Store.objects.filter(pk=store_id).exclude(latitude__isnull=True).exclude(longitude__isnull=True).first()
 
     # Fallback origin: use saved user location (profile)
     user_lat = None
