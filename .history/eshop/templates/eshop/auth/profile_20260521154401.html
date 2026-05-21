@@ -1,0 +1,120 @@
+{% extends 'eshop/base.html' %}
+{% load static %}
+{% block title %}Tài Khoản - ZenMart{% endblock %}
+
+{% block content %}
+
+<div class="max-w-4xl mx-auto px-6 py-12 space-y-8">
+
+    <!-- Header profile -->
+    <div class="bg-white p-6 rounded-2xl shadow-lg flex items-center gap-6">
+        {% if request.user.avatar %}
+        <img src="{{ request.user.avatar.url }}" class="w-14 h-14 rounded-full border-4 border-blue-600 object-cover">
+        {% else %}
+        <div class="w-14 h-14 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white text-xl">
+            <i class="fas fa-user"></i>
+        </div>
+        {% endif %}
+        <div class="flex-1">
+            <h2 class="text-xl font-bold text-gray-800">
+                {% if request.user.first_name %}{{ request.user.first_name }} {{ request.user.last_name }}{% else %}{{ request.user.email }}{% endif %}
+            </h2>
+            <div class="text-gray-500 text-sm">{{ request.user.email }}</div>
+        </div>
+        <a href="{% url 'eshop:logout' %}" class="inline-flex items-center gap-2 border border-blue-600 text-blue-600 px-4 py-2 rounded-lg hover:bg-blue-600 hover:text-white transition">
+            <i class="fas fa-sign-out-alt"></i> Đăng xuất
+        </a>
+    </div>
+
+    <!-- Thông tin cá nhân -->
+    <div class="bg-white p-6 rounded-2xl shadow-lg space-y-4">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-bold flex items-center gap-2"><i class="fas fa-id-card text-blue-600"></i> Thông Tin Cá Nhân</h3>
+            <button type="button" onclick="toggleEdit()" id="editBtn" class="border border-gray-300 text-gray-700 px-3 py-1 rounded-lg hover:bg-gray-100 transition flex items-center gap-1 text-sm">
+                <i class="fas fa-pen"></i> Chỉnh sửa
+            </button>
+        </div>
+
+
+    <!-- Thông tin cá nhân -->
+    <div class="bg-white p-6 rounded-2xl shadow-lg flex items-center justify-between">
+        <div class="flex items-center gap-4">
+            <div class="w-16 h-16 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white text-2xl">
+                <i class="fas fa-user"></i>
+            </div>
+            <div>
+                <div class="font-bold text-gray-800 text-lg">Võ Quốc Hưng</div>
+                <div class="text-gray-500 text-sm">hungvo101105@gmail.com</div>
+                <div class="mt-1 text-gray-400 text-sm">Địa chỉ: Chưa nhập</div>
+                <div class="mt-1 text-gray-400 text-sm">Số điện thoại: Chưa nhập</div>
+            </div>
+        </div>
+        <button class="inline-flex items-center gap-1 border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-100 transition">
+            <i class="fas fa-pen"></i> Chỉnh sửa
+        </button>
+    </div>
+
+    <!-- Đổi mật khẩu -->
+    <div class="bg-white p-6 rounded-2xl shadow-lg space-y-4">
+        <h3 class="text-lg font-bold flex items-center gap-2">
+            <i class="fas fa-lock text-blue-600"></i> Đổi Mật Khẩu
+        </h3>
+        <form class="space-y-3">
+            <div>
+                <input type="password" placeholder="Mật khẩu hiện tại" class="border rounded-lg w-full px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none">
+            </div>
+            <div>
+                <input type="password" placeholder="Mật khẩu mới (tối thiểu 8 ký tự)" class="border rounded-lg w-full px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none">
+            </div>
+            <div>
+                <input type="password" placeholder="Xác nhận mật khẩu mới" class="border rounded-lg w-full px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none">
+            </div>
+            <button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-purple-700 text-white py-2 rounded-xl font-semibold hover:opacity-90 transition transform hover:scale-105 flex items-center justify-center gap-2">
+                <i class="fas fa-key"></i> Đổi mật khẩu
+            </button>
+        </form>
+    </div>
+</div>
+
+    <!-- Orders -->
+    <div class="bg-white p-6 rounded-2xl shadow-lg space-y-4">
+        <h3 class="text-lg font-bold flex items-center gap-2"><i class="fas fa-receipt text-blue-600"></i> Đơn Hàng Của Tôi</h3>
+        {% if orders %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full border-collapse">
+                <thead>
+                    <tr class="bg-gray-100 text-gray-600 text-xs uppercase font-semibold">
+                        <th class="p-2 text-left">Mã ĐH</th>
+                        <th class="p-2 text-left">Ngày đặt</th>
+                        <th class="p-2 text-left">Trạng thái</th>
+                        <th class="p-2 text-right">Tổng</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                    <tr class="border-b hover:bg-gray-50 transition">
+                        <td class="p-2 font-mono text-blue-600 font-semibold text-sm">
+                            <a href="{% url 'eshop:order_detail' order.order_id %}" class="hover:underline">{{ order.order_id }}</a>
+                        </td>
+                        <td class="p-2 text-gray-600 text-sm">{{ order.created_at|date:'d/m/Y H:i' }}</td>
+                        <td class="p-2"><span class="status-badge status-{{ order.status }}">{{ order.get_status_display }}</span></td>
+                        <td class="p-2 text-right font-semibold text-gray-800">{{ order.total_amount|floatformat:0 }}đ</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-12 text-gray-400 space-y-2">
+            <i class="fas fa-box-open text-5xl"></i>
+            <h3 class="text-lg font-semibold">Chưa có đơn hàng</h3>
+            <a href="{% url 'eshop:products' %}" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:opacity-90 transition inline-flex items-center gap-2">
+                <i class="fas fa-shopping-bag"></i> Mua sắm ngay
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+
+{% endblock %}

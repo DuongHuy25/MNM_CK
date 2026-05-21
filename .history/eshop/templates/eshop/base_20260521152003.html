@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}ZenMart{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+
+    <!-- Navbar -->
+    <header class="bg-white shadow sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between gap-4">
+            <a href="{% url 'eshop:home' %}" class="flex items-center gap-2 text-2xl font-bold text-blue-600 flex-shrink-0">
+                <i class="fas fa-store"></i> ZenMart
+            </a>
+
+            <!-- Nav links -->
+            <nav class="hidden md:flex items-center gap-6 text-gray-700 font-medium">
+                <a href="{% url 'eshop:home' %}" class="hover:text-blue-600 transition">Trang chủ</a>
+                <a href="{% url 'eshop:products' %}" class="hover:text-blue-600 transition">Sản phẩm</a>
+                <a href="{% url 'eshop:directions' %}" class="hover:text-blue-600 transition">Tìm đường</a>
+                <div class="relative group">
+                    <button class="flex items-center gap-1 hover:text-blue-600 transition">
+                        <i class="fas fa-users"></i> Về chúng tôi <i class="fas fa-chevron-down text-xs"></i>
+                    </button>
+                    <ul class="absolute left-0 mt-2 w-48 bg-white shadow-lg rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-all">
+                        <li><a href="{% url 'eshop:about' %}" class="block px-4 py-2 hover:bg-gray-100"><i class="fas fa-info-circle mr-2"></i> Giới thiệu</a></li>
+                        <li><a href="{% url 'eshop:news' %}" class="block px-4 py-2 hover:bg-gray-100"><i class="fas fa-newspaper mr-2"></i> Tin tức</a></li>
+                        <li><a href="{% url 'eshop:contact' %}" class="block px-4 py-2 hover:bg-gray-100"><i class="fas fa-address-book mr-2"></i> Liên hệ</a></li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Search -->
+            <div class="flex-1 max-w-lg mx-4">
+                <form method="get" action="{% url 'eshop:products' %}" class="flex items-center w-full">
+                    <input type="text" name="q" placeholder="Tìm sản phẩm..." value="{{ request.GET.q }}" class="w-full border-2 border-gray-300 rounded-l-full px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    <button class="bg-blue-600 text-white px-3 py-2 rounded-r-full hover:bg-blue-700 transition">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Right controls -->
+            <div class="flex items-center gap-3 flex-shrink-0">
+                {% if user.is_authenticated %}
+                <a href="{% url 'eshop:wishlist' %}" class="flex items-center gap-1 font-semibold bg-pink-100 text-pink-600 hover:bg-pink-600 hover:text-white px-4 py-2 rounded-full transition">
+                    <i class="fas fa-heart"></i> Yêu thích
+                </a>
+                <a href="{% url 'eshop:profile' %}" class="flex items-center gap-1 font-semibold bg-green-100 text-green-700 hover:bg-green-700 hover:text-white px-4 py-2 rounded-full transition">
+                    {% if user.avatar %}
+                    <img src="{{ user.avatar.url }}" class="w-7 h-7 rounded-full object-cover">
+                    {% else %}
+                    <i class="fas fa-user-circle"></i>
+                    {% endif %}
+                    {{ user.first_name|default:user.email }}
+                </a>
+                {% else %}
+                <a href="{% url 'eshop:login' %}" class="flex items-center gap-1 font-semibold bg-gray-100 hover:bg-blue-600 hover:text-white px-4 py-2 rounded-full transition">
+                    <i class="fas fa-sign-in-alt"></i> Đăng nhập
+                </a>
+                <a href="{% url 'eshop:register' %}" class="flex items-center gap-1 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-700 text-white rounded-full hover:opacity-90 transition">
+                    <i class="fas fa-user-plus"></i> Đăng ký
+                </a>
+                {% endif %}
+
+                <a href="{% url 'eshop:cart' %}" class="flex items-center gap-1 font-semibold bg-gray-100 hover:bg-blue-600 hover:text-white px-4 py-2 rounded-full transition relative">
+                    <i class="fas fa-shopping-cart"></i> Giỏ hàng
+                    {% if request.session.cart %}
+                    <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">{{ request.session.cart|length }}</span>
+                    {% endif %}
+                </a>
+            </div>
+        </div>
+    </header>
+
+    {% block content %}{% endblock %}
+    <footer class="bg-gray-800 text-gray-200 mt-12">
+        <div class="max-w-7xl mx-auto px-6 py-12 grid grid-cols-1 md:grid-cols-4 gap-6">
+
+            <!-- Logo & info -->
+            <div class="space-y-4">
+                <div class="flex items-center gap-2 text-2xl font-bold text-white">
+                    <i class="fas fa-store"></i> ZenMart
+                </div>
+                <p class="text-gray-400 text-sm">Cửa hàng trực tuyến uy tín, giao hàng nhanh, hỗ trợ 24/7.</p>
+            </div>
+
+            <!-- Quick Links -->
+            <div>
+                <h3 class="font-semibold mb-3">Liên kết nhanh</h3>
+                <ul class="space-y-2">
+                    <li><a href="{% url 'eshop:home' %}" class="hover:text-white transition">Trang chủ</a></li>
+                    <li><a href="{% url 'eshop:products' %}" class="hover:text-white transition">Sản phẩm</a></li>
+                    <li><a href="{% url 'eshop:about' %}" class="hover:text-white transition">Về chúng tôi</a></li>
+                    <li><a href="{% url 'eshop:contact' %}" class="hover:text-white transition">Liên hệ</a></li>
+                </ul>
+            </div>
+
+            <!-- Support -->
+            <div>
+                <h3 class="font-semibold mb-3">Hỗ trợ</h3>
+                <ul class="space-y-2">
+                    <li><a href="{% url 'eshop:faq' %}" class="hover:text-white transition">Câu hỏi thường gặp</a></li>
+                    <li><a href="{% url 'eshop:shipping' %}" class="hover:text-white transition">Chính sách giao hàng</a></li>
+                    <li><a href="{% url 'eshop:return' %}" class="hover:text-white transition">Chính sách đổi trả</a></li>
+                </ul>
+            </div>
+
+            <!-- Social -->
+            <div>
+                <h3 class="font-semibold mb-3">Theo dõi chúng tôi</h3>
+                <div class="flex items-center gap-4 text-xl">
+                    <a href="#" class="hover:text-white transition"><i class="fab fa-facebook"></i></a>
+                    <a href="#" class="hover:text-white transition"><i class="fab fa-instagram"></i></a>
+                    <a href="#" class="hover:text-white transition"><i class="fab fa-twitter"></i></a>
+                    <a href="#" class="hover:text-white transition"><i class="fab fa-youtube"></i></a>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="border-t border-gray-700 mt-6 py-4 text-center text-gray-500 text-sm">
+            &copy; {{ now.year }} ZenMart. Bản quyền thuộc về ZenMart.
+        </div>
+    </footer>
+
+</body>
+</html>

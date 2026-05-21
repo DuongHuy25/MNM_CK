@@ -1,0 +1,39 @@
+<div class="product-card">
+    <a href="{% url 'eshop:product_detail' product.pk %}">
+        <div class="img-wrap">
+            {% if product.image and product.image.name %}
+            <img src="{{ product.image.url }}" alt="{{ product.name }}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+            <i class="fas fa-bowl-food placeholder" style="display:none;"></i>
+            {% else %}
+            <i class="fas fa-bowl-food placeholder"></i>
+            {% endif %}
+            <span class="cat-badge">{{ product.category.name }}</span>
+        </div>
+        <div class="card-body">
+            <h3>{{ product.name }}</h3>
+            {% if product.brand %}
+            <div class="brand">{{ product.brand.name }}</div>
+            {% endif %}
+            <div>
+                <span class="price">{{ product.sale_price|floatformat:0 }}đ</span>
+                {% if product.cost_price and product.cost_price > product.sale_price %}
+                <span class="old-price">{{ product.cost_price|floatformat:0 }}đ</span>
+                {% endif %}
+            </div>
+        </div>
+    </a>
+    
+    <!-- Wishlist Button -->
+    {% if user.is_authenticated %}
+    <a href="{% url 'eshop:add_to_wishlist' product.pk %}" class="wishlist-btn" title="Thêm vào yêu thích">
+        <i class="fas fa-heart"></i>
+    </a>
+    {% endif %}
+    
+    <form method="post" action="{% url 'eshop:cart_add' product.pk %}">
+        {% csrf_token %}
+        <input type="hidden" name="quantity" value="1">
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <button type="submit" class="add-btn"><i class="fas fa-cart-plus"></i> Thêm vào giỏ</button>
+    </form>
+</div>

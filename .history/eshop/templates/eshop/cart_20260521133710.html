@@ -1,0 +1,101 @@
+{% extends 'eshop/base.html' %}
+{% block title %}Giỏ Hàng - ZenMart - Cửa Hàng Tiện Lợi{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="section">
+        <h1 style="font-size:1.8rem;font-weight:800;color:#2d3436;margin-bottom:1.5rem;">
+            <i class="fas fa-shopping-cart" style="color:#667eea;"></i> Giỏ Hàng
+        </h1>
+
+        {% if cart|length > 0 %}
+        <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:2rem;" class="checkout-grid">
+            <!-- Cart Items -->
+            <div>
+                <table class="cart-table">
+                    <thead>
+                        <tr>
+                            <th>Sản phẩm</th>
+                            <th>Giá</th>
+                            <th>Số lượng</th>
+                            <th>Thành tiền</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in cart %}
+                        <tr>
+                            <td>
+                                <div class="product-info">
+                                    {% if item.product.image and item.product.image.name %}
+                                    <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}">
+                                    {% else %}
+                                    <div class="placeholder-img"><i class="fas fa-bowl-food"></i></div>
+                                    {% endif %}
+                                    <div>
+                                        <div style="font-weight:700;color:#2d3436;">{{ item.product.name }}</div>
+                                        <div style="font-size:.75rem;color:#636e72;">{{ item.product.category.name }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td style="font-weight:600;color:#667eea;">{{ item.price|floatformat:0 }}đ</td>
+                            <td>
+                                <form method="post" action="{% url 'eshop:cart_update' item.product.pk %}" style="display:inline;">
+                                    {% csrf_token %}
+                                    <div class="qty-control">
+                                        <button type="submit" name="quantity" value="{{ item.quantity|add:"-1" }}">−</button>
+                                        <input type="text" name="quantity" value="{{ item.quantity }}" class="qty-val" readonly>
+                                        <button type="submit" name="quantity" value="{{ item.quantity|add:"1" }}">+</button>
+                                    </div>
+                                </form>
+                            </td>
+                            <td style="font-weight:700;color:#2d3436;">{{ item.total_price|floatformat:0 }}đ</td>
+                            <td>
+                                <form method="post" action="{% url 'eshop:cart_remove' item.product.pk %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn-danger"><i class="fas fa-trash"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Summary -->
+            <div>
+                <div class="summary-card">
+                    <h3><i class="fas fa-receipt" style="color:#667eea;margin-right:6px;"></i>Tóm Tắt Đơn Hàng</h3>
+                    <div class="summary-row">
+                        <span>Tạm tính ({{ cart|length }} sản phẩm)</span>
+                        <span>{{ cart.get_total_price|floatformat:0 }}đ</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>Phí giao hàng</span>
+                        <span style="color:#2dce89;font-weight:600;">Miễn phí</span>
+                    </div>
+                    <div class="summary-row total">
+                        <span>Tổng cộng</span>
+                        <span style="color:#667eea;">{{ cart.get_total_price|floatformat:0 }}đ</span>
+                    </div>
+                    <a href="{% url 'eshop:checkout' %}" class="btn-primary" style="display:block;text-align:center;margin-top:1.5rem;padding:14px;">
+                        <i class="fas fa-lock"></i> Thanh Toán
+                    </a>
+                    <a href="{% url 'eshop:products' %}" style="display:block;text-align:center;margin-top:.75rem;font-size:.85rem;color:#667eea;font-weight:600;">
+                        ← Tiếp tục mua sắm
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-shopping-cart"></i>
+            <h3>Giỏ hàng trống</h3>
+            <p>Hãy thêm sản phẩm vào giỏ hàng</p>
+            <a href="{% url 'eshop:products' %}" class="btn-primary" style="margin-top:1rem;display:inline-block;">
+                <i class="fas fa-shopping-bag"></i> Mua Sắm Ngay
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

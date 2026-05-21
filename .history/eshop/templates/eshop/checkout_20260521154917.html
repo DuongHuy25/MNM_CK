@@ -1,0 +1,167 @@
+{% extends 'eshop/base.html' %}
+{% block title %}Thanh Toán - ZenMart{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-6 py-12 space-y-8">
+
+    <h1 class="text-2xl md:text-3xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+        <i class="fas fa-lock text-blue-600"></i> Thanh Toán
+    </h1>
+
+    <form method="post" id="checkoutForm" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {% csrf_token %}
+
+        <!-- Checkout Form -->
+        <div class="lg:col-span-2 space-y-6">
+
+            <!-- Shipping Info -->
+            <div class="bg-white p-6 rounded-2xl shadow-lg space-y-4">
+                <h3 class="text-lg font-semibold flex items-center gap-2"><i class="fas fa-truck text-blue-600"></i> Thông Tin Giao Hàng</h3>
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium">{{ form.full_name.label }}</label>
+                        {{ form.full_name"w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500" }}
+                        {% if form.full_name.errors %}
+                        <div class="text-red-500 text-xs mt-1">{{ form.full_name.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium">{{ form.phone_number.label }}</label>
+                        {{ form.phone_number|add_class:"w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500" }}
+                        {% if form.phone_number.errors %}
+                        <div class="text-red-500 text-xs mt-1">{{ form.phone_number.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium">{{ form.shipping_address.label }}</label>
+                        {{ form.shipping_address|add_class:"w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500" }}
+                        {% if form.shipping_address.errors %}
+                        <div class="text-red-500 text-xs mt-1">{{ form.shipping_address.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium">{{ form.note.label }}</label>
+                        {{ form.note|add_class:"w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500" }}
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium">{{ form.delivery_time_slot.label }}</label>
+                        {{ form.delivery_time_slot|add_class:"w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500" }}
+                        <p class="text-xs text-gray-500 mt-1"><i class="fas fa-clock"></i> Chọn khung giờ giao hàng phù hợp</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment Method -->
+            <div class="bg-white p-6 rounded-2xl shadow-lg space-y-4">
+                <h3 class="text-lg font-semibold flex items-center gap-2"><i class="fas fa-credit-card text-blue-600"></i> Phương Thức Thanh Toán</h3>
+                <div class="flex flex-col space-y-2">
+                    {% for choice in form.payment_method %}
+                    <label class="flex items-center gap-2 p-3 border rounded-lg hover:bg-blue-50 cursor-pointer" onclick="showPaymentDetail('{{ choice.data.value }}')">
+                        {{ choice.tag }}
+                        <span class="font-medium text-gray-800">{{ choice.choice_label }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+
+                <!-- COD -->
+                <div id="pay-cod" class="payment-detail hidden mt-2 p-4 rounded-lg bg-green-50 flex items-center gap-3">
+                    <i class="fas fa-hand-holding-usd text-green-600 text-xl"></i>
+                    <div>
+                        <div class="font-semibold text-gray-800">Thanh toán khi nhận hàng</div>
+                        <div class="text-sm text-gray-500">Thanh toán bằng tiền mặt khi giao hàng.</div>
+                    </div>
+                </div>
+
+                <!-- Bank -->
+                <div id="pay-bank" class="payment-detail hidden mt-2 p-4 rounded-lg bg-blue-50">
+                    <div class="flex items-center gap-2 mb-2">
+                        <i class="fas fa-university text-blue-600 text-xl"></i>
+                        <span class="font-semibold text-gray-800">Chuyển khoản ngân hàng</span>
+                    </div>
+                    <div class="bg-white rounded-lg p-3 text-sm space-y-1">
+                        <div class="grid grid-cols-2 gap-2">
+                            <span class="font-medium text-gray-500">Ngân hàng:</span>
+                            <span class="font-semibold text-gray-800">Vietcombank</span>
+                            <span class="font-medium text-gray-500">Số tài khoản:</span>
+                            <span class="font-mono font-semibold text-gray-800">1234 5678 9012 345</span>
+                            <span class="font-medium text-gray-500">Chủ tài khoản:</span>
+                            <span class="font-semibold text-gray-800">CÔNG TY ZENMART VN</span>
+                            <span class="font-medium text-gray-500">Nội dung CK:</span>
+                            <span class="font-mono font-semibold text-blue-600">ZENMART [Mã đơn hàng]</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MoMo -->
+                <div id="pay-momo" class="payment-detail hidden mt-2 p-4 rounded-lg bg-pink-50">
+                    <div class="flex items-center gap-3 mb-2">
+                        <div class="w-8 h-8 bg-pink-600 rounded flex items-center justify-center text-white text-sm"><i class="fas fa-wallet"></i></div>
+                        <span class="font-semibold text-gray-800">Ví MoMo</span>
+                    </div>
+                    <div class="bg-white rounded-lg p-3 text-center text-sm">
+                        Quét mã QR để thanh toán MoMo
+                        <div class="w-36 h-36 mx-auto mt-2 bg-gray-200 rounded-lg"></div>
+                        <p class="mt-1 text-gray-500 text-xs">Số điện thoại: <span class="text-gray-800 font-semibold">0909 123 456</span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Order Summary -->
+        <div class="bg-white p-6 rounded-2xl shadow-lg">
+            <h3 class="text-lg font-semibold flex items-center gap-2"><i class="fas fa-receipt text-blue-600"></i> Đơn Hàng Của Bạn</h3>
+            <div class="space-y-2 mt-4">
+                {% for item in cart %}
+                <div class="flex items-center gap-3 p-2 border-b">
+                    {% if item.product.image and item.product.image.name %}
+                    <img src="{{ item.product.image.url }}" class="w-12 h-12 object-cover rounded-lg">
+                    {% else %}
+                    <div class="w-12 h-12 bg-gradient-to-br from-yellow-300 to-orange-400 rounded-lg flex items-center justify-center text-white">
+                        <i class="fas fa-bowl-food"></i>
+                    </div>
+                    {% endif %}
+                    <div class="flex-1">
+                        <div class="font-semibold text-gray-800 text-sm">{{ item.product.name }}</div>
+                        <div class="text-xs text-gray-500">{{ item.quantity }} x {{ item.price|floatformat:0 }}đ</div>
+                    </div>
+                    <div class="font-semibold text-gray-800 text-sm">{{ item.total_price|floatformat:0 }}đ</div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Discount Code -->
+            <div class="mt-4 flex gap-2">
+                <input type="text" id="discountCodeInput" placeholder="Nhập mã giảm giá" class="flex-1 border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500">
+                <button type="button" id="applyDiscountBtn" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:opacity-90 transition text-sm">Áp dụng</button>
+            </div>
+            <div id="discountMessage" class="text-xs mt-1"></div>
+
+            <!-- Total -->
+            <div class="mt-4 space-y-1 text-sm">
+                <div class="flex justify-between">
+                    <span>Tạm tính</span>
+                    <span id="subtotal">{{ cart.get_total_price|floatformat:0 }}đ</span>
+                </div>
+                <div id="discountRow" class="flex justify-between text-green-600 font-semibold hidden">
+                    <span>Giảm giá</span>
+                    <span id="discountAmount">-0đ</span>
+                </div>
+                <div class="flex justify-between text-green-600 font-semibold">
+                    <span>Phí giao hàng</span>
+                    <span id="shippingFee">Đang tính...</span>
+                </div>
+                <div class="flex justify-between font-bold text-gray-800 text-lg">
+                    <span>Tổng cộng</span>
+                    <span id="totalAmount">{{ cart.get_total_price|floatformat:0 }}đ</span>
+                </div>
+            </div>
+
+            <button type="submit" class="w-full mt-4 py-3 bg-gradient-to-r from-blue-600 to-purple-700 text-white font-semibold rounded-xl hover:opacity-90 transition flex items-center justify-center gap-2">
+                <i class="fas fa-check-circle"></i> Xác Nhận Đặt Hàng
+            </button>
+            <a href="{% url 'eshop:cart' %}" class="block text-center mt-2 text-blue-600 font-semibold hover:underline">← Quay lại giỏ hàng</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

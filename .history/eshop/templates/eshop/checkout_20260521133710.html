@@ -1,0 +1,474 @@
+{% extends 'eshop/base.html' %}
+{% block title %}Thanh Toán - ZenMart - Cửa Hàng Tiện Lợi{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="section">
+        <h1 style="font-size:1.8rem;font-weight:800;color:#2d3436;margin-bottom:1.5rem;">
+            <i class="fas fa-lock" style="color:#667eea;"></i> Thanh Toán
+        </h1>
+
+        <form method="post" id="checkoutForm">
+            {% csrf_token %}
+            <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:2rem;" class="checkout-grid">
+                <!-- Checkout Form -->
+                <div>
+                    <!-- Shipping Info -->
+                    <div class="summary-card" style="margin-bottom:1.5rem;">
+                        <h3><i class="fas fa-truck" style="color:#667eea;margin-right:6px;"></i>Thông Tin Giao Hàng</h3>
+                        <div class="form-group">
+                            <label>{{ form.full_name.label }}</label>
+                            {{ form.full_name }}
+                            {% if form.full_name.errors %}
+                            <div style="color:#f5365c;font-size:.8rem;margin-top:4px;">{{ form.full_name.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="form-group">
+                            <label>{{ form.phone_number.label }}</label>
+                            {{ form.phone_number }}
+                            {% if form.phone_number.errors %}
+                            <div style="color:#f5365c;font-size:.8rem;margin-top:4px;">{{ form.phone_number.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="form-group">
+                            <label>{{ form.shipping_address.label }}</label>
+                            {{ form.shipping_address }}
+                            {% if form.shipping_address.errors %}
+                            <div style="color:#f5365c;font-size:.8rem;margin-top:4px;">{{ form.shipping_address.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="form-group">
+                            <label>{{ form.note.label }}</label>
+                            {{ form.note }}
+                        </div>
+                        
+                        <!-- Delivery Time Slot -->
+                        <div class="form-group">
+                            <label>{{ form.delivery_time_slot.label }}</label>
+                            {{ form.delivery_time_slot }}
+                            <div style="font-size:.75rem;color:#636e72;margin-top:4px;">
+                                <i class="fas fa-clock"></i> Chọn khung giờ giao hàng phù hợp với bạn
+                            </div>
+                        </div>
+                        
+                        <!-- Shipping Info Display -->
+                        <div id="shippingInfo" style="background:#f8f9fa;border-radius:8px;padding:1rem;margin-top:1rem;display:none;">
+                            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                                <i class="fas fa-truck" style="color:#667eea;"></i>
+                                <strong>Thông tin giao hàng</strong>
+                            </div>
+                            <div id="shippingDetails" style="font-size:.85rem;color:#636e72;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Payment Method -->
+                    <div class="summary-card">
+                        <h3><i class="fas fa-credit-card" style="color:#667eea;margin-right:6px;"></i>Phương Thức Thanh Toán</h3>
+                        <div class="radio-group">
+                            {% for choice in form.payment_method %}
+                            <label class="radio-option" onclick="showPaymentDetail('{{ choice.data.value }}')">
+                                {{ choice.tag }}
+                                <div>
+                                    <div class="radio-label">{{ choice.choice_label }}</div>
+                                </div>
+                            </label>
+                            {% endfor %}
+                        </div>
+                        {% if form.payment_method.errors %}
+                        <div style="color:#f5365c;font-size:.8rem;margin-top:8px;">{{ form.payment_method.errors.0 }}</div>
+                        {% endif %}
+
+                        <!-- COD Detail -->
+                        <div id="pay-cod" class="payment-detail" style="display:none;">
+                            <div style="background:#e6f9ee;border-radius:12px;padding:1rem;display:flex;align-items:center;gap:10px;">
+                                <i class="fas fa-hand-holding-usd" style="font-size:1.3rem;color:#2dce89;"></i>
+                                <div>
+                                    <div style="font-weight:700;color:#2d3436;">Thanh toán khi nhận hàng</div>
+                                    <div style="font-size:.82rem;color:#636e72;">Bạn sẽ thanh toán bằng tiền mặt khi shipper giao hàng đến nơi.</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bank Detail -->
+                        <div id="pay-bank" class="payment-detail" style="display:none;">
+                            <div style="background:#e8edff;border-radius:12px;padding:1.2rem;">
+                                <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem;">
+                                    <i class="fas fa-university" style="font-size:1.3rem;color:#667eea;"></i>
+                                    <div style="font-weight:700;color:#2d3436;">Chuyển khoản ngân hàng</div>
+                                </div>
+                                <div style="background:white;border-radius:10px;padding:1rem;font-size:.88rem;">
+                                    <div style="display:grid;grid-template-columns:auto 1fr;gap:6px 16px;">
+                                        <span style="color:#636e72;font-weight:600;">Ngân hàng:</span>
+                                        <span style="color:#2d3436;font-weight:700;">Vietcombank</span>
+                                        <span style="color:#636e72;font-weight:600;">Số tài khoản:</span>
+                                        <span style="color:#2d3436;font-weight:700;font-family:monospace;">1234 5678 9012 345</span>
+                                        <span style="color:#636e72;font-weight:600;">Chủ tài khoản:</span>
+                                        <span style="color:#2d3436;font-weight:700;">CÔNG TY ZENMART VN</span>
+                                        <span style="color:#636e72;font-weight:600;">Nội dung CK:</span>
+                                        <span style="color:#667eea;font-weight:700;font-family:monospace;">ZENMART [Mã đơn hàng]</span>
+                                    </div>
+                                </div>
+                                <div style="margin-top:.75rem;font-size:.8rem;color:#636e72;">
+                                    <i class="fas fa-info-circle" style="color:#667eea;"></i> Sau khi đặt hàng, bạn sẽ được chuyển đến trang xác nhận chuyển khoản. Đơn hàng sẽ được xử lý sau khi chúng tôi nhận được tiền.
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- MoMo Detail -->
+                        <div id="pay-momo" class="payment-detail" style="display:none;">
+                            <div style="background:#fff0f0;border-radius:12px;padding:1.2rem;">
+                                <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem;">
+                                    <div style="width:32px;height:32px;background:#a50064;border-radius:8px;display:flex;align-items:center;justify-content:center;">
+                                        <i class="fas fa-wallet" style="color:white;font-size:.9rem;"></i>
+                                    </div>
+                                    <div style="font-weight:700;color:#2d3436;">Ví MoMo</div>
+                                </div>
+                                <div style="background:white;border-radius:10px;padding:1rem;text-align:center;">
+                                    <div style="font-size:.82rem;color:#636e72;margin-bottom:.5rem;">Quét mã QR để thanh toán bằng ví MoMo</div>
+                                    <div style="width:140px;height:140px;margin:0 auto;background:repeating-conic-gradient(#2d3436 0% 25%, white 0% 50%) 50%/12px 12px;border-radius:10px;display:flex;align-items:center;justify-content:center;position:relative;">
+                                        <div style="background:white;border-radius:6px;padding:6px 10px;font-weight:800;font-size:.75rem;color:#a50064;">MoMo</div>
+                                    </div>
+                                    <div style="margin-top:.5rem;font-size:.82rem;color:#636e72;">
+                                        Số điện thoại MoMo: <strong style="color:#2d3436;">0909 123 456</strong>
+                                    </div>
+                                </div>
+                                <div style="margin-top:.75rem;font-size:.8rem;color:#636e72;">
+                                    <i class="fas fa-info-circle" style="color:#a50064;"></i> Sau khi đặt hàng, bạn sẽ được chuyển đến trang thanh toán MoMo giả lập để hoàn tất giao dịch.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Order Summary -->
+                <div>
+                    <div class="summary-card">
+                        <h3><i class="fas fa-receipt" style="color:#667eea;margin-right:6px;"></i>Đơn Hàng Của Bạn</h3>
+                        {% for item in cart %}
+                        <div style="display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid #f0f2f5;">
+                            {% if item.product.image and item.product.image.name %}
+                            <img src="{{ item.product.image.url }}" style="width:48px;height:48px;border-radius:8px;object-fit:cover;" alt="">
+                            {% else %}
+                            <div style="width:48px;height:48px;border-radius:8px;background:linear-gradient(135deg,#f6d365,#fda085);display:flex;align-items:center;justify-content:center;color:white;font-size:1rem;flex-shrink:0;">
+                                <i class="fas fa-bowl-food"></i>
+                            </div>
+                            {% endif %}
+                            <div style="flex:1;">
+                                <div style="font-weight:600;font-size:.85rem;color:#2d3436;">{{ item.product.name }}</div>
+                                <div style="font-size:.75rem;color:#636e72;">{{ item.quantity }} x {{ item.price|floatformat:0 }}đ</div>
+                            </div>
+                            <div style="font-weight:700;font-size:.9rem;color:#2d3436;">{{ item.total_price|floatformat:0 }}đ</div>
+                        </div>
+                        {% endfor %}
+
+                        <!-- Discount Code Section -->
+                        <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid #f0f2f5;">
+                            <div style="display:flex;gap:8px;margin-bottom:8px;">
+                                <input type="text" id="discountCodeInput" placeholder="Nhập mã giảm giá" 
+                                       style="flex:1;padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:.85rem;">
+                                <button type="button" id="applyDiscountBtn" 
+                                        style="padding:8px 16px;background:#667eea;color:white;border:none;border-radius:6px;font-size:.85rem;cursor:pointer;">
+                                    Áp dụng
+                                </button>
+                            </div>
+                            <div id="discountMessage" style="font-size:.75rem;margin-top:4px;"></div>
+                        </div>
+
+                        <div class="summary-row" style="margin-top:8px;">
+                            <span>Tạm tính</span>
+                            <span id="subtotal">{{ cart.get_total_price|floatformat:0 }}đ</span>
+                        </div>
+                        <div class="summary-row" id="discountRow" style="display:none;">
+                            <span style="color:#2dce89;">Giảm giá</span>
+                            <span id="discountAmount" style="color:#2dce89;font-weight:600;">-0đ</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Phí giao hàng</span>
+                            <span id="shippingFee" style="color:#2dce89;font-weight:600;">Đang tính...</span>
+                        </div>
+                        <div class="summary-row total">
+                            <span>Tổng cộng</span>
+                            <span id="totalAmount" style="color:#667eea;">{{ cart.get_total_price|floatformat:0 }}đ</span>
+                        </div>
+
+                        <button type="submit" class="btn-primary" style="width:100%;margin-top:1.5rem;padding:14px;font-size:1rem;">
+                            <i class="fas fa-check-circle"></i> Xác Nhận Đặt Hàng
+                        </button>
+                        <a href="{% url 'eshop:cart' %}" style="display:block;text-align:center;margin-top:.75rem;font-size:.85rem;color:#667eea;font-weight:600;">
+                            ← Quay lại giỏ hàng
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.payment-detail { margin-top: 1rem; }
+</style>
+
+<script>
+// Delivery time slots data
+const deliverySlots = {{ delivery_slots|safe }};
+
+// Populate delivery time slots
+document.addEventListener('DOMContentLoaded', function() {
+    const select = document.querySelector('select[name="delivery_time_slot"]');
+    if (select && deliverySlots) {
+        // Add default option
+        const defaultOption = document.createElement('option');
+        defaultOption.value = '';
+        defaultOption.textContent = 'Giao hàng sớm nhất có thể';
+        select.appendChild(defaultOption);
+        
+        // Add time slots
+        deliverySlots.forEach(slot => {
+            const option = document.createElement('option');
+            option.value = slot.value;
+            option.textContent = slot.label;
+            select.appendChild(option);
+        });
+    }
+    
+    // Calculate initial shipping fee
+    calculateShippingFee();
+    
+    // Setup address change listener
+    const addressInput = document.querySelector('textarea[name="shipping_address"]');
+    if (addressInput) {
+        addressInput.addEventListener('blur', calculateShippingFee);
+    }
+});
+
+// Calculate shipping fee based on address
+async function calculateShippingFee() {
+    const address = document.querySelector('textarea[name="shipping_address"]').value;
+    const shippingFeeEl = document.getElementById('shippingFee');
+    const totalAmountEl = document.getElementById('totalAmount');
+    const shippingInfoEl = document.getElementById('shippingInfo');
+    const shippingDetailsEl = document.getElementById('shippingDetails');
+    
+    if (!address.trim()) {
+        shippingFeeEl.textContent = 'Miễn phí';
+        shippingInfoEl.style.display = 'none';
+        return;
+    }
+    
+    // Show loading state
+    shippingFeeEl.textContent = 'Đang tính...';
+    shippingInfoEl.style.display = 'block';
+    shippingDetailsEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang tính khoảng cách...';
+    
+    try {
+        // Geocode address using Nominatim
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&countrycodes=vn&limit=1`);
+        const data = await response.json();
+        
+        if (data && data.length > 0) {
+            const userLat = parseFloat(data[0].lat);
+            const userLng = parseFloat(data[0].lon);
+            
+            // Find nearest store (simplified - using fixed store coordinates for demo)
+            const stores = [
+                {name: 'ZenMart Quận 1', lat: 10.7769, lng: 106.7009},
+                {name: 'ZenMart Quận 3', lat: 10.7835, lng: 106.6945},
+                {name: 'ZenMart Quận 7', lat: 10.7392, lng: 106.7225}
+            ];
+            
+            let nearestStore = null;
+            let minDistance = Infinity;
+            
+            stores.forEach(store => {
+                const distance = calculateDistance(userLat, userLng, store.lat, store.lng);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    nearestStore = store;
+                }
+            });
+            
+            // Calculate shipping fee
+            let shippingFee = 0;
+            if (minDistance <= 2) {
+                shippingFee = 15000;
+            } else if (minDistance <= 5) {
+                shippingFee = 25000;
+            } else if (minDistance <= 10) {
+                shippingFee = 35000;
+            } else {
+                shippingFee = 35000 + (minDistance - 10) * 5000;
+            }
+            
+            // Update UI
+            shippingFeeEl.textContent = `${shippingFee.toLocaleString('vi-VN')}đ`;
+            shippingFeeEl.style.color = '#2d3436';
+            
+            const subtotal = parseInt(document.getElementById('subtotal').textContent.replace(/[^\d]/g, ''));
+            const total = subtotal + shippingFee;
+            totalAmountEl.textContent = `${total.toLocaleString('vi-VN')}đ`;
+            
+            // Update shipping info
+            shippingDetailsEl.innerHTML = `
+                <div><strong>Cửa hàng gần nhất:</strong> ${nearestStore.name}</div>
+                <div><strong>Khoảng cách:</strong> ${minDistance.toFixed(1)} km</div>
+                <div><strong>Thời gian ước tính:</strong> ${Math.ceil(minDistance * 3)} - ${Math.ceil(minDistance * 5)} phút</div>
+            `;
+            
+        } else {
+            throw new Error('Không tìm thấy địa chỉ');
+        }
+    } catch (error) {
+        shippingFeeEl.textContent = 'Miễn phí';
+        shippingFeeEl.style.color = '#2dce89';
+        shippingDetailsEl.innerHTML = '<div style="color:#f5365c;">Không thể tính khoảng cách. Giao hàng miễn phí.</div>';
+    }
+}
+
+// Calculate distance between two points (Haversine formula)
+function calculateDistance(lat1, lng1, lat2, lng2) {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLng/2) * Math.sin(dLng/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+}
+
+function showPaymentDetail(method) {
+    document.querySelectorAll('.payment-detail').forEach(el => el.style.display = 'none');
+    const detail = document.getElementById('pay-' + method);
+    if (detail) detail.style.display = 'block';
+}
+
+// Discount Code functionality
+let appliedDiscountCode = null;
+let discountAmount = 0;
+
+async function applyDiscountCode() {
+    const codeInput = document.getElementById('discountCodeInput');
+    const applyBtn = document.getElementById('applyDiscountBtn');
+    const messageEl = document.getElementById('discountMessage');
+    const discountRow = document.getElementById('discountRow');
+    const discountAmountEl = document.getElementById('discountAmount');
+    
+    const code = codeInput.value.trim().toUpperCase();
+    
+    if (!code) {
+        showMessage('Vui lòng nhập mã giảm giá', 'error');
+        return;
+    }
+    
+    // Get current order amount
+    const subtotal = parseInt(document.getElementById('subtotal').textContent.replace(/[^\d]/g, ''));
+    const shippingFee = parseInt(document.getElementById('shippingFee').textContent.replace(/[^\d]/g, '') || '0');
+    const orderAmount = subtotal + shippingFee;
+    
+    // Show loading state
+    applyBtn.disabled = true;
+    applyBtn.textContent = 'Đang kiểm tra...';
+    showMessage('Đang kiểm tra mã giảm giá...', 'info');
+    
+    try {
+        const response = await fetch('/dashboard/api/discount-codes/validate/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({
+                code: code,
+                order_amount: orderAmount
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            appliedDiscountCode = data.discount_code;
+            discountAmount = data.discount_code.discount_amount;
+            
+            // Update UI
+            discountRow.style.display = 'flex';
+            discountAmountEl.textContent = `-${discountAmount.toLocaleString('vi-VN')}đ`;
+            
+            // Update total
+            updateTotalAmount();
+            
+            showMessage(`Áp dụng mã giảm giá thành công! Giảm ${discountAmount.toLocaleString('vi-VN')}đ`, 'success');
+            applyBtn.textContent = 'Hủy';
+            applyBtn.onclick = removeDiscountCode;
+            codeInput.disabled = true;
+        } else {
+            showMessage(data.error || 'Mã giảm giá không hợp lệ', 'error');
+            applyBtn.disabled = false;
+            applyBtn.textContent = 'Áp dụng';
+        }
+    } catch (error) {
+        console.error('Error validating discount code:', error);
+        showMessage('Lỗi hệ thống. Vui lòng thử lại.', 'error');
+        applyBtn.disabled = false;
+        applyBtn.textContent = 'Áp dụng';
+    }
+}
+
+function removeDiscountCode() {
+    const codeInput = document.getElementById('discountCodeInput');
+    const applyBtn = document.getElementById('applyDiscountBtn');
+    const messageEl = document.getElementById('discountMessage');
+    const discountRow = document.getElementById('discountRow');
+    
+    appliedDiscountCode = null;
+    discountAmount = 0;
+    
+    codeInput.value = '';
+    codeInput.disabled = false;
+    discountRow.style.display = 'none';
+    
+    applyBtn.textContent = 'Áp dụng';
+    applyBtn.onclick = applyDiscountCode;
+    applyBtn.disabled = false;
+    
+    messageEl.textContent = '';
+    
+    updateTotalAmount();
+}
+
+function showMessage(message, type) {
+    const messageEl = document.getElementById('discountMessage');
+    messageEl.textContent = message;
+    messageEl.style.color = type === 'error' ? '#f5365c' : type === 'success' ? '#2dce89' : '#8898aa';
+}
+
+function updateTotalAmount() {
+    const subtotal = parseInt(document.getElementById('subtotal').textContent.replace(/[^\d]/g, ''));
+    const shippingFee = parseInt(document.getElementById('shippingFee').textContent.replace(/[^\d]/g, '') || '0');
+    const total = subtotal + shippingFee - discountAmount;
+    
+    document.getElementById('totalAmount').textContent = `${total.toLocaleString('vi-VN')}đ`;
+}
+
+// Show initial selection
+document.addEventListener('DOMContentLoaded', function() {
+    const checked = document.querySelector('input[name="payment_method"]:checked');
+    if (checked) showPaymentDetail(checked.value);
+    
+    // Setup discount code button
+    const applyBtn = document.getElementById('applyDiscountBtn');
+    if (applyBtn) {
+        applyBtn.addEventListener('click', applyDiscountCode);
+    }
+    
+    // Setup Enter key for discount code input
+    const codeInput = document.getElementById('discountCodeInput');
+    if (codeInput) {
+        codeInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                applyDiscountCode();
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

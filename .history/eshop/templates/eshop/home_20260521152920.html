@@ -1,0 +1,79 @@
+{% extends 'eshop/base.html' %}
+{% load static %}
+{% block title %}Trang chủ{% endblock %}
+
+{% block content %}
+
+<!-- Hero Section -->
+<section class="relative h-[500px] flex items-center overflow-hidden">
+    <!-- Background image -->
+    <img src="{% static 'images/hero.jpg' %}" alt="Hero Image" class="absolute inset-0 w-full h-full object-cover">
+    
+    <!-- Overlay gradient -->
+    <div class="absolute inset-0 bg-gradient-to-br from-blue-700 via-transparent to-purple-700 opacity-60"></div>
+
+    <!-- Content -->
+    <div class="max-w-6xl mx-auto px-6 relative z-10 text-center md:text-left">
+        <h1 class="text-4xl md:text-5xl font-bold mb-4 text-white">🛒 Mua Sắm Tiện Lợi, Sống Khỏe Mỗi Ngày</h1>
+        <p class="mb-6 text-lg md:text-xl text-white">Hàng ngàn sản phẩm chất lượng với giá cả hợp lý. Đặt hàng online, giao hàng tận nơi!</p>
+        <a href="{% url 'eshop:products' %}" class="inline-flex items-center gap-2 bg-yellow-500 hover:bg-yellow-600 text-black font-bold px-6 py-3 rounded-xl shadow-lg transition">
+            <i class="fas fa-shopping-bag"></i> Mua Ngay
+        </a>
+    </div>
+</section>
+
+<!-- Feature Highlights -->
+<section class="max-w-7xl mx-auto px-6 py-12 grid grid-cols-1 md:grid-cols-4 gap-6">
+    <div class="flex items-center gap-3 p-4 bg-blue-50 text-blue-600 rounded-xl shadow">
+        <i class="fas fa-shield-alt text-2xl"></i>
+        <div>
+            <p class="font-semibold">Chính hãng 100%</p>
+            <p class="text-sm text-gray-500">Sản phẩm chất lượng đảm bảo</p>
+        </div>
+    </div>
+    <div class="flex items-center gap-3 p-4 bg-green-50 text-green-600 rounded-xl shadow">
+        <i class="fas fa-undo text-2xl"></i>
+        <div>
+            <p class="font-semibold">Đổi trả dễ dàng</p>
+            <p class="text-sm text-gray-500">Trong vòng 7 ngày</p>
+        </div>
+    </div>
+    <div class="flex items-center gap-3 p-4 bg-orange-50 text-orange-600 rounded-xl shadow">
+        <i class="fas fa-truck-fast text-2xl"></i>
+        <div>
+            <p class="font-semibold">Giao hàng nhanh</p>
+            <p class="text-sm text-gray-500">Trong 24h</p>
+        </div>
+    </div>
+    <div class="flex items-center gap-3 p-4 bg-purple-50 text-purple-600 rounded-xl shadow">
+        <i class="fas fa-headset text-2xl"></i>
+        <div>
+            <p class="font-semibold">Hỗ trợ 24/7</p>
+            <p class="text-sm text-gray-500">Luôn sẵn sàng tư vấn</p>
+        </div>
+    </div>
+</section>
+
+<!-- Product Grid -->
+<section class="max-w-7xl mx-auto px-6 py-12">
+    <h2 class="text-2xl font-bold mb-6">Sản phẩm nổi bật</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {% for product in featured_products %}
+        {% include 'eshop/_product_card.html' %}
+        {% endfor %}
+    </div>
+</section>
+
+<!-- Newsletter -->
+<section class="bg-gray-50 py-12 mt-12">
+    <div class="max-w-4xl mx-auto text-center space-y-4">
+        <h3 class="text-xl font-bold text-gray-800">Đăng ký nhận tin khuyến mãi</h3>
+        <p class="text-gray-500">Nhận thông tin ưu đãi mới nhất từ ZenMart</p>
+        <form method="post" class="flex flex-col sm:flex-row justify-center gap-2">
+            <input type="email" placeholder="Nhập email của bạn" required class="w-full sm:w-64 border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none">
+            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">Đăng ký</button>
+        </form>
+    </div>
+</section>
+
+{% endblock %}

@@ -1,0 +1,18 @@
+{
+    "sourceFile": "eshop/templates/eshop/_product_card.html",
+    "activeCommit": 0,
+    "commits": [
+        {
+            "activePatchIndex": 0,
+            "patches": [
+                {
+                    "date": 1779351356607,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n"
+                }
+            ],
+            "date": 1779351356607,
+            "name": "Commit-0",
+            "content": "<div class=\"bg-white rounded-2xl shadow-md hover:shadow-xl transition-transform transform hover:-translate-y-1 relative group flex flex-col overflow-hidden\">\r\n    <a href=\"{% url 'eshop:product_detail' product.pk %}\" class=\"flex-1 flex flex-col\">\r\n        <div class=\"relative h-52 overflow-hidden rounded-t-2xl\">\r\n            {% if product.image and product.image.name %}\r\n            <img src=\"{{ product.image.url }}\" alt=\"{{ product.name }}\" class=\"w-full h-full object-cover transition-transform duration-500 group-hover:scale-110\">\r\n            {% else %}\r\n            <div class=\"w-full h-full flex items-center justify-center bg-gray-100 text-gray-400 text-4xl\">\r\n                <i class=\"fas fa-bowl-food\"></i>\r\n            </div>\r\n            {% endif %}\r\n            <span class=\"absolute top-3 left-3 bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg\">{{ product.category.name }}</span>\r\n        </div>\r\n        <div class=\"p-4 flex-1 flex flex-col justify-between\">\r\n            <div class=\"space-y-2\">\r\n                <h3 class=\"font-semibold text-gray-800 text-lg line-clamp-2\">{{ product.name }}</h3>\r\n                {% if product.brand %}\r\n                <div class=\"text-gray-500 text-sm\">{{ product.brand.name }}</div>\r\n                {% endif %}\r\n                <div class=\"flex items-center gap-2 mt-2\">\r\n                    <span class=\"text-blue-600 font-bold text-lg\">{{ product.sale_price|floatformat:0 }}đ</span>\r\n                    {% if product.cost_price and product.cost_price > product.sale_price %}\r\n                    <span class=\"text-gray-400 line-through text-sm\">{{ product.cost_price|floatformat:0 }}đ</span>\r\n                    {% endif %}\r\n                </div>\r\n            </div>\r\n        </div>\r\n    </a>\r\n    {% if user.is_authenticated %}\r\n    <a href=\"{% url 'eshop:add_to_wishlist' product.pk %}\" class=\"absolute top-3 right-3 w-9 h-9 flex items-center justify-center bg-white rounded-full shadow-md hover:bg-red-500 hover:text-white transition-all\">\r\n        <i class=\"fas fa-heart\"></i>\r\n    </a>\r\n    {% endif %}\r\n    <form method=\"post\" action=\"{% url 'eshop:cart_add' product.pk %}\" class=\"p-4 mt-auto\">\r\n        {% csrf_token %}\r\n        <input type=\"hidden\" name=\"quantity\" value=\"1\">\r\n        <input type=\"hidden\" name=\"next\" value=\"{{ request.get_full_path }}\">\r\n        <button type=\"submit\" class=\"w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-purple-700 text-white font-semibold py-2 rounded-xl hover:opacity-90 transition-transform transform hover:scale-105\">\r\n            <i class=\"fas fa-cart-plus\"></i> Thêm vào giỏ\r\n        </button>\r\n    </form>\r\n</div>"
+        }
+    ]
+}

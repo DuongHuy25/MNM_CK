@@ -1,0 +1,313 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}ZenMart - Cửa Hàng Tiện Lợi{% endblock %}</title>
+    <link rel="icon" type="image/svg+xml" href="/static/eshop/favicon.svg">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%23667eea'/%3E%3Cstop offset='100%25' style='stop-color:%23764ba2'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='url(%23g)'/%3E%3Cpath d='M18 20h28l-20 24h22' stroke='white' stroke-width='5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'Inter',sans-serif;background:#f5f7fa;color:#2d3436;line-height:1.6}
+        a{text-decoration:none;color:inherit}
+
+        /* NAV */
+        .nav{position:sticky;top:0;z-index:100;background:white;box-shadow:0 2px 20px rgba(0,0,0,.06);padding:0 2rem}
+        .nav-inner{max-width:1280px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:68px}
+        .nav-logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:1.25rem;color:#667eea}
+        .nav-logo i{font-size:1.5rem}
+        .nav-links{display:flex;align-items:center;gap:2rem}
+        .nav-links a{font-weight:600;font-size:.9rem;color:#636e72;transition:color .2s}
+        .nav-links a:hover{color:#667eea}
+        .nav-cart{position:relative;display:flex;align-items:center;gap:6px;font-weight:600;color:#2d3436;background:#f3f4ff;padding:8px 16px;border-radius:50px;cursor:pointer;transition:all .2s}
+        .nav-cart:hover{background:#667eea;color:white}
+        .nav-cart .badge{position:absolute;top:-4px;right:-4px;background:#f5365c;color:white;font-size:.7rem;font-weight:700;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+        .nav-search{display:flex;align-items:center;gap:0}
+        .nav-search input{border:2px solid #e8ecf1;border-radius:50px 0 0 50px;padding:8px 16px;font-size:.85rem;width:200px;outline:none;transition:border .2s}
+        .nav-search input:focus{border-color:#667eea}
+        .nav-search button{border:2px solid #667eea;border-left:none;background:#667eea;color:white;padding:8px 14px;border-radius:0 50px 50px 0;cursor:pointer;font-size:.85rem}
+
+        /* DROPDOWN (Vc1 chng ti) */
+        .nav-dropdown{position:relative;display:flex;align-items:center;}
+        .nav-dropdown-btn{font-weight:600;font-size:.9rem;color:#636e72;transition:color .2s;display:flex;align-items:center;}
+        .nav-dropdown-btn:hover{color:#667eea;}
+
+        .dropdown-content{
+            position:absolute;
+            top:calc(100% + 12px);
+            left:0;
+            background:white;
+            border-radius:12px;
+            min-width:240px;
+            padding:10px;
+            box-shadow:0 10px 30px rgba(0,0,0,.08);
+            opacity:0;
+            transform:translateY(6px);
+            pointer-events:none;
+            transition:opacity .18s ease, transform .18s ease;
+            list-style:none;
+            margin:0;
+            z-index:1000;
+        }
+        .dropdown-content{display:none;}
+        .nav-dropdown.open .dropdown-content{
+            display:block;
+            opacity:1;
+            transform:translateY(0);
+            pointer-events:auto;
+        }
+        .nav-dropdown.open .nav-dropdown-btn{color:#667eea;}
+
+        .dropdown-content li a{
+            display:flex;
+            align-items:center;
+            gap:8px;
+            padding:10px 12px;
+            border-radius:10px;
+            font-weight:600;
+            color:#636e72;
+            transition:background .15s ease, color .15s ease;
+        }
+        .dropdown-content li a:hover{background:#f3f4ff;color:#667eea;}
+
+
+        /* HERO */
+        .hero{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:4rem 2rem;text-align:center}
+        .hero h1{font-size:2.5rem;font-weight:800;margin-bottom:.75rem}
+        .hero p{font-size:1.1rem;opacity:.9;max-width:600px;margin:0 auto 1.5rem}
+        .hero-btn{display:inline-block;background:white;color:#667eea;font-weight:700;padding:12px 32px;border-radius:50px;font-size:1rem;transition:transform .2s,box-shadow .2s}
+        .hero-btn:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(102,126,234,.4)}
+
+        /* CONTAINER */
+        .container{max-width:1280px;margin:0 auto;padding:0 2rem}
+
+        /* SECTION */
+        .section{padding:3rem 0}
+        .section-title{font-size:1.5rem;font-weight:800;color:#2d3436;margin-bottom:1.5rem;display:flex;align-items:center;gap:10px}
+        .section-title i{color:#667eea}
+        .section-title a{margin-left:auto;font-size:.85rem;color:#667eea;font-weight:600}
+
+        /* PRODUCT GRID */
+        .product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:1.25rem}
+        .product-card{background:white;border-radius:16px;overflow:hidden;box-shadow:0 2px 15px rgba(0,0,0,.06);transition:transform .25s,box-shadow .25s;cursor:pointer}
+        .product-card:hover{transform:translateY(-4px);box-shadow:0 12px 35px rgba(0,0,0,.12)}
+        .product-card .img-wrap{height:200px;background:linear-gradient(135deg,#f6d365,#fda085);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+        .product-card .img-wrap img{width:100%;height:100%;object-fit:cover}
+        .product-card .img-wrap .placeholder{font-size:3rem;color:rgba(255,255,255,.7)}
+        .product-card .img-wrap .cat-badge{position:absolute;top:10px;left:10px;background:rgba(255,255,255,.9);color:#667eea;font-size:.72rem;font-weight:700;padding:4px 10px;border-radius:20px}
+        .product-card .card-body{padding:1rem}
+        .product-card .card-body h3{font-size:.95rem;font-weight:700;color:#2d3436;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .product-card .card-body .brand{font-size:.75rem;color:#667eea;font-weight:600;margin-bottom:6px}
+        .product-card .card-body .price{font-size:1.15rem;font-weight:800;color:#667eea}
+        .product-card .card-body .old-price{font-size:.8rem;color:#b2bec3;text-decoration:line-through;margin-left:6px}
+        .product-card .add-btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;padding:10px;font-weight:700;font-size:.85rem;cursor:pointer;transition:opacity .2s}
+        .product-card .add-btn:hover{opacity:.9}
+        .product-card .wishlist-btn{position:absolute;top:10px;right:10px;width:36px;height:36px;background:rgba(255,255,255,.9);color:#e74c3c;border-radius:50%;display:flex;align-items:center;justify-content:center;text-decoration:none;transition:all .2s;z-index:10}
+        .product-card .wishlist-btn:hover{background:#e74c3c;color:white;transform:scale(1.1)}
+
+        /* CATEGORY PILLS */
+        .cat-pills{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.5rem}
+        .cat-pill{padding:8px 18px;border-radius:50px;font-size:.82rem;font-weight:600;border:2px solid #e8ecf1;color:#636e72;cursor:pointer;transition:all .2s}
+        .cat-pill:hover,.cat-pill.active{border-color:#667eea;background:#667eea;color:white}
+
+        /* CART TABLE */
+        .cart-table{width:100%;border-collapse:collapse}
+        .cart-table th{text-align:left;padding:12px 16px;font-size:.78rem;color:#636e72;text-transform:uppercase;font-weight:700;border-bottom:2px solid #f0f2f5}
+        .cart-table td{padding:12px 16px;border-bottom:1px solid #f0f2f5;vertical-align:middle}
+        .cart-table .product-info{display:flex;align-items:center;gap:12px}
+        .cart-table .product-info img{width:56px;height:56px;border-radius:10px;object-fit:cover}
+        .cart-table .product-info .placeholder-img{width:56px;height:56px;border-radius:10px;background:linear-gradient(135deg,#f6d365,#fda085);display:flex;align-items:center;justify-content:center;color:white;font-size:1.2rem}
+        .qty-control{display:flex;align-items:center;gap:0}
+        .qty-control button{width:32px;height:32px;border:1px solid #e8ecf1;background:white;cursor:pointer;font-size:1rem;font-weight:700;color:#636e72;transition:all .2s}
+        .qty-control button:hover{background:#667eea;color:white;border-color:#667eea}
+        .qty-control .qty-val{width:40px;height:32px;border:1px solid #e8ecf1;border-left:none;border-right:none;text-align:center;font-weight:700;font-size:.9rem}
+
+        /* FORM */
+        .eshop-input{width:100%;padding:12px 16px;border:2px solid #e8ecf1;border-radius:12px;font-size:.9rem;font-family:'Inter',sans-serif;outline:none;transition:border .2s}
+        .eshop-input:focus{border-color:#667eea}
+        .form-group{margin-bottom:1.25rem}
+        .form-group label{display:block;font-weight:700;font-size:.85rem;color:#2d3436;margin-bottom:6px}
+
+        /* BUTTONS */
+        .btn-primary{background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;padding:12px 28px;border-radius:50px;font-weight:700;font-size:.95rem;cursor:pointer;transition:transform .2s,box-shadow .2s}
+        .btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(102,126,234,.4)}
+        .btn-outline{background:white;color:#667eea;border:2px solid #667eea;padding:10px 24px;border-radius:50px;font-weight:700;font-size:.9rem;cursor:pointer;transition:all .2s}
+        .btn-outline:hover{background:#667eea;color:white}
+        .btn-danger{background:#ff6b6b;color:white;border:none;padding:8px 16px;border-radius:8px;font-weight:600;font-size:.8rem;cursor:pointer;transition:opacity .2s}
+        .btn-danger:hover{opacity:.85}
+
+        /* SUMMARY CARD */
+        .summary-card{background:white;border-radius:16px;padding:1.5rem;box-shadow:0 2px 15px rgba(0,0,0,.06)}
+        .summary-card h3{font-size:1.1rem;font-weight:800;margin-bottom:1rem}
+        .summary-row{display:flex;justify-content:space-between;padding:8px 0;font-size:.9rem;color:#636e72}
+        .summary-row.total{border-top:2px solid #f0f2f5;margin-top:8px;padding-top:12px;font-size:1.2rem;font-weight:800;color:#2d3436}
+
+        /* ORDER STATUS */
+        .status-badge{display:inline-block;padding:6px 14px;border-radius:50px;font-size:.8rem;font-weight:700}
+        .status-pending{background:#fff3cd;color:#856404}
+        .status-confirmed{background:#cce5ff;color:#004085}
+        .status-processing{background:#e2d5f1;color:#6f42c1}
+        .status-shipped{background:#d4edda;color:#155724}
+        .status-completed{background:#d1e7dd;color:#0f5132}
+        .status-cancelled{background:#f8d7da;color:#721c24}
+
+        /* FOOTER */
+        .footer{background:#2d3436;color:white;padding:3rem 2rem 1.5rem;margin-top:3rem}
+        .footer-inner{max-width:1280px;margin:0 auto;display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:2rem}
+        .footer h4{font-size:1rem;margin-bottom:1rem;font-weight:700}
+        .footer p,.footer a{font-size:.85rem;color:#b2bec3;line-height:1.8}
+        .footer a:hover{color:white}
+        .footer-bottom{text-align:center;padding-top:1.5rem;margin-top:2rem;border-top:1px solid rgba(255,255,255,.1);font-size:.8rem;color:#636e72}
+
+        /* MESSAGES */
+        .msg{padding:12px 20px;border-radius:12px;margin:1rem 0;font-weight:600;font-size:.9rem}
+        .msg-success{background:#d1e7dd;color:#0f5132}
+        .msg-error{background:#f8d7da;color:#721c24}
+        .msg-info{background:#cff4fc;color:#055160}
+        .msg-warning{background:#fff3cd;color:#856404}
+
+        /* RADIO */
+        .radio-group{display:flex;flex-direction:column;gap:.75rem}
+        .radio-option{display:flex;align-items:center;gap:10px;padding:14px 18px;border:2px solid #e8ecf1;border-radius:12px;cursor:pointer;transition:all .2s}
+        .radio-option:hover,.radio-option:has(input:checked){border-color:#667eea;background:#f3f4ff}
+        .radio-option input[type=radio]{accent-color:#667eea;width:18px;height:18px}
+        .radio-option .radio-label{font-weight:600;font-size:.9rem;color:#2d3436}
+        .radio-option .radio-desc{font-size:.78rem;color:#636e72}
+
+        /* EMPTY */
+        .empty-state{text-align:center;padding:4rem 2rem;color:#b2bec3}
+        .empty-state i{font-size:3rem;margin-bottom:1rem;display:block;opacity:.4}
+        .empty-state h3{color:#636e72;margin-bottom:.5rem}
+
+        /* RESPONSIVE */
+        @media(max-width:768px){
+            .nav-inner{flex-wrap:wrap;height:auto;padding:12px 0;gap:10px}
+            .nav-search{order:3;width:100%}
+            .nav-search input{width:100%;border-radius:12px}
+            .nav-search button{display:none}
+            .hero h1{font-size:1.8rem}
+            .product-grid{grid-template-columns:repeat(2,1fr)}
+            .footer-inner{grid-template-columns:1fr 1fr}
+            .checkout-grid{grid-template-columns:1fr!important}
+        }
+    </style>
+</head>
+<body>
+    <!-- NAV -->
+    <nav class="nav">
+        <div class="nav-inner">
+            <a href="{% url 'eshop:home' %}" class="nav-logo">
+                <i class="fas fa-store"></i> ZenMart - Cửa Hàng Tiện Lợi
+            </a>
+            <div class="nav-links">
+                <a href="{% url 'eshop:home' %}">Trang chủ</a>
+                <a href="{% url 'eshop:products' %}">Sản phẩm</a>
+                <a href="{% url 'eshop:directions' %}">Tìm đường</a>
+
+
+                <!-- VỀ CHÚNG TÔI -->
+                <div class="nav-dropdown" id="aboutDropdown">
+                    <a href="#" class="nav-dropdown-btn" onclick="document.getElementById('aboutDropdown').classList.toggle('open'); return false;">
+
+                        <i class="fa-solid fa-users" style="margin-right:8px;"></i> Về chúng tôi <span style="margin-left:6px;">▼</span>
+                    </a>
+                    <ul class="dropdown-content">
+                        <li><a href="{% url 'eshop:about' %}"><i class="fa-solid fa-info-circle" style="margin-right:8px;"></i> Giới thiệu</a></li>
+                        <li><a href="{% url 'eshop:news' %}"><i class="fa-solid fa-newspaper" style="margin-right:8px;"></i> Tin tức</a></li>
+                        <li><a href="{% url 'eshop:contact' %}"><i class="fa-solid fa-address-book" style="margin-right:8px;"></i> Liên hệ</a></li>
+                    </ul>
+                </div>
+            </div>
+            <form method="get" action="{% url 'eshop:products' %}" class="nav-search">
+                <input type="text" name="q" placeholder="Tìm sản phẩm..." value="{{ request.GET.q }}">
+                <button type="submit"><i class="fas fa-search"></i></button>
+            </form>
+            <a href="{% url 'eshop:cart' %}" class="nav-cart">
+                <i class="fas fa-shopping-cart"></i>
+                <span>Giỏ hàng</span>
+                {% if request.session.cart %}
+                <span class="badge">{{ request.session.cart|length }}</span>
+                {% endif %}
+            </a>
+            {% if user.is_authenticated %}
+            <a href="{% url 'eshop:wishlist' %}" class="nav-cart" style="background:#fff8f0;color:#fb6340;">
+                <i class="fas fa-heart"></i>
+                <span>Yêu thích</span>
+            </a>
+            <a href="{% url 'eshop:profile' %}" class="nav-cart" style="background:#f0fff4;color:#2d3436;">
+                {% if user.avatar %}
+                <img src="{{ user.avatar.url }}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;">
+                {% else %}
+                <i class="fas fa-user-circle"></i>
+                {% endif %}
+                <span>{% if user.first_name %}{{ user.first_name }}{% else %}{{ user.email }}{% endif %}</span>
+            </a>
+            {% else %}
+            <a href="{% url 'eshop:login' %}" class="nav-cart" style="background:#f3f4ff;">
+                <i class="fas fa-sign-in-alt"></i>
+                <span>Đăng nhập</span>
+            </a>
+            <a href="{% url 'eshop:register' %}" class="nav-cart" style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;">
+                <i class="fas fa-user-plus"></i>
+                <span>Đăng ký</span>
+            </a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <!-- MESSAGES -->
+    {% if messages %}
+    <div class="container" style="margin-top:1rem;">
+        {% for msg in messages %}
+        <div class="msg msg-{{ msg.tags }}">{{ msg }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- CONTENT -->
+    {% block content %}{% endblock %}
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <div class="footer-inner">
+            <div>
+                <h4><i class="fas fa-store" style="margin-right:6px;"></i>ZenMart - Cửa Hàng Tiện Lợi</h4>
+                <p>Chuỗi cửa hàng tiện lợi hàng đầu Việt Nam. Cung cấp các sản phẩm chất lượng với giá cả hợp lý, phục vụ tận tâm.</p>
+            </div>
+            <div>
+                <h4>Mua sắm</h4>
+                <a href="{% url 'eshop:products' %}" style="display:block;">Tất cả sản phẩm</a>
+                <a href="{% url 'eshop:products' %}?category=do-uong" style="display:block;">Đồ uống</a>
+                <a href="{% url 'eshop:products' %}?category=do-an" style="display:block;">Đồ ăn</a>
+            </div>
+            <div>
+                <h4>Hỗ trợ</h4>
+                <a href="{% url 'eshop:order_tracking' %}" style="display:block;">Tra cứu đơn hàng</a>
+                <a href="{% url 'eshop:about' %}" style="display:block;">Về chúng tôi</a>
+                <a href="{% url 'eshop:directions' %}" style="display:block;">Tìm đường</a>
+                <a href="{% url 'eshop:contact' %}" style="display:block;">Liên hệ</a>
+            </div>
+            <div>
+                <h4>Liên hệ</h4>
+                <p><i class="fas fa-phone" style="margin-right:6px;"></i>1900 1234</p>
+                <p><i class="fas fa-envelope" style="margin-right:6px;"></i>1250080068@sv.hcmunre.edu.vn</p>
+                <p><i class="fas fa-clock" style="margin-right:6px;"></i>9:00 - 22:00</p>
+            </div>
+        </div>
+        <div class="footer-bottom">&copy; 2025 ZenMart - Cửa Hàng Tiện Lợi. All rights reserved.</div>
+    </footer>
+
+    <script>
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const dropdown = document.getElementById('aboutDropdown');
+            if (dropdown && !dropdown.contains(event.target)) {
+                dropdown.classList.remove('open');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}ZenMart{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+
+    <!-- Navbar -->
+    {% include 'eshop/navbar.html' %}
+
+    <!-- Main content -->
+    <main class="flex-1">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-gray-200 mt-12">
+        <div class="max-w-7xl mx-auto px-6 py-12 grid grid-cols-1 md:grid-cols-4 gap-6">
+
+            <!-- Logo & info -->
+            <div class="space-y-4">
+                <div class="flex items-center gap-2 text-2xl font-bold text-white">
+                    <i class="fas fa-store"></i> ZenMart
+                </div>
+                <p class="text-gray-400 text-sm">Cửa hàng trực tuyến uy tín, giao hàng nhanh, hỗ trợ 24/7.</p>
+            </div>
+
+            <!-- Quick Links -->
+            <div>
+                <h3 class="font-semibold mb-3">Liên kết nhanh</h3>
+                <ul class="space-y-2">
+                    <li><a href="{% url 'eshop:home' %}" class="hover:text-white transition">Trang chủ</a></li>
+                    <li><a href="{% url 'eshop:products' %}" class="hover:text-white transition">Sản phẩm</a></li>
+                    <li><a href="{% url 'eshop:about' %}" class="hover:text-white transition">Về chúng tôi</a></li>
+                    <li><a href="{% url 'eshop:contact' %}" class="hover:text-white transition">Liên hệ</a></li>
+                </ul>
+            </div>
+
+            <!-- Support -->
+            <div>
+                <h3 class="font-semibold mb-3">Hỗ trợ</h3>
+                <ul class="space-y-2">
+                    <li><a href="{% url 'eshop:faq' %}" class="hover:text-white transition">Câu hỏi thường gặp</a></li>
+                    <li><a href="{% url 'eshop:shipping' %}" class="hover:text-white transition">Chính sách giao hàng</a></li>
+                    <li><a href="{% url 'eshop:return' %}" class="hover:text-white transition">Chính sách đổi trả</a></li>
+                </ul>
+            </div>
+
+            <!-- Social -->
+            <div>
+                <h3 class="font-semibold mb-3">Theo dõi chúng tôi</h3>
+                <div class="flex items-center gap-4 text-xl">
+                    <a href="#" class="hover:text-white transition"><i class="fab fa-facebook"></i></a>
+                    <a href="#" class="hover:text-white transition"><i class="fab fa-instagram"></i></a>
+                    <a href="#" class="hover:text-white transition"><i class="fab fa-twitter"></i></a>
+                    <a href="#" class="hover:text-white transition"><i class="fab fa-youtube"></i></a>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="border-t border-gray-700 mt-6 py-4 text-center text-gray-500 text-sm">
+            &copy; {{ now.year }} ZenMart. Bản quyền thuộc về ZenMart.
+        </div>
+    </footer>
+
+</body>
+</html>

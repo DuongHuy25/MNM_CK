@@ -1,0 +1,18 @@
+{
+    "sourceFile": "eshop/urls.py",
+    "activeCommit": 0,
+    "commits": [
+        {
+            "activePatchIndex": 0,
+            "patches": [
+                {
+                    "date": 1779347770313,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n"
+                }
+            ],
+            "date": 1779347770313,
+            "name": "Commit-0",
+            "content": "from django.urls import path\r\nfrom django.contrib.auth import views as auth_views\r\nfrom . import views\r\nfrom .forms import EshopPasswordResetForm, EshopSetPasswordForm\r\n\r\napp_name = 'eshop'\r\n\r\nurlpatterns = [\r\n    path('', views.home, name='home'),\r\n    path('products/', views.product_list, name='products'),\r\n    path('products/<int:pk>/', views.product_detail, name='product_detail'),\r\n    path('cart/', views.cart_detail, name='cart'),\r\n    path('cart/add/<int:product_id>/', views.cart_add, name='cart_add'),\r\n    path('cart/remove/<int:product_id>/', views.cart_remove, name='cart_remove'),\r\n    path('cart/update/<int:product_id>/', views.cart_update, name='cart_update'),\r\n    path('checkout/', views.checkout, name='checkout'),\r\n    path('order/success/<str:order_id>/', views.order_success, name='order_success'),\r\n    path('order/payment/<str:order_id>/', views.payment_simulate, name='payment_simulate'),\r\n    path('order/tracking/', views.order_tracking, name='order_tracking'),\r\n    path('order/detail/<str:order_id>/', views.order_detail, name='order_detail'),\r\n    path('order/review/<str:order_id>/', views.order_review, name='order_review'),\r\n    path('tim-duong/', views.directions, name='directions'),\r\n    path('about/', views.about, name='about'),\r\n    path('news/', views.news_list, name='news'),\r\n    path('news/<slug:slug>/', views.news_detail, name='news_detail'),\r\n    path('contact/', views.contact, name='contact'),\r\n    path('wishlist/', views.wishlist, name='wishlist'),\r\n    path('wishlist/add/<int:product_id>/', views.add_to_wishlist, name='add_to_wishlist'),\r\n    path('wishlist/remove/<int:product_id>/', views.remove_from_wishlist, name='remove_from_wishlist'),\r\n\r\n    # Auth\r\n    path('login/', views.login_view, name='login'),\r\n    path('register/', views.register_view, name='register'),\r\n    path('logout/', views.logout_view, name='logout'),\r\n    path('profile/', views.profile_view, name='profile'),\r\n    path('forgot-password/', views.forgot_password_view, name='forgot_password'),\r\n    path('password-reset/', auth_views.PasswordResetView.as_view(\r\n        template_name='eshop/auth/password_reset.html',\r\n        form_class=EshopPasswordResetForm,\r\n        email_template_name='eshop/auth/password_reset_email.html',\r\n        success_url='/password-reset/done/',\r\n    ), name='password_reset'),\r\n    path('password-reset/done/', auth_views.PasswordResetDoneView.as_view(\r\n        template_name='eshop/auth/password_reset_done.html',\r\n    ), name='password_reset_done'),\r\n    path('reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(\r\n        template_name='eshop/auth/password_reset_confirm.html',\r\n        form_class=EshopSetPasswordForm,\r\n        success_url='/reset/done/',\r\n    ), name='password_reset_confirm'),\r\n    path('reset/done/', auth_views.PasswordResetCompleteView.as_view(\r\n        template_name='eshop/auth/password_reset_complete.html',\r\n    ), name='password_reset_complete'),\r\n\r\n    # Error pages (testable in DEBUG=True)\r\n    path('error/<int:status_code>/', views.error_test_view, name='error_test'),\r\n]\r\n"
+        }
+    ]
+}

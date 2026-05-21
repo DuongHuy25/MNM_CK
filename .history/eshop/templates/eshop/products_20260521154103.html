@@ -1,0 +1,108 @@
+{% extends 'eshop/base.html' %}
+{% load static %}
+{% block title %}Sản Phẩm - ZenMart{% endblock %}
+{% block content %}
+
+<div class="max-w-7xl mx-auto px-6 py-12 space-y-6">
+
+    <!-- Header "Danh Mục Sản Phẩm" -->
+    <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+        <i class="fas fa-th-large text-blue-600"></i> Danh Mục Sản Phẩm
+    </h2>
+
+    <!-- Container: sidebar + main content -->
+    <div class="flex flex-col lg:flex-row gap-8">
+
+        <!-- Sidebar left -->
+        <aside class="w-full lg:w-64 flex-shrink-0 bg-white p-6 rounded-2xl shadow-lg h-fit sticky top-20">
+            <ul class="space-y-2">
+                <li>
+                    <a href="{% url 'eshop:products' %}" 
+                       class="block px-3 py-2 rounded transition-all duration-300 font-semibold
+                              {% if not current_category %}bg-gradient-to-r from-blue-600 to-blue-400 text-white shadow-lg{% else %}text-gray-700 hover:bg-gradient-to-r hover:from-blue-500 hover:to-blue-300 hover:text-white{% endif %}">
+                       Tất cả
+                    </a>
+                </li>
+                {% for cat in categories %}
+                <li>
+                    <a href="?category={{ cat.slug }}{% if current_brand %}&brand={{ current_brand }}{% endif %}" 
+                       class="block px-3 py-2 rounded transition-all duration-300 font-semibold
+                              {% if current_category == cat.slug %}bg-gradient-to-r from-blue-600 to-blue-400 text-white shadow-lg{% else %}text-gray-700 hover:bg-gradient-to-r hover:from-blue-500 hover:to-blue-300 hover:text-white{% endif %}">
+                       {{ cat.name }}
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+
+            {% if brands %}
+            <h3 class="font-bold text-lg mt-6 mb-2">Nhãn hiệu</h3>
+            <select onchange="window.location.href=this.value" class="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-blue-500 transition">
+                <option value="{% url 'eshop:products' %}">Tất cả nhãn hiệu</option>
+                {% for brand in brands %}
+                <option value="?brand={{ brand.id }}{% if current_category %}&category={{ current_category }}{% endif %}" {% if current_brand == brand.id|stringformat:'s' %}selected{% endif %}>
+                    {{ brand.name }}
+                </option>
+                {% endfor %}
+            </select>
+            {% endif %}
+        </aside>
+
+        <!-- Main content -->
+        <div class="flex-1 space-y-6">
+            <!-- Search -->
+            <form method="get" class="flex gap-2 mb-4">
+                <input type="text" name="q" value="{{ query }}" placeholder="Tìm sản phẩm..." 
+                       class="border rounded-full px-4 py-2 flex-1 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-full hover:bg-blue-700 transition">
+                    <i class="fas fa-search"></i>
+                </button>
+            </form>
+
+            <!-- Products grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {% for product in products %}
+                {% include 'eshop/_product_card.html' %}
+                {% empty %}
+                <div class="col-span-4 text-center py-12 text-gray-400 space-y-2">
+                    <i class="fas fa-search text-4xl"></i>
+                    <h3 class="font-semibold text-lg">Không tìm thấy sản phẩm</h3>
+                    <p>Thử tìm kiếm với từ khóa khác</p>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Pagination -->
+            {% if products.has_other_pages %}
+            <div class="flex justify-center items-center gap-2 mt-8 flex-wrap">
+                {% if products.has_previous %}
+                <a href="?page={{ products.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if current_category %}&category={{ current_category }}{% endif %}{% if current_brand %}&brand={{ current_brand }}{% endif %}"
+                   class="w-9 h-9 flex items-center justify-center border rounded hover:bg-blue-50 hover:border-blue-600 hover:text-blue-600 transition">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+                {% endif %}
+
+                {% for num in products.paginator.page_range %}
+                    {% if num > products.number|add:'-3' and num < products.number|add:'3' %}
+                        {% if products.number == num %}
+                        <span class="w-9 h-9 flex items-center justify-center bg-blue-600 text-white font-bold rounded">{{ num }}</span>
+                        {% else %}
+                        <a href="?page={{ num }}{% if query %}&q={{ query }}{% endif %}{% if current_category %}&category={{ current_category }}{% endif %}{% if current_brand %}&brand={{ current_brand }}{% endif %}" 
+                           class="w-9 h-9 flex items-center justify-center border rounded hover:bg-blue-50 hover:border-blue-600 hover:text-blue-600 transition">{{ num }}</a>
+                        {% endif %}
+                    {% endif %}
+                {% endfor %}
+
+                {% if products.has_next %}
+                <a href="?page={{ products.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if current_category %}&category={{ current_category }}{% endif %}{% if current_brand %}&brand={{ current_brand }}{% endif %}"
+                   class="w-9 h-9 flex items-center justify-center border rounded hover:bg-blue-50 hover:border-blue-600 hover:text-blue-600 transition">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

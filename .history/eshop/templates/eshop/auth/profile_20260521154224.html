@@ -1,0 +1,183 @@
+{% extends 'eshop/base.html' %}
+{% load static %}
+{% block title %}Tài Khoản - ZenMart{% endblock %}
+
+{% block content %}
+
+<div class="max-w-4xl mx-auto px-6 py-12 space-y-8">
+
+    <!-- Header profile -->
+    <div class="bg-white p-6 rounded-2xl shadow-lg flex items-center gap-6">
+        {% if request.user.avatar %}
+        <img src="{{ request.user.avatar.url }}" class="w-14 h-14 rounded-full border-4 border-blue-600 object-cover">
+        {% else %}
+        <div class="w-14 h-14 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white text-xl">
+            <i class="fas fa-user"></i>
+        </div>
+        {% endif %}
+        <div class="flex-1">
+            <h2 class="text-xl font-bold text-gray-800">
+                {% if request.user.first_name %}{{ request.user.first_name }} {{ request.user.last_name }}{% else %}{{ request.user.email }}{% endif %}
+            </h2>
+            <div class="text-gray-500 text-sm">{{ request.user.email }}</div>
+        </div>
+        <a href="{% url 'eshop:logout' %}" class="inline-flex items-center gap-2 border border-blue-600 text-blue-600 px-4 py-2 rounded-lg hover:bg-blue-600 hover:text-white transition">
+            <i class="fas fa-sign-out-alt"></i> Đăng xuất
+        </a>
+    </div>
+
+    <!-- Thông tin cá nhân -->
+    <div class="bg-white p-6 rounded-2xl shadow-lg space-y-4">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-bold flex items-center gap-2"><i class="fas fa-id-card text-blue-600"></i> Thông Tin Cá Nhân</h3>
+            <button type="button" onclick="toggleEdit()" id="editBtn" class="border border-gray-300 text-gray-700 px-3 py-1 rounded-lg hover:bg-gray-100 transition flex items-center gap-1 text-sm">
+                <i class="fas fa-pen"></i> Chỉnh sửa
+            </button>
+        </div>
+
+        <!-- Display mode -->
+        <div id="profileDisplay" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                <div class="flex items-center gap-4">
+                    {% if request.user.avatar %}
+                    <img src="{{ request.user.avatar.url }}" class="w-16 h-16 rounded-full border-4 border-blue-600 object-cover">
+                    {% else %}
+                    <div class="w-16 h-16 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white text-2xl">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    {% endif %}
+                    <div>
+                        <div class="font-semibold text-gray-800">{{ request.user.first_name }} {{ request.user.last_name }}</div>
+                        <div class="text-gray-500 text-sm">{{ request.user.email }}</div>
+                    </div>
+                </div>
+                <div>
+                    <div class="text-xs font-bold text-gray-500 uppercase mb-1">Số điện thoại</div>
+                    <div class="text-gray-800">{% if request.user.phone %}{{ request.user.phone }}{% else %}<span class="text-gray-400">Chưa nhập</span>{% endif %}</div>
+                </div>
+                <div>
+                    <div class="text-xs font-bold text-gray-500 uppercase mb-1">Địa chỉ</div>
+                    <div class="text-gray-800">{% if request.user.address %}{{ request.user.address }}{% else %}<span class="text-gray-400">Chưa nhập</span>{% endif %}</div>
+                </div>
+            </div>
+            {% if request.user.lat and request.user.lng %}
+            <div class="mt-4 rounded-lg overflow-hidden border border-gray-200">
+                <div id="display-map" class="h-60 w-full"></div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Edit mode -->
+        <div id="profileEdit" class="hidden space-y-4">
+            <form method="post" enctype="multipart/form-data" id="profileForm" class="space-y-4">
+                {% csrf_token %}
+                {{ form.lat }}
+                {{ form.lng }}
+                <div>
+                    <label class="block text-sm font-semibold mb-1">{{ form.avatar.label }}</label>
+                    <div class="flex items-center gap-4">
+                        {% if request.user.avatar %}
+                        <img src="{{ request.user.avatar.url }}" class="w-12 h-12 rounded-full object-cover">
+                        {% else %}
+                        <div class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 text-lg">
+                            <i class="fas fa-camera"></i>
+                        </div>
+                        {% endif %}
+                        {{ form.avatar }}
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold mb-1">{{ form.full_name.label }}</label>
+                    {{ form.full_name }}
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold mb-1">{{ form.phone.label }}</label>
+                    {{ form.phone }}
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold mb-1">{{ form.address.label }}</label>
+                    {{ form.address }}
+                    <div id="addr-status" class="text-xs mt-1"></div>
+                </div>
+
+                <!-- Map -->
+                <div class="prof-map-wrap rounded-lg overflow-hidden border border-gray-200">
+                    <div id="profile-map" class="h-60 w-full"></div>
+                    <div class="flex gap-2 p-2">
+                        <input type="text" id="map-search-input" placeholder="Tìm địa chỉ trên bản đồ..." class="flex-1 border rounded px-2 py-1 text-sm focus:ring-2 focus:ring-blue-500">
+                        <button type="button" class="bg-blue-600 text-white px-3 py-1 rounded hover:opacity-90 transition" onclick="searchMapAddress()"><i class="fas fa-search"></i></button>
+                        <button type="button" class="bg-green-500 text-white px-3 py-1 rounded hover:opacity-90 transition" onclick="getGPSLocation()"><i class="fas fa-location-crosshairs"></i></button>
+                    </div>
+                </div>
+
+                <div class="flex gap-2 mt-2">
+                    <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:opacity-90 transition"><i class="fas fa-save"></i> Lưu</button>
+                    <button type="button" onclick="toggleEdit()" class="border border-gray-300 px-6 py-2 rounded-lg hover:bg-gray-100 transition">Hủy</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Password Change -->
+    <div class="bg-white p-6 rounded-2xl shadow-lg space-y-4">
+        <h3 class="text-lg font-bold flex items-center gap-2"><i class="fas fa-lock text-blue-600"></i> Đổi Mật Khẩu</h3>
+        <form method="post" id="passwordForm" class="space-y-3">
+            {% csrf_token %}
+            <div>
+                <label class="block text-sm font-semibold mb-1">Mật khẩu hiện tại</label>
+                <input type="password" name="old_password" required class="border rounded w-full px-3 py-2 text-sm" placeholder="Nhập mật khẩu hiện tại">
+            </div>
+            <div>
+                <label class="block text-sm font-semibold mb-1">Mật khẩu mới</label>
+                <input type="password" name="new_password" required minlength="8" class="border rounded w-full px-3 py-2 text-sm" placeholder="Tối thiểu 8 ký tự">
+            </div>
+            <div>
+                <label class="block text-sm font-semibold mb-1">Xác nhận mật khẩu mới</label>
+                <input type="password" name="confirm_password" required minlength="8" class="border rounded w-full px-3 py-2 text-sm" placeholder="Nhập lại mật khẩu mới">
+            </div>
+            <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:opacity-90 transition"><i class="fas fa-key"></i> Đổi mật khẩu</button>
+        </form>
+    </div>
+
+    <!-- Orders -->
+    <div class="bg-white p-6 rounded-2xl shadow-lg space-y-4">
+        <h3 class="text-lg font-bold flex items-center gap-2"><i class="fas fa-receipt text-blue-600"></i> Đơn Hàng Của Tôi</h3>
+        {% if orders %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full border-collapse">
+                <thead>
+                    <tr class="bg-gray-100 text-gray-600 text-xs uppercase font-semibold">
+                        <th class="p-2 text-left">Mã ĐH</th>
+                        <th class="p-2 text-left">Ngày đặt</th>
+                        <th class="p-2 text-left">Trạng thái</th>
+                        <th class="p-2 text-right">Tổng</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                    <tr class="border-b hover:bg-gray-50 transition">
+                        <td class="p-2 font-mono text-blue-600 font-semibold text-sm">
+                            <a href="{% url 'eshop:order_detail' order.order_id %}" class="hover:underline">{{ order.order_id }}</a>
+                        </td>
+                        <td class="p-2 text-gray-600 text-sm">{{ order.created_at|date:'d/m/Y H:i' }}</td>
+                        <td class="p-2"><span class="status-badge status-{{ order.status }}">{{ order.get_status_display }}</span></td>
+                        <td class="p-2 text-right font-semibold text-gray-800">{{ order.total_amount|floatformat:0 }}đ</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-12 text-gray-400 space-y-2">
+            <i class="fas fa-box-open text-5xl"></i>
+            <h3 class="text-lg font-semibold">Chưa có đơn hàng</h3>
+            <a href="{% url 'eshop:products' %}" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:opacity-90 transition inline-flex items-center gap-2">
+                <i class="fas fa-shopping-bag"></i> Mua sắm ngay
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+
+{% endblock %}
